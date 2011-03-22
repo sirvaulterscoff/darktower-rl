@@ -1,5 +1,6 @@
 from gui import AbstractGui, LibtcodGui
 from game_input import *
+import libtcodpy
 
 class Player(object):
 	cur_pos_x, cur_pos_y = 0, 0

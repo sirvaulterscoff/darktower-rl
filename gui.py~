@@ -1,4 +1,4 @@
-import thirdparty.libtcod.libtcodpy as libtcod
+import libtcodpy as libtcod from thirdparty
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50

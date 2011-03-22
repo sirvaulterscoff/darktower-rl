@@ -1,4 +1,4 @@
-import thirdparty.libtcod.libtcodpy as libtcod
+import libtcodpy as libtcod
 
 class Input(object):
 	def __init__(self, player):
