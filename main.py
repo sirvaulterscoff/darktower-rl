@@ -1,3 +1,4 @@
+from dungeon_generators import CaveGenerator
 from gui import AbstractGui, LibtcodGui
 from game_input import *
 
@@ -35,5 +36,10 @@ testCritter = Critter('D', [255,255,0], 20, 20)
 
 critters = [player, testCritter]
 input = Input(player)
+dg = CaveGenerator(80, 25)
+dg.generate()
+for i in  range(0, dg.length):
+  for j in range(0,dg.width):
+      gui.print_critter(i, j, dg._map[i][j].char)
 main_loop()
 
