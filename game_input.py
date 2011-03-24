@@ -12,14 +12,27 @@ class Input(object):
 		elif key.vk == libtcod.KEY_F10:
 			return True  #exit game
 		#movement keys
+		#todo vi keys
 		newx, newy = self.player.cur_pos_x, self.player.cur_pos_y
-		if libtcod.console_is_key_pressed(libtcod.KEY_UP):
+		if libtcod.console_is_key_pressed(libtcod.KEY_UP) or libtcod.console_is_key_pressed(libtcod.KEY_KP8):
 			newy -= 1
-		elif libtcod.console_is_key_pressed(libtcod.KEY_DOWN):
+		elif libtcod.console_is_key_pressed(libtcod.KEY_DOWN) or libtcod.console_is_key_pressed(libtcod.KEY_KP2):
 			newy += 1
-		elif libtcod.console_is_key_pressed(libtcod.KEY_LEFT):
+		elif libtcod.console_is_key_pressed(libtcod.KEY_LEFT) or libtcod.console_is_key_pressed(libtcod.KEY_KP4):
 			newx -= 1
-		elif libtcod.console_is_key_pressed(libtcod.KEY_RIGHT):
+		elif libtcod.console_is_key_pressed(libtcod.KEY_RIGHT) or libtcod.console_is_key_pressed(libtcod.KEY_KP6):
+			newx += 1
+		elif libtcod.console_is_key_pressed(libtcod.KEY_KP1):
+			newy += 1
+			newx -= 1
+		elif libtcod.console_is_key_pressed(libtcod.KEY_KP3):
+			newy += 1
+			newx += 1
+		elif libtcod.console_is_key_pressed(libtcod.KEY_KP7):
+			newy -= 1
+			newx -= 1
+		elif libtcod.console_is_key_pressed(libtcod.KEY_KP9):
+			newy -= 1
 			newx += 1
 
 		if newx < 0:

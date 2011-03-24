@@ -32,7 +32,7 @@ critters = []
 recompute_fov = False
 def can_pass(x, y):
 	global recompute_fov
-	recompute_fov = passable(map[x][y])
+	recompute_fov = passable(map.map[x][y])
 	return recompute_fov
 
 def main_loop():
