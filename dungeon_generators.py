@@ -8,8 +8,8 @@ def parse_string(map):
 	for line in map:
 		list = []
 		for char in line:
-			if char == '#': list.append(FT_ROCK_WALL)
-			elif char == ' ': list.append(FT_FLOOR)
+			if char == '#': list.append(FT_ROCK_WALL())
+			elif char == ' ': list.append(FT_FLOOR())
 			y += 1
 		new_map.append(list)
 		x += 1
@@ -44,18 +44,18 @@ class Rect:
 
 class AbstractGenerator(object):
 	def __init__(self, length, width):
-		self._map = [[FT_ROCK_WALL
+		self._map = [[FT_ROCK_WALL()
 					  for i in range(0, length)]
 					 for j in range(0, width)]
 
 	def generate_border(self):
 		for j in range(0, self.length):
-			self._map[j][0] = FT_FIXED_WALL
-			self._map[j][self.width - 1] = FT_FIXED_WALL
+			self._map[j][0] = FT_FIXED_WALL()
+			self._map[j][self.width - 1] = FT_FIXED_WALL()
 
 		for j in range(0, self.width):
-			self._map[0][j] = FT_FIXED_WALL
-			self._map[self.length - 1][j] = FT_FIXED_WALL
+			self._map[0][j] = FT_FIXED_WALL()
+			self._map[self.length - 1][j] = FT_FIXED_WALL()
 
 
 class CaveGenerator(AbstractGenerator):
@@ -63,7 +63,7 @@ class CaveGenerator(AbstractGenerator):
 		self.length = length
 		self.width = width
 		self.open_area = open_area
-		self._map = [[FT_ROCK_WALL
+		self._map = [[FT_ROCK_WALL()
 					  for i in range(0, width)]
 					 for j in range(0, length)]
 
@@ -72,7 +72,7 @@ class CaveGenerator(AbstractGenerator):
 		for r in range(0, self.length):
 			row = []
 			for c in range(0, self.width):
-				row.append(FT_ROCK_WALL)
+				row.append(FT_ROCK_WALL())
 			self._map.append(row)
 
 		self.generate_border()
@@ -86,8 +86,8 @@ class CaveGenerator(AbstractGenerator):
 			rand_x = randrange(1, self.length - 1)
 			rand_y = randrange(1, self.width - 1)
 
-			if self._map[rand_x][rand_y] == FT_ROCK_WALL:
-				self._map[rand_x][rand_y] = FT_FLOOR
+			if self._map[rand_x][rand_y].is_wall:
+				self._map[rand_x][rand_y] = FT_FLOOR()
 				walls_left -= 1
 				ticks -= 1
 
@@ -96,11 +96,11 @@ class CaveGenerator(AbstractGenerator):
 			for y in range(1, self.width - 1):
 				wall_count = self.count_neigh_walls(x, y)
 
-				if self._map[x][y] == FT_FLOOR:
+				if self._map[x][y].is_floor():
 					if wall_count > 5:
-						self._map[x][y] = FT_ROCK_WALL
+						self._map[x][y] = FT_ROCK_WALL()
 				elif wall_count < 4:
-					self._map[x][y] = FT_FLOOR
+					self._map[x][y] = FT_FLOOR()
 
 		return self._map
 
@@ -109,14 +109,14 @@ class CaveGenerator(AbstractGenerator):
 		count = 0
 		for row in (-1, 0, 1):
 			for col in (-1, 0, 1):
-				if self._map[(x + row)][y + col] != FT_FLOOR and not(row == 0 and col == 0):
+				if not self._map[(x + row)][y + col].is_floor() and not(row == 0 and col == 0):
 					count += 1
 		return count
 
 
 class RoomsCoridorsGenerator(AbstractGenerator):
 	def __init__(self, length, width, room_max_size=15, room_min_size=3, max_rooms=30):
-		self._map = [[FT_FIXED_WALL
+		self._map = [[FT_FIXED_WALL()
 					  for i in range(0, width)]
 					 for j in range(0, length)]
 		self.length = length
@@ -159,11 +159,11 @@ class RoomsCoridorsGenerator(AbstractGenerator):
 
 	def create_h_tunnel(self, x1, x2, y):
 		for x in range(min(x1, x2), max(x1, x2)):
-			self._map[x][y] = FT_FLOOR
+			self._map[x][y] = FT_FLOOR()
 
 	def create_v_tunnel(self, y1, y2, x):
 		for y in range(min(y1, y2), max(y1, y2)):
-			self._map[x][y] = FT_FLOOR
+			self._map[x][y] = FT_FLOOR()
 
 
 	def check_room_overlap(self, rooms, new_room):
@@ -174,7 +174,7 @@ class RoomsCoridorsGenerator(AbstractGenerator):
 	def create_room(self, room):
 		for x in range(room.x1 + 1, room.x2):
 			for y in range(room.y1 + 1, room.y2):
-				self._map[x][y] = FT_FLOOR
+				self._map[x][y] = FT_FLOOR()
 
 	def finish(self):
 		self.generate_border()
