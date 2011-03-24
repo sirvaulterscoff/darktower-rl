@@ -2,6 +2,7 @@ from dungeon_generators import *
 from gui import  LibtcodGui
 from game_input import *
 from features import *
+from map import Map
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
@@ -58,7 +59,7 @@ input = Input(player)
 
 dg = RoomsCoridorsGenerator(40, 25)
 dg.generate()
-map = dg.finish()
+map = Map(dg.finish())
 
 gui.init_fov(map)
 #for i in  range(0, dg.length):
@@ -66,7 +67,7 @@ gui.init_fov(map)
 #		gui.print_critter(i, j, map[i][j].char)
 gui.main_loop(critters, map)
 
-player.cur_pos_x, player.cur_pos_y = find_passable_square(map)
+player.cur_pos_x, player.cur_pos_y = find_passable_square(map.map)
 
 
 main_loop()

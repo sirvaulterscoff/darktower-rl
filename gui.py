@@ -25,30 +25,29 @@ class LibtcodGui(AbstractGui):
 		libtcod.console_print_left(self.con, cur_pos_x, cur_pos_y, libtcod.BKGND_NONE, ' ')
 
 	def init_fov(self, map):
-		self.fov_map = libtcod.map_new(40, 25)
+		self.fov_map = libtcod.map_new(map.map_width, map.map_height)
 		for y in range(25):
 			for x in range(40):
-				libtcod.map_set_properties(self.fov_map, x, y, not map[x][y].flags & BLOCK_WALK, not map[x][y].flags & BLOCK_LOS)
+				libtcod.map_set_properties(self.fov_map, x, y, not map.map[x][y].flags & BLOCK_WALK, not map.map[x][y].flags & BLOCK_LOS)
 
 	def main_loop(self, critters, map):
 		for critter in critters:
-			libtcod.console_set_foreground_color(self.con, libtcod.Color(critter.color[0],
-																  critter.color[1],
-																  critter.color[2]))
+			libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
 			self.print_critter(critter.cur_pos_x, critter.cur_pos_y, critter.char)
 		libtcod.console_blit(self.con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 		libtcod.console_flush()
 		for critter in critters:
 			self.clear_critter(critter.cur_pos_x, critter.cur_pos_y)
 
-		for y in range(25):
-			for x in range(40):
+		for y in range(map.map_height):
+			for x in range(map.map_width):
+				libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, map.map[x][y].char)
 				visible = libtcod.map_is_in_fov(self.fov_map, x, y)
 				if not visible:
-						libtcod.console_set_back(self.con, x, y, self.create_color(map[x][y].dim_color), libtcod.BKGND_SET)
+						libtcod.console_set_back(self.con, x, y, self.create_color(map.map[x][y].dim_color), libtcod.BKGND_SET)
 				else:
 					#it's visible
-						libtcod.console_set_back(self.con, x, y, self.create_color(map[x][y].color), libtcod.BKGND_SET)
+						libtcod.console_set_back(self.con, x, y, self.create_color(map.map[x][y].color), libtcod.BKGND_SET)
 
 	def window_is_active(self):
 		return not libtcod.console_is_window_closed()
