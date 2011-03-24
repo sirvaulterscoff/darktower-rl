@@ -1,3 +1,4 @@
+from thirdparty.libtcod import libtcodpy as libtcod
 
 class Map(object):
 	def __init__(self, map_src):
