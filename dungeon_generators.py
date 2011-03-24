@@ -58,7 +58,7 @@ class AbstractGenerator(object):
 
 
 class CaveGenerator(AbstractGenerator):
-	def __init__(self, length, width, open_area=0.45):
+	def __init__(self, length, width, open_area=0.60):
 		self.length = length
 		self.width = width
 		self.open_area = open_area

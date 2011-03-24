@@ -17,7 +17,7 @@ class DungeonFeature(object):
 		self.flags = flags
 		self.dim_color = dim_color
 		self.type = type
-		self.visited = False
+		self.seen = False
 		self.color_back = [30, 30, 30]
 		self.dim_color_back = [5, 5, 5]
 
