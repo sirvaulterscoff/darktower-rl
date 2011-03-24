@@ -6,6 +6,7 @@ ft_types = {
 	"wall" : 1,
 	"floor" : 0
 }
+
 def passable(feat):
 	return not feat.flags & BLOCK_WALK
 
@@ -16,6 +17,9 @@ class DungeonFeature(object):
 		self.flags = flags
 		self.dim_color = dim_color
 		self.type = type
+		self.visited = False
+		self.color_back = [30, 30, 30]
+		self.dim_color_back = [5, 5, 5]
 
 	def is_wall(self):
 		return self.type == ft_types["wall"]
@@ -25,5 +29,5 @@ class DungeonFeature(object):
 
 def FT_FIXED_WALL(): return DungeonFeature('#', [130, 110, 50], [0, 0, 100], flags = BLOCK_LOS | BLOCK_WALK)
 def FT_ROCK_WALL(): return DungeonFeature("#", [130, 110, 50], [0, 0, 100], flags = BLOCK_LOS | BLOCK_WALK)
-def FT_GLASS_WALL(): return DungeonFeature("|", [0, 16, 1], [0, 0, 100], flags = BLOCK_LOS | BLOCK_WALK)
+def FT_GLASS_WALL(): return DungeonFeature("#", [30, 30, 160], [0, 0, 100], flags = BLOCK_WALK)
 def FT_FLOOR(): return DungeonFeature(" ", [200, 180, 50], [50, 50, 150], ft_types["floor"])

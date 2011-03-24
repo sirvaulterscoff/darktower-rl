@@ -3,26 +3,25 @@ from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 
 def parse_string(map):
-	new_map = []
+	new_map = [[] for i in range(0, len(map))]
 	x, y = 0, 0
 	for line in map:
-		list = []
 		for char in line:
-			if char == '#': list.append(FT_ROCK_WALL())
-			elif char == ' ': list.append(FT_FLOOR())
-			y += 1
-		new_map.append(list)
-		x += 1
-		y = 0
+			if char == '#': new_map[y].append(FT_ROCK_WALL())
+			elif char == ' ': new_map[y].append(FT_FLOOR())
+			elif char == '+': new_map[y].append(FT_GLASS_WALL())
+			x += 1
+		y += 1
+		x = 0
 	return new_map
 
 def find_passable_square(map):
-	x, y = 1, 1
+	x, y = 0, 0
 	for row in map:
 		for item in row:
-			if item.flags & BLOCK_WALK: y += 1
-			else: return x, y
-		y = 1
+			if not passable(item): y += 1
+			else: return y, x
+		y = 0
 		x += 1
 	return 1, 1
 
@@ -50,12 +49,12 @@ class AbstractGenerator(object):
 
 	def generate_border(self):
 		for j in range(0, self.length):
-			self._map[j][0] = FT_FIXED_WALL()
-			self._map[j][self.width - 1] = FT_FIXED_WALL()
+			self._map[0][j] = FT_FIXED_WALL()
+			self._map[self.width - 1][j] = FT_FIXED_WALL()
 
 		for j in range(0, self.width):
-			self._map[0][j] = FT_FIXED_WALL()
-			self._map[self.length - 1][j] = FT_FIXED_WALL()
+			self._map[j][0]= FT_FIXED_WALL()
+			self._map[j][self.length - 1] = FT_FIXED_WALL()
 
 
 class CaveGenerator(AbstractGenerator):
@@ -64,17 +63,11 @@ class CaveGenerator(AbstractGenerator):
 		self.width = width
 		self.open_area = open_area
 		self._map = [[FT_ROCK_WALL()
-					  for i in range(0, width)]
-					 for j in range(0, length)]
+					  for i in range(0, length)]
+					 for j in range(0, width)]
 
 
 	def generate(self):
-		for r in range(0, self.length):
-			row = []
-			for c in range(0, self.width):
-				row.append(FT_ROCK_WALL())
-			self._map.append(row)
-
 		self.generate_border()
 		walls_left = int(self.length * self.width * self.open_area)
 		#we don't want this process to hang
@@ -86,21 +79,21 @@ class CaveGenerator(AbstractGenerator):
 			rand_x = randrange(1, self.length - 1)
 			rand_y = randrange(1, self.width - 1)
 
-			if self._map[rand_x][rand_y].is_wall:
-				self._map[rand_x][rand_y] = FT_FLOOR()
+			if self._map[rand_y][rand_x].is_wall:
+				self._map[rand_y][rand_x] = FT_FLOOR()
 				walls_left -= 1
 				ticks -= 1
 
 	def finish(self):
 		for x in range(1, self.length - 1):
 			for y in range(1, self.width - 1):
-				wall_count = self.count_neigh_walls(x, y)
+				wall_count = self.count_neigh_walls(y, x)
 
-				if self._map[x][y].is_floor():
+				if self._map[y][x].is_floor():
 					if wall_count > 5:
-						self._map[x][y] = FT_ROCK_WALL()
+						self._map[y][x] = FT_ROCK_WALL()
 				elif wall_count < 4:
-					self._map[x][y] = FT_FLOOR()
+					self._map[y][x] = FT_FLOOR()
 
 		return self._map
 
@@ -117,8 +110,8 @@ class CaveGenerator(AbstractGenerator):
 class RoomsCoridorsGenerator(AbstractGenerator):
 	def __init__(self, length, width, room_max_size=15, room_min_size=3, max_rooms=30):
 		self._map = [[FT_FIXED_WALL()
-					  for i in range(0, width)]
-					 for j in range(0, length)]
+					  for i in range(0, length)]
+					 for j in range(0, width)]
 		self.length = length
 		self.width = width
 		self.max_rooms = max_rooms
@@ -159,11 +152,11 @@ class RoomsCoridorsGenerator(AbstractGenerator):
 
 	def create_h_tunnel(self, x1, x2, y):
 		for x in range(min(x1, x2), max(x1, x2)):
-			self._map[x][y] = FT_FLOOR()
+			self._map[y][x] = FT_FLOOR()
 
 	def create_v_tunnel(self, y1, y2, x):
 		for y in range(min(y1, y2), max(y1, y2)):
-			self._map[x][y] = FT_FLOOR()
+			self._map[y][x] = FT_FLOOR()
 
 
 	def check_room_overlap(self, rooms, new_room):
@@ -174,7 +167,7 @@ class RoomsCoridorsGenerator(AbstractGenerator):
 	def create_room(self, room):
 		for x in range(room.x1 + 1, room.x2):
 			for y in range(room.y1 + 1, room.y2):
-				self._map[x][y] = FT_FLOOR()
+				self._map[y][x] = FT_FLOOR()
 
 	def finish(self):
 		self.generate_border()
@@ -185,19 +178,22 @@ class StaticGenerator(AbstractGenerator):
 		pass
 
 	def generate(self):
-		return [
+		pass
+
+	def finish(self):
+		return parse_string([
 				'#######################',
 				'## ## ## ## ## ## ## ##',
 				'#                     #',
 				'#########     #########',
-				'###   ###     ###   ###',
-				'###   ###     ###   ###',
-				'#########     #########',
-				'########### ###########',
+				'###   +++     ###   ###',
+				'###   ###     +++   ###',
+				'###+#####     ####+####',
+				'##+######## ######+####',
 				'#                     #',
 				'#  #   #       #   #  #',
 				'#    #   #   #   #    #',
 				'#                     #',
-				'###########@###########'
-		]
+				'#######################'
+		])
 

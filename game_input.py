@@ -1,3 +1,4 @@
+import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 
 class Input(object):
@@ -34,13 +35,18 @@ class Input(object):
 		elif libtcod.console_is_key_pressed(libtcod.KEY_KP9):
 			newy -= 1
 			newx += 1
+		elif libtcod.console_is_key_pressed(libtcod.KEY_F1):
+			gl.__wizard_mode__ = True
 
 		if newx < 0:
 			newx = 0
 		if newy < 0:
 			newy = 0
 
-		if call_back(newx, newy):
-			self.player.cur_pos_x, self.player.cur_pos_y = newx, newy
-		else:
-			print("You bump into wall")
+		try:
+			if call_back(newx, newy):
+				self.player.cur_pos_x, self.player.cur_pos_y = newx, newy
+			else:
+				print("You bump into wall")
+		except:
+			pass
