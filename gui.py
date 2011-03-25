@@ -44,6 +44,7 @@ class LibtcodGui(AbstractGui):
 		for critter in map.map_critters:
 			libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
 			self.print_critter(critter.x, critter.y, critter.char)
+			critter.take_turn()
 
 		libtcod.console_set_foreground_color(self.con, self.create_color(player.color))
 		self.print_critter(player.x, player.y, player.char)

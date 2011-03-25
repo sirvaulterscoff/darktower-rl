@@ -16,7 +16,9 @@ def cap_lower(what, min, to):
 
 def random_by_level(level, items):
 	items = filter(lambda a: a.dlvl == level, items)
-	n = randrange(sum(item.common for item in items))
+	start = sum(item.common for item in items)
+	if start == 0 : return None
+	n = randrange(start)
 	for item in items:
 		if n < item.common:
 			return item
@@ -30,3 +32,8 @@ class AutoAdd(type):
 		if not dict.get('skip_register'):
 			cls.ALL.append(cls)
 		return cls
+
+def distance(x1, y1, x2, y2):
+	dx = abs(x2-x1)
+	dy = abs(y2-y1)
+	return (dx+dy+max(dx,dy))/2

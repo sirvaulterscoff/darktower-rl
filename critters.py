@@ -1,5 +1,6 @@
 import math
 import util
+from thirdparty.libtcod import libtcodpy as libtcod
 
 WALKING = 1
 FLYING = 2
@@ -10,6 +11,7 @@ PASS_THRU_DOORS = 1 << 6
 INTELLIGENT = 1 << 7
 
 class Critter(object):
+	name = 'crit'
 	ALL = []
 	char = '@'
 	color = [255, 255, 255]
@@ -31,7 +33,8 @@ class Critter(object):
 	common = 10
 	__metaclass__ = util.AutoAdd
 	skip_register = True
-	fov_range = 10
+	fov_range = 5
+	ai = None
 
 	def __init__(self):
 		self.map = None
@@ -45,34 +48,48 @@ class Critter(object):
 		self.x, self.y = x, y
 		self.map = map
 
-	def move(self, x, y):
-		self.x, self.y = x, y
+	def move(self, dx, dy):
+		newx, newy = self.x + dx, self.y + dy
+		if self.map.has_critter_at( (newx, newy)):
+			return
+		player = self.map.player
+		if player.x == newx and player.y == newy:
+			self.attack(newx, newy)
+			return
 
-	def walk(self, dx, dy):
-		self.move(self.x + dx, self.y + dy)
+		next_tile = self.map[newy][newx]
+		if next_tile.passable():
+			self.x, self.y = newx, newy
+
+	def attack(self, newx, newy):
+		print (self.name + ' tries to hit you')
 
 	def move_towards(self, target_x, target_y):
 		dx = target_x - self.x
 		dy = target_y - self.y
 		distance = math.sqrt(dx ** 2 + dy ** 2)
 
-		#normalize it to length 1 (preserving direction), then round it and
-		#convert to integer so the movement is restricted to the map grid
 		dx = int(round(dx / distance))
 		dy = int(round(dy / distance))
 		self.move(dx, dy)
 
 	def see_player(self):
 		player = self.map.player
-		see_range = self.fov_range / 2
+		see_range = self.fov_range
 		#if it's intelligent one - let it follow source of light
 		if self.flags & INTELLIGENT:
 			see_range +=  player.light_range / 2
-		if T.map_is_in_fov(self.map.fov_map, self.x, self.y):
-			d = distance(self.x, self.y, player.x, player.y)
-			if d <= fov_range:
+		if libtcod.map_is_in_fov(self.map.fov_map, self.x, self.y):
+			d = util.distance(self.x, self.y, player.x, player.y)
+			if d <= see_range:
 				return d
 		return None
+
+	def take_turn(self):
+		if self.ai is None:
+			if self.see_player():
+				player = self.map.player
+				self.move_towards(player.x, player.y)
 
 class Player(Critter):
 	x, y = 0, 0
@@ -103,6 +120,7 @@ class Player(Critter):
 
 class Rat(Critter):
 	char = 'r'
+	name = 'Rat'
 	color = [90, 30, 40]
 	description_past = 'Obesity makes this plague-bearing rats realy huge. Interesting, can you even kill one that big...'
 	description_present = 'Huge, fat rat somehow managed to leave sewers or households and now posess enourmous threat to unwary adventurer.'
@@ -113,6 +131,7 @@ class Rat(Critter):
 
 class Bat(Critter):
 	char = 'w'
+	name = 'bat'
 	flags = FLYING
 	color = [0, 255, 60]
 	description_past = 'Strange green glow comes from afar... Maybe it\'s a lost sool seeking exit from endless caverns... Wait! It\'s a bat?! Ouch, stop biting me!'
@@ -126,6 +145,7 @@ class Bat(Critter):
 
 class Orc(Critter):
 	char = 'o'
+	name = 'orc'
 	flags = WALKING | INTELLIGENT
 	color = [255, 0, 0]
 	description_past = 'Beware! This mighty ugly-looking humanoid will eat you for dinner. Nightmare comes to live. By the way, there should be it\' friends somewhere nearby'
@@ -135,7 +155,3 @@ class Orc(Critter):
 	base_hp = 10
 	base_ac = 1
 	dlvl = 3
-
-
-class BasicAI(object):
-	pass

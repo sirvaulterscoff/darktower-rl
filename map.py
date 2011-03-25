@@ -34,7 +34,9 @@ class Map(object):
 		libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGORITHM)
 
 	def place_critter(self, crit_level, crit_hd, x, y):
-		crit = util.random_by_level(crit_level, critters.Critter.ALL)()
+		crit = util.random_by_level(crit_level, critters.Critter.ALL)
+		if crit is None: return
+		crit = crit()
 		crit.adjust_hd(crit_hd)
 		self.map_critters.append(crit)
 		self.critter_xy_cache[(x, y)] = crit
