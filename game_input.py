@@ -14,7 +14,7 @@ class Input(object):
 			return True  #exit game
 		#movement keys
 		#todo vi keys
-		newx, newy = self.player.cur_pos_x, self.player.cur_pos_y
+		newx, newy = self.player.x, self.player.y
 		if libtcod.console_is_key_pressed(libtcod.KEY_UP) or libtcod.console_is_key_pressed(libtcod.KEY_KP8):
 			newy -= 1
 		elif libtcod.console_is_key_pressed(libtcod.KEY_DOWN) or libtcod.console_is_key_pressed(libtcod.KEY_KP2):
@@ -45,7 +45,7 @@ class Input(object):
 
 		try:
 			if call_back(newx, newy):
-				self.player.cur_pos_x, self.player.cur_pos_y = newx, newy
+				self.player.x, self.player.y = newx, newy
 			else:
 				print("You bump into wall")
 		except:

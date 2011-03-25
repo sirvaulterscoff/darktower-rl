@@ -19,7 +19,7 @@ def find_passable_square(map):
 	x, y = 0, 0
 	for row in map:
 		for item in row:
-			if not passable(item): y += 1
+			if not item.passable(): y += 1
 			else: return y, x
 		y = 0
 		x += 1
