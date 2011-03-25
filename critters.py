@@ -42,6 +42,14 @@ class Player(Critter):
 	color = [255, 255, 255]
 	skip_register = True
 
+	def move(self, dx, dy, call_back):
+		newx, newy = self.x + dx, self.y + dy
+		if call_back(newx, newy):
+			self.x, self.y = newx, newy
+			return True
+		else:
+			print("You bump into wall")
+		return False
 
 
 class Rat(Critter):
