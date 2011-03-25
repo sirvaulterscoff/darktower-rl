@@ -1,3 +1,4 @@
+import math
 import util
 
 WALKING = 1
@@ -6,6 +7,7 @@ UNDEAD = 1 << 3
 COLD_BLOODED = 1 << 4
 PASS_THRU_WALLS = 1 << 5
 PASS_THRU_DOORS = 1 << 6
+INTELLIGENT = 1 << 7
 
 class Critter(object):
 	ALL = []
@@ -29,12 +31,48 @@ class Critter(object):
 	common = 10
 	__metaclass__ = util.AutoAdd
 	skip_register = True
+	fov_range = 10
 
 	def __init__(self):
+		self.map = None
 		pass
 
 	def adjust_hd(self, new_hd):
+		#TODO implement HD rebasing
 		pass
+
+	def place(self, x, y, map):
+		self.x, self.y = x, y
+		self.map = map
+
+	def move(self, x, y):
+		self.x, self.y = x, y
+
+	def walk(self, dx, dy):
+		self.move(self.x + dx, self.y + dy)
+
+	def move_towards(self, target_x, target_y):
+		dx = target_x - self.x
+		dy = target_y - self.y
+		distance = math.sqrt(dx ** 2 + dy ** 2)
+
+		#normalize it to length 1 (preserving direction), then round it and
+		#convert to integer so the movement is restricted to the map grid
+		dx = int(round(dx / distance))
+		dy = int(round(dy / distance))
+		self.move(dx, dy)
+
+	def see_player(self):
+		player = self.map.player
+		see_range = self.fov_range / 2
+		#if it's intelligent one - let it follow source of light
+		if self.flags & INTELLIGENT:
+			see_range +=  player.light_range / 2
+		if T.map_is_in_fov(self.map.fov_map, self.x, self.y):
+			d = distance(self.x, self.y, player.x, player.y)
+			if d <= fov_range:
+				return d
+		return None
 
 class Player(Critter):
 	x, y = 0, 0
@@ -42,14 +80,25 @@ class Player(Critter):
 	color = [255, 255, 255]
 	skip_register = True
 
-	def move(self, dx, dy, call_back):
+	def __init__(self):
+		self.map = None
+
+	def move(self, dx, dy):
 		newx, newy = self.x + dx, self.y + dy
-		if call_back(newx, newy):
+		if self.map.has_critter_at( (newx, newy)):
+			self.attack(newx, newy)
+			return True
+		next_tile = self.map[newy][newx]
+		if next_tile.passable():
 			self.x, self.y = newx, newy
 			return True
 		else:
 			print("You bump into wall")
 		return False
+
+	def attack(self, mobx, moby):
+		pass
+
 
 
 class Rat(Critter):
@@ -77,6 +126,7 @@ class Bat(Critter):
 
 class Orc(Critter):
 	char = 'o'
+	flags = WALKING | INTELLIGENT
 	color = [255, 0, 0]
 	description_past = 'Beware! This mighty ugly-looking humanoid will eat you for dinner. Nightmare comes to live. By the way, there should be it\' friends somewhere nearby'
 	description_present = 'Surely you have read about orcs (remember all this books, about hobbits, elves and others). This one looks exactly... dissimilary.'
@@ -86,3 +136,6 @@ class Orc(Critter):
 	base_ac = 1
 	dlvl = 3
 
+
+class BasicAI(object):
+	pass

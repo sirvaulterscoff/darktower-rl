@@ -1,27 +1,44 @@
 import critters
+import features
 import gl
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
 
+FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
+FOV_LIGHT_WALLS = True
+TORCH_RADIUS = 10
+
 class Map(object):
 	map_critters = []
 	critter_xy_cache = {}
 
-	def __init__(self, map_src):
+	def __init__(self, map_src, player):
 		self.map = map_src
 		self.map_height = len(map_src)
 		self.map_width = len(map_src[0])
+		self.player = player
+		player.map = self
+		self.fov_map = None
 
 	def __getitem__(self, item):
 		return self.map[item]
+
+	def init_fov(self):
+		self.fov_map = libtcod.map_new(self.map_width, self.map_height)
+		for y in range(self.map_height):
+			for x in range(self.map_width):
+				libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS, not self[y][x].flags & features.BLOCK_WALK)
+
+	def recompute_fov(self):
+		libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGORITHM)
 
 	def place_critter(self, crit_level, crit_hd, x, y):
 		crit = util.random_by_level(crit_level, critters.Critter.ALL)()
 		crit.adjust_hd(crit_hd)
 		self.map_critters.append(crit)
 		self.critter_xy_cache[(x, y)] = crit
-		crit.x, crit.y = x, y
+		crit.place(x, y, self)
 
 	# basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
 	# let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)

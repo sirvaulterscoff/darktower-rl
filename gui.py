@@ -25,27 +25,21 @@ class LibtcodGui(AbstractGui):
 	def clear_critter(self, x, y):
 		libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, ' ')
 
-	def init_fov(self, map):
-		self.fov_map = libtcod.map_new(map.map_width, map.map_height)
-		for y in range(map.map_height):
-			for x in range(map.map_width):
-				libtcod.map_set_properties(self.fov_map, x, y, not map.map[y][x].flags & BLOCK_LOS, not map.map[y][x].flags & BLOCK_WALK)
-
 	def main_loop(self, map, player):
 		for y in range(map.map_height):
 			for x in range(map.map_width):
 				seen = map.map[y][x].seen | gl.__wizard_mode__
-				visible = libtcod.map_is_in_fov(self.fov_map, x, y)
+				visible = libtcod.map_is_in_fov(map.fov_map, x, y)
 				if seen or visible:
-					libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, map.map[y][x].char)
+					libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, map[y][x].char)
 				if not visible:
 					if seen:
-						libtcod.console_set_fore(self.con, x, y, self.create_color(map.map[y][x].dim_color))
-						libtcod.console_set_back(self.con, x, y, self.create_color(map.map[y][x].dim_color_back), libtcod.BKGND_SET)
+						libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].dim_color))
+						libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].dim_color_back), libtcod.BKGND_SET)
 				else:
-					libtcod.console_set_fore(self.con, x, y, self.create_color(map.map[y][x].color))
-					libtcod.console_set_back(self.con, x, y, self.create_color(map.map[y][x].color_back), libtcod.BKGND_SET)
-					map.map[y][x].seen = True
+					libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].color))
+					libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].color_back), libtcod.BKGND_SET)
+					map[y][x].seen = True
 
 		for critter in map.map_critters:
 			libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))

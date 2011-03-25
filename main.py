@@ -6,21 +6,14 @@ from game_input import *
 from features import *
 from map import Map
 
-FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
-FOV_LIGHT_WALLS = True
-TORCH_RADIUS = 10
-
-
 recompute_fov = True
-def can_pass(x, y):
-	return map.can_walk(x, y)
 
 def main_loop():
 	global recompute_fov
 	while gl.__game_state__ != "quit":
 		if recompute_fov:
 			recompute_fov = False
-			libtcod.map_compute_fov(gui.fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGORITHM)
+			map.recompute_fov()
 		gui.main_loop(map, player)
 		key = game_input.readkey()
 		handle_key(key)
@@ -36,14 +29,20 @@ def handle_key(key):
 
 def handle_move(dx, dy):
 	global  recompute_fov
-	if player.move(dx, dy, can_pass):
-		recompute_fov = True
+	if gl.__game_state__ == "playing":
+		if player.move(dx, dy):
+			recompute_fov = True
+			gl.__turn_count__ += 1
 
 def handle_quit():
 	gl.__game_state__ = "quit"
 
 def handle_wizard():
 	gl.__wizard_mode__ = True
+
+def handle_wait():
+	gl.__turn_count__ += 1
+	#TODO handle wait properly
 
 gui = LibtcodGui()
 player = Player()
@@ -60,10 +59,10 @@ critters = [player]
 #map = Map(dg.finish())
 dg = StaticGenerator()
 dg.generate()
-map = Map(dg.finish())
+map = Map(dg.finish(), player)
 
 map.place_monsters()
 
-gui.init_fov(map)
+map.init_fov()
 player.x, player.y = find_passable_square(map.map)
 main_loop()
