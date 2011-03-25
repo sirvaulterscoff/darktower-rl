@@ -62,3 +62,6 @@ class Map(object):
 					return x, y
 		#if nothing found - let's try once again
 		return self.find_random_square(occupied)
+
+	def can_walk(self, x, y):
+		return self.map[y][x].passable() and not self.has_critter_at( (x, y))

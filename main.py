@@ -13,7 +13,7 @@ TORCH_RADIUS = 10
 recompute_fov = True
 def can_pass(x, y):
 	global recompute_fov
-	recompute_fov = map.map[y][x].passable()
+	recompute_fov = map.can_walk(x, y)
 	return recompute_fov
 
 def main_loop():
