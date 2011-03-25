@@ -7,7 +7,6 @@ import util
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
-TORCH_RADIUS = 10
 
 class Map(object):
 	map_critters = []
@@ -31,7 +30,7 @@ class Map(object):
 				libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS, not self[y][x].flags & features.BLOCK_WALK)
 
 	def recompute_fov(self):
-		libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGORITHM)
+		libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS, FOV_ALGORITHM)
 
 	def place_critter(self, crit_level, crit_hd, x, y):
 		crit = util.random_by_level(crit_level, critters.Critter.ALL)
@@ -49,7 +48,8 @@ class Map(object):
 	def place_monsters(self):
 		#choose random number of monsters
 		#3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
-		num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
+		#num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7)) #TODO debug
+		num_monsters = 2
 		#cap monster generation for now
 		num_monsters = util.cap(num_monsters, 30)
 

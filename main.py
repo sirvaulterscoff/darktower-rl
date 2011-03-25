@@ -6,17 +6,15 @@ from game_input import *
 from features import *
 from map import Map
 
-recompute_fov = True
 
 def main_loop():
-	global recompute_fov
 	while gl.__game_state__ != "quit":
-		if recompute_fov:
-			recompute_fov = False
-			map.recompute_fov()
-		gui.main_loop(map, player)
+		gui.render_all(map, player)
+		gui.clear_all(map.map_critters)
 		key = game_input.readkey()
 		handle_key(key)
+		for critter in map.map_critters:
+			critter.take_turn()
 
 def handle_key(key):
 	command = parse_key(key)
@@ -28,10 +26,9 @@ def handle_key(key):
 		globals()["handle_" + name](*args)
 
 def handle_move(dx, dy):
-	global  recompute_fov
 	if gl.__game_state__ == "playing":
 		if player.move(dx, dy):
-			recompute_fov = True
+			gl.__fov_recompute__ = True
 			gl.__turn_count__ += 1
 
 def handle_quit():

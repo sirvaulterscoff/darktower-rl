@@ -59,7 +59,9 @@ class Critter(object):
 
 		next_tile = self.map[newy][newx]
 		if next_tile.passable():
+			self.map.critter_xy_cache.pop ( (self.x, self.y))
 			self.x, self.y = newx, newy
+			self.map.critter_xy_cache[(self.x, self.y)] = self
 
 	def attack(self, newx, newy):
 		print (self.name + ' tries to hit you')
@@ -78,7 +80,7 @@ class Critter(object):
 		see_range = self.fov_range
 		#if it's intelligent one - let it follow source of light
 		if self.flags & INTELLIGENT:
-			see_range +=  player.light_range / 2
+			see_range +=  player.fov_range / 2
 		if libtcod.map_is_in_fov(self.map.fov_map, self.x, self.y):
 			d = util.distance(self.x, self.y, player.x, player.y)
 			if d <= see_range:
@@ -96,6 +98,7 @@ class Player(Critter):
 	char = '@'
 	color = [255, 255, 255]
 	skip_register = True
+	fov_range = 10
 
 	def __init__(self):
 		self.map = None
