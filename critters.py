@@ -64,7 +64,6 @@ class Critter(object):
 			self.map.critter_xy_cache[(self.x, self.y)] = self
 
 	def attack(self, newx, newy):
-		print (self.name + ' tries to hit you')
 		for attack in self.base_dmg:
 			dmg = util.roll(*attack)
 			#let's roll 1d20 + HD for now, assuming that monster
@@ -132,9 +131,14 @@ class Player(Critter):
         pass
 
 	def take_damage(self, mob, dmg, attack):
+		for i in range (0, self.base_ac + 1):
+			if util.coinflip(): dmg -= 1
+			if dmg <= 0 : break
 		if dmg > 0:
 			print mob.name + ' hits you for ' + str(dmg) + ' damage.'
 			self.hp -= dmg
+		else:
+			print mob.name + ' fails to harm you'
 		if self.hp <= 0 :
 			gl.__game_state__ = "died"
 			print 'You die...'

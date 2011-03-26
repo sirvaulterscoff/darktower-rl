@@ -37,3 +37,6 @@ def distance(x1, y1, x2, y2):
     dx = abs(x2-x1)
     dy = abs(y2-y1)
     return (dx+dy+max(dx,dy))/2
+
+def coinflip():
+	return libtcod.random_get_int(0, 0, 1)
