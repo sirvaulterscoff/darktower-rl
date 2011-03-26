@@ -29,22 +29,22 @@ def handle_keys(self, call_back):
 
 
 def readkey():
-    while True:
-        key = libtcod.console_wait_for_keypress(True)
-        #No need to react on service keys
-        if key.vk == libtcod.KEY_ENTER and libtcod.KEY_ALT:
-            #Alt+Enter: toggle fullscreen
-            libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
-            continue
-        if key.vk in [libtcod.KEY_SHIFT, libtcod.KEY_CONTROL, libtcod.KEY_ALT, libtcod.KEY_CAPSLOCK]:
-            continue
-        if key.c != 0 and chr(key.c) not in '\x1b\n\r\t':
-            s = chr(key.c)
-            if key.shift:
-                s = s.upper()
-                return s
-        elif key.vk:
-            return key.vk
+	while True:
+		key = libtcod.console_wait_for_keypress(True)
+		#No need to react on service keys
+		if key.vk == libtcod.KEY_ENTER and libtcod.KEY_ALT:
+			#Alt+Enter: toggle fullscreen
+			libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
+			continue
+		if key.vk in [libtcod.KEY_SHIFT, libtcod.KEY_CONTROL, libtcod.KEY_ALT, libtcod.KEY_CAPSLOCK]:
+			continue
+		if key.c != 0 and chr(key.c) not in '\x1b\n\r\t':
+			s = chr(key.c)
+			if key.shift:
+				s = s.upper()
+			return s
+		elif key.vk:
+			return key.vk
 
 def parse_key(key):
     for keys, cmd in KEYS:
