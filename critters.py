@@ -35,6 +35,7 @@ class Critter(object):
 	skip_register = True
 	fov_range = 5
 	ai = None
+	hp = base_hp
 
 	def __init__(self):
 		self.map = None
@@ -42,6 +43,7 @@ class Critter(object):
 
 	def adjust_hd(self, new_hd):
 		#TODO implement HD rebasing
+		self.base_hd = new_hd
 		pass
 
 	def place(self, x, y, map):
@@ -54,7 +56,7 @@ class Critter(object):
 			return
 		player = self.map.player
 		if player.x == newx and player.y == newy:
-			self.attack(newx, newy)
+			self.attack(player)
 			return
 
 		next_tile = self.map[newy][newx]
@@ -63,16 +65,16 @@ class Critter(object):
 			self.x, self.y = newx, newy
 			self.map.critter_xy_cache[(self.x, self.y)] = self
 
-	def attack(self, newx, newy):
+	def attack(self, whom):
 		for attack in self.base_dmg:
 			dmg = util.roll(*attack)
 			#let's roll 1d20 + HD for now, assuming that monster
 			# can hit player no lees than 30% of the time
 			# (thus checking it to be > 14
 			if util.roll(1, 20 , self.base_hd) >= 14:
-				self.map.player.take_damage(self, dmg, attack)
+				whom.take_damage(self, dmg, attack)
 			else:
-				print self.name + ' misses you'
+				print self.name + ' misses ' + whom.name
 
 
 	def move_towards(self, target_x, target_y):
@@ -102,6 +104,34 @@ class Critter(object):
 				player = self.map.player
 				self.move_towards(player.x, player.y)
 
+	def take_damage(self, mob, dmg, attack):
+		for i in range (0, self.base_ac + 1):
+			if util.coinflip(): dmg -= 1
+			if dmg <= 0 : break
+		if dmg > 0:
+			print mob.name + ' hits '+ self.name + ' for ' + str(dmg) + ' damage.'
+			self.hp -= dmg
+		else:
+			print mob.name + ' fails to harm ' + self.name
+		if self.hp <= 0 :
+			self.die(mob)
+
+	def die(self, killer):
+		print self.name + ' dies'
+		if isinstance(killer, Critter):
+			killer.earn_exp(self)
+		self.map.remove_critter(self)
+
+	def earn_exp(self, src):
+		#method written beforehand, when we will have alies or whatever
+		#we're adjusting HD, taking in acount killed mob hd and dlvl
+		#basicaly we make mob.hd / self.hd, same for dlv
+		# then we multiply this values by 1/self.dlvl
+		#so that more advanced mob lvl-up slower (at 1/27 rate for killing mob of their lvl+hd)
+		hd_delta = src.base_hd / self.base_hd
+		dlvl_delta = src.dlvl / self.dlvl
+		self.adjust_hd(self.base_hd + (hd_delta + dlvl_delta - 1) * 1/self.dlvl )
+
 class Player(Critter):
 	x, y = 0, 0
 	char = '@'
@@ -110,39 +140,27 @@ class Player(Critter):
 	fov_range = 10
 	base_hp = 10
 	hp = base_hp
+	name = 'you'
 
-    def __init__(self):
-        self.map = None
+	def __init__(self):
+		self.map = None
 
-    def move(self, dx, dy):
-        newx, newy = self.x + dx, self.y + dy
-        if self.map.has_critter_at( (newx, newy)):
-            self.attack(newx, newy)
-            return True
-        next_tile = self.map[newy][newx]
-        if next_tile.passable():
-            self.x, self.y = newx, newy
-            return True
-        else:
-            print("You bump into wall")
-        return False
-
-    def attack(self, mobx, moby):
-        pass
-
-	def take_damage(self, mob, dmg, attack):
-		for i in range (0, self.base_ac + 1):
-			if util.coinflip(): dmg -= 1
-			if dmg <= 0 : break
-		if dmg > 0:
-			print mob.name + ' hits you for ' + str(dmg) + ' damage.'
-			self.hp -= dmg
+	def move(self, dx, dy):
+		newx, newy = self.x + dx, self.y + dy
+		if self.map.has_critter_at( (newx, newy)):
+			self.attack(self.map.get_critter_at(newx, newy))
+			return True
+		next_tile = self.map[newy][newx]
+		if next_tile.passable():
+			self.x, self.y = newx, newy
+			return True
 		else:
-			print mob.name + ' fails to harm you'
-		if self.hp <= 0 :
-			gl.__game_state__ = "died"
-			print 'You die...'
+			print("You bump into wall")
+		return False
 
+	def die(self, killer):
+		print 'You die...'
+		gl.__game_state__ = "died"
 
 
 class Rat(Critter):

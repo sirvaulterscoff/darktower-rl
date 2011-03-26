@@ -70,9 +70,16 @@ class Map(object):
     def has_critter_at(self, coords):
         return self.critter_xy_cache.__contains__(coords)
 
-    def find_random_square(self, occupied):
-        startx = libtcod.random_get_int(0, 1, self.map_width)
-        starty = libtcod.random_get_int(0, 1, self.map_height)
+	def get_critter_at(self, x , y):
+		return self.critter_xy_cache[(x, y)]
+
+	def remove_critter(self, critter):
+		self.critter_xy_cache.pop( (critter.x, critter.y) )
+		self.map_critters.remove(critter)
+
+	def find_random_square(self, occupied):
+		startx = libtcod.random_get_int(0, 1, self.map_width)
+		starty = libtcod.random_get_int(0, 1, self.map_height)
 
         for y in range(starty, self.map_height):
             for x in range(startx, self.map_width):
