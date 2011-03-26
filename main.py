@@ -9,13 +9,15 @@ from map import Map
 
 
 def main_loop():
-    while gl.__game_state__ != "quit":
-        gui.render_all(map, player)
-        gui.clear_all(map.map_critters)
-        key = game_input.readkey()
-        handle_key(key)
-        for critter in map.map_critters:
-            critter.take_turn()
+	while gl.__game_state__ != "quit":
+		gui.render_all(map, player)
+		gui.clear_all(map.map_critters)
+		key = game_input.readkey()
+		handle_key(key)
+		for critter in map.map_critters:
+			if gl.__game_state__ == "died":
+				break
+			critter.take_turn()
 
 def handle_key(key):
     command = parse_key(key)
@@ -39,8 +41,9 @@ def handle_wizard():
     gl.__wizard_mode__ = True
 
 def handle_wait():
-    gl.__turn_count__ += 1
-    #TODO handle wait properly
+	if gl.__game_state__ == "playing":
+		gl.__turn_count__ += 1
+	#TODO handle wait properly
 
 
 if __name__ == "__main__":

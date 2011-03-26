@@ -41,17 +41,16 @@ class Map(object):
         self.critter_xy_cache[(x, y)] = crit
         crit.place(x, y, self)
 
-    # basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
-    # let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)
-    # set this monster HD to a value defined earlier
-    # for OOD monsters - same HD as previous case, and Critter.dlvl <= random(__dlvl__ + 2, __dlvl +3)
-    def place_monsters(self):
-        #choose random number of monsters
-        #3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
-        #num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7)) #TODO debug
-        num_monsters = 2
-        #cap monster generation for now
-        num_monsters = util.cap(num_monsters, 30)
+	# basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
+	# let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)
+	# set this monster HD to a value defined earlier
+	# for OOD monsters - same HD as previous case, and Critter.dlvl <= random(__dlvl__ + 2, __dlvl +3)
+	def place_monsters(self):
+		#choose random number of monsters
+		#3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
+		num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
+		#cap monster generation for now
+		num_monsters = util.cap(num_monsters, 30)
 
         for i in range(num_monsters):
             #choose random spot for this monster

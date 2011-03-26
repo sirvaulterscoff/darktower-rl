@@ -14,10 +14,10 @@ class AbstractGui(object):
         pass
 
 class LibtcodGui(AbstractGui):
-    def __init__(self):
-        libtcod.console_set_custom_font('fonts/arial12x12.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-        libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl')
-        self.con = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
+	def __init__(self):
+		libtcod.console_set_custom_font('fonts/terminal10x10_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+		libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False)
+		self.con = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def print_critter(self, x, y, char):
         libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, char)

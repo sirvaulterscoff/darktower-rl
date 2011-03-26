@@ -2,8 +2,8 @@ from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
 
 # return aDb + c
-def roll(a, b, c=0):
-    return sum(libtcod.random_get_int(0, 1, b) for i in range(a)) + c
+def roll(a, b, c=0, *ignore):
+	return sum(libtcod.random_get_int(0, 1, b) for i in range(a)) + c
 
 #caps value at max, if value < 0 return 0
 def cap(what, to = 100000):
