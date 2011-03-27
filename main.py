@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 from critters import *
 from dungeon_generators import *
 import game_input
