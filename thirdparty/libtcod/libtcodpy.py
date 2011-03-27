@@ -27,6 +27,7 @@
 
 import sys
 import ctypes
+import os
 from ctypes import *
 
 try:  #import NumPy if available
@@ -36,7 +37,8 @@ except ImportError:
     numpy_available = False
 
 if sys.platform.find('linux') != -1:
-    _lib = ctypes.cdll['./libtcod.so']
+    path = os.path.dirname(os.path.realpath(__file__))
+    _lib = ctypes.cdll["%s/libtcod.so"%path]
 else:
     _lib = ctypes.cdll['./libtcod-mingw.dll']
 
