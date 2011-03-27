@@ -30,10 +30,10 @@ import ctypes
 from ctypes import *
 
 try:  #import NumPy if available
-	import numpy
-	numpy_available = True
+    import numpy
+    numpy_available = True
 except ImportError:
-	numpy_available = False
+    numpy_available = False
 
 if sys.platform.find('linux') != -1:
     _lib = ctypes.cdll['./libtcod.so']
@@ -62,7 +62,7 @@ class Color(Structure):
         return (self.r == c.r) and (self.g == c.g) and (self.b == c.b)
 
     def __mul__(self, c):
-	iret=0
+        iret=0
         if isinstance(c,Color):
             iret=_lib.TCOD_color_multiply_wrapper(col_to_int(self), col_to_int(c))
         else:
@@ -400,10 +400,10 @@ def console_init_root(w, h, title, fullscreen=False):
     _lib.TCOD_console_init_root(w, h, title, c_uint(fullscreen))
 
 def console_get_width(con):
-	return _lib.TCOD_console_get_width(con)
+    return _lib.TCOD_console_get_width(con)
 
 def console_get_height(con):
-	return _lib.TCOD_console_get_height(con)
+    return _lib.TCOD_console_get_height(con)
 
 def console_set_custom_font(fontFile, flags=FONT_LAYOUT_ASCII_INCOL, nb_char_horiz=0, nb_char_vertic=0):
     _lib.TCOD_console_set_custom_font(fontFile, flags, nb_char_horiz, nb_char_vertic)
@@ -563,9 +563,9 @@ def console_wait_for_keypress(flush):
     return k
 
 def console_check_for_keypress(flags=KEY_RELEASED):
-	k=Key()
-	_lib.TCOD_console_check_for_keypress_wrapper(byref(k),c_int(flags))
-	return k
+    k=Key()
+    _lib.TCOD_console_check_for_keypress_wrapper(byref(k),c_int(flags))
+    return k
 
 def console_is_key_pressed(key):
     return _lib.TCOD_console_is_key_pressed(key) == 1
@@ -579,12 +579,12 @@ def console_disable_keyboard_repeat():
 # using offscreen consoles
 def console_new(w, h):
     return _lib.TCOD_console_new(w, h)
-	
+    
 def console_get_width(con):
-	return _lib.TCOD_console_get_width(con)
-	
+    return _lib.TCOD_console_get_width(con)
+    
 def console_get_height(con):
-	return _lib.TCOD_console_get_height(con)
+    return _lib.TCOD_console_get_height(con)
 
 def console_blit(src, x, y, w, h, dst, xdst, ydst, ffade=1.0,bfade=1.0):
     _lib.TCOD_console_blit(src, x, y, w, h, dst, xdst, ydst, c_float(ffade), c_float(bfade))
@@ -597,53 +597,53 @@ def console_delete(con):
 
 # fast color filling
 def console_fill_foreground(con,r,g,b) :
-	if (numpy_available and isinstance(r, numpy.ndarray) and
-		isinstance(g, numpy.ndarray) and isinstance(b, numpy.ndarray)):
-		#numpy arrays, use numpy's ctypes functions
-		r = numpy.ascontiguousarray(r, dtype=numpy.int_)
-		g = numpy.ascontiguousarray(g, dtype=numpy.int_)
-		b = numpy.ascontiguousarray(b, dtype=numpy.int_)
-		cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		
-	elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
-		#simple python lists, convert using ctypes
-		cr = (c_int * len(r))(*r)
-		cg = (c_int * len(g))(*g)
-		cb = (c_int * len(b))(*b)
-	else:
-		raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
-	
-	if len(r) != len(g) or len(r) != len(b):
-		raise TypeError('R, G and B must all have the same size.')
-	
-	_lib.TCOD_console_fill_foreground(con, cr, cg, cb)
+    if (numpy_available and isinstance(r, numpy.ndarray) and
+        isinstance(g, numpy.ndarray) and isinstance(b, numpy.ndarray)):
+        #numpy arrays, use numpy's ctypes functions
+        r = numpy.ascontiguousarray(r, dtype=numpy.int_)
+        g = numpy.ascontiguousarray(g, dtype=numpy.int_)
+        b = numpy.ascontiguousarray(b, dtype=numpy.int_)
+        cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        
+    elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
+        #simple python lists, convert using ctypes
+        cr = (c_int * len(r))(*r)
+        cg = (c_int * len(g))(*g)
+        cb = (c_int * len(b))(*b)
+    else:
+        raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
+    
+    if len(r) != len(g) or len(r) != len(b):
+        raise TypeError('R, G and B must all have the same size.')
+    
+    _lib.TCOD_console_fill_foreground(con, cr, cg, cb)
 
 def console_fill_background(con,r,g,b) :
-	if (numpy_available and isinstance(r, numpy.ndarray) and
-		isinstance(g, numpy.ndarray) and isinstance(b, numpy.ndarray)):
-		#numpy arrays, use numpy's ctypes functions
-		
-		r = numpy.ascontiguousarray(r, dtype=numpy.int_)
-		g = numpy.ascontiguousarray(g, dtype=numpy.int_)
-		b = numpy.ascontiguousarray(b, dtype=numpy.int_)
-		cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-		
-	elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
-		#simple python lists, convert using ctypes
-		cr = (c_int * len(r))(*r)
-		cg = (c_int * len(g))(*g)
-		cb = (c_int * len(b))(*b)
-	else:
-		raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
-	
-	if len(r) != len(g) or len(r) != len(b):
-		raise TypeError('R, G and B must all have the same size.')
-	
-	_lib.TCOD_console_fill_background(con, cr, cg, cb)
+    if (numpy_available and isinstance(r, numpy.ndarray) and
+        isinstance(g, numpy.ndarray) and isinstance(b, numpy.ndarray)):
+        #numpy arrays, use numpy's ctypes functions
+        
+        r = numpy.ascontiguousarray(r, dtype=numpy.int_)
+        g = numpy.ascontiguousarray(g, dtype=numpy.int_)
+        b = numpy.ascontiguousarray(b, dtype=numpy.int_)
+        cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        
+    elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
+        #simple python lists, convert using ctypes
+        cr = (c_int * len(r))(*r)
+        cg = (c_int * len(g))(*g)
+        cb = (c_int * len(b))(*b)
+    else:
+        raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
+    
+    if len(r) != len(g) or len(r) != len(b):
+        raise TypeError('R, G and B must all have the same size.')
+    
+    _lib.TCOD_console_fill_background(con, cr, cg, cb)
 
 ############################
 # sys module
@@ -725,13 +725,13 @@ def line_step():
     return None,None
 
 def line(xo,yo,xd,yd,py_callback) :
-	LINE_CBK_FUNC=CFUNCTYPE(c_uint,c_int,c_int)
-	def int_callback(x,y) :
-		if py_callback(x,y) :
-			return 1
-		return 0
-	c_callback=LINE_CBK_FUNC(int_callback)
-	return _lib.TCOD_line(xo,yo,xd,yd,c_callback) == 1
+    LINE_CBK_FUNC=CFUNCTYPE(c_uint,c_int,c_int)
+    def int_callback(x,y) :
+        if py_callback(x,y) :
+            return 1
+        return 0
+    c_callback=LINE_CBK_FUNC(int_callback)
+    return _lib.TCOD_line(xo,yo,xd,yd,c_callback) == 1
 
 ############################
 # image module
@@ -1565,25 +1565,25 @@ def heightmap_delete(hm):
 _lib.TCOD_namegen_get_nb_sets_wrapper.restype = c_int
 
 def namegen_parse(filename,random=0) :
-	_lib.TCOD_namegen_parse(filename,random)
+    _lib.TCOD_namegen_parse(filename,random)
 
 def namegen_generate(name, allocate=0) :
-	return _lib.TCOD_namegen_generate(name, c_int(allocate))
+    return _lib.TCOD_namegen_generate(name, c_int(allocate))
 
 def namegen_generate_custom(name, rule, allocate=0) :
-	return _lib.TCOD_namegen_generate(name, rule, c_int(allocate))
+    return _lib.TCOD_namegen_generate(name, rule, c_int(allocate))
 
 def namegen_get_sets():
-	nb=_lib.TCOD_namegen_get_nb_sets_wrapper()
-	SARRAY = c_char_p * nb;
-	setsa = SARRAY()
-	_lib.TCOD_namegen_get_sets_wrapper(setsa)
-	ret=list()
-	for i in range(nb):
-		ret.append(setsa[i])
-	return ret
+    nb=_lib.TCOD_namegen_get_nb_sets_wrapper()
+    SARRAY = c_char_p * nb;
+    setsa = SARRAY()
+    _lib.TCOD_namegen_get_sets_wrapper(setsa)
+    ret=list()
+    for i in range(nb):
+        ret.append(setsa[i])
+    return ret
 
 def namegen_destroy() :
-	_lib.TCOD_namegen_destroy()
+    _lib.TCOD_namegen_destroy()
 
 
