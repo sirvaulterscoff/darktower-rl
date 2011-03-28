@@ -66,15 +66,17 @@ class Critter(object):
             self.map.critter_xy_cache[(self.x, self.y)] = self
 
     def attack(self, whom):
+        dmgs = []
         for attack in self.base_dmg:
             dmg = util.roll(*attack)
             #let's roll 1d20 + HD for now, assuming that monster
             # can hit player no lees than 30% of the time
             # (thus checking it to be > 14
             if util.roll(1, 20, self.base_hd) >= 14:
-                whom.take_damage(self, dmg, attack)
+                dmgs.append(dmg)
             else:
-                print self.name + ' misses ' + whom.name
+                print self.name.capitalize() + ' misses ' + whom.name
+        whom.take_damage(self, dmgs, attack)
 
 
     def move_towards(self, target_x, target_y):
@@ -104,23 +106,25 @@ class Critter(object):
                 player = self.map.player
                 self.move_towards(player.x, player.y)
 
-    def take_damage(self, mob, dmg, attack):
-        for i in range(0, self.base_ac + 1):
-            if util.coinflip(): dmg -= 1
-            if dmg <= 0: break
-        if dmg > 0:
-            print mob.name + ' hits ' + self.name + ' for ' + str(dmg) + ' damage.'
-            self.hp -= dmg
-        else:
-            print mob.name + ' fails to harm ' + self.name
+    def take_damage(self, mob, dmgs, attack):
+        for dmg in dmgs:
+            for i in range(0, self.base_ac + 1):
+                if util.coinflip(): dmg -= 1
+                if dmg <= 0: break
+            if dmg > 0 and self.hp > 0:
+                print mob.name.capitalize() + ' hits ' + self.name + ' for ' + str(dmg) + ' damage.'
+                self.hp -= dmg
+            elif self.hp > 0:
+                print mob.name.capitalize() + ' fails to harm ' + self.name
         if self.hp <= 0:
             self.die(mob)
 
     def die(self, killer):
-        print self.name + ' dies'
+        print self.name.capitalize() + ' dies'
         if isinstance(killer, Critter):
             killer.earn_exp(self)
         self.map.remove_critter(self)
+        #todo let's introduce an item class righ here and make mobs leave corpses=items
 
     def earn_exp(self, src):
         #method written beforehand, when we will have alies or whatever
@@ -166,7 +170,7 @@ class Player(Critter):
 
 class Rat(Critter):
     char = 'r'
-    name = 'Rat'
+    name = 'rat'
     color = [90, 30, 40]
     description_past = 'Obesity makes this plague-bearing rats realy huge. Interesting, can you even kill one that big...'
     description_present = 'Huge, fat rat somehow managed to leave sewers or households and now posess enourmous threat to unwary adventurer.'

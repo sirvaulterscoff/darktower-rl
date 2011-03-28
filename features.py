@@ -37,4 +37,4 @@ def FT_ROCK_WALL(): return DungeonFeature("#", [130, 110, 50], [0, 0, 100], flag
 def FT_GLASS_WALL(): return DungeonFeature("#", [30, 30, 160], [0, 0, 100], flags=BLOCK_WALK)
 
 
-def FT_FLOOR(): return DungeonFeature(" ", [200, 180, 50], [50, 50, 150], ft_types["floor"])
+def FT_FLOOR(): return DungeonFeature(".", [255, 255, 255], [60, 60, 60], ft_types["floor"])

@@ -9,7 +9,7 @@ from map import Map
 
 
 def main_loop():
-    while gl.__game_state__ != "quit":
+    while gl.__game_state__ == "playing":
         gui.render_all(map, player)
         gui.clear_all(map.map_critters)
         key = game_input.readkey()
