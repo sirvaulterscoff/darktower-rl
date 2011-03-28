@@ -18,13 +18,20 @@ class TestCaveGenerator(unittest.TestCase):
                                  '#####'])
         map = gen.finish()
         print_map(map)
-        etalon_map = [[FT_ROCK_WALL for i in range(0, 5)],
-                      [FT_ROCK_WALL, FT_ROCK_WALL, FT_FLOOR, FT_ROCK_WALL, FT_ROCK_WALL],
-                      [FT_ROCK_WALL, FT_FLOOR, FT_FLOOR, FT_FLOOR, FT_ROCK_WALL],
-                      [FT_ROCK_WALL, FT_FLOOR, FT_FLOOR, FT_FLOOR, FT_ROCK_WALL],
-                      [FT_ROCK_WALL for i in range(0, 5)]]
+        etalon_map = [[FT_ROCK_WALL() for i in range(0, 5)],
+                      [FT_ROCK_WALL(), FT_ROCK_WALL(), FT_FLOOR(), FT_FLOOR(), FT_ROCK_WALL()],
+                      [FT_ROCK_WALL(), FT_FLOOR(), FT_FLOOR(), FT_FLOOR(), FT_ROCK_WALL()],
+                      [FT_ROCK_WALL(), FT_ROCK_WALL(), FT_FLOOR(), FT_FLOOR(), FT_ROCK_WALL()],
+                      [FT_ROCK_WALL() for i in range(0, 5)]]
 
-        assert map == etalon_map
+
+        y,x = 0,0
+        for row in map:
+            for item in row:
+                assert item.char == etalon_map[y][x].char
+                x +=1
+            y += 1
+            x = 0
 
 
 def print_map(map):

@@ -92,3 +92,6 @@ class Map(object):
 
     def can_walk(self, x, y):
         return self.map[y][x].passable() and not self.has_critter_at((x, y))
+
+    def passable(self, x, y):
+        return self.map[y][x].passable()

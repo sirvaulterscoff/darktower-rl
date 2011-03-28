@@ -4,13 +4,14 @@ from features import  *
 import util
 
 SCREEN_WIDTH = 80
-RIGHT_PANEL_WIDTH = 40
 SCREEN_HEIGHT = 50
 LIMIT_FPS = 20
 
-MSG_BAR_WIDTH = 20
-MSG_PANEL_HEIGHT = SCREEN_WIDTH
-PANEL_X = SCREEN_WIDTH - RIGHT_PANEL_WIDTH
+RIGHT_PANEL_WIDTH = 40
+RIGHT_PANEL_X = SCREEN_WIDTH - RIGHT_PANEL_WIDTH
+
+MSG_PANEL_HEIGHT = 10
+MSG_PANEL_Y = SCREEN_HEIGHT - MSG_PANEL_HEIGHT
 
 COLOR_STATUS_TEXT = (166, 102, 0)
 COLOR_STATUS_VALUES = (244, 244, 244)
@@ -18,6 +19,14 @@ HP_BAR = ((0, 0, 255), (128, 0, 255), (255, 0, 0))
 MP_BAR = ((115, 0, 255), (255, 136, 0), (255, 0, 0))
 HP_BAR_PERCENT = (0.50, 0.35)
 MP_BAR_PERCENT = (0.50, 0.35)
+
+MSG_OLD_COLOR = (112, 112, 122)
+MSG_WARNING_COLOR = (187, 96, 112)
+MSG_NEW_COLOR = (255, 255, 255)
+
+MSG_SEVERITY = { 1 : MSG_NEW_COLOR,
+                 2 : MSG_WARNING_COLOR,
+                 0 : MSG_OLD_COLOR}
 
 class AbstractGui(object):
     def __init__(self):
@@ -33,7 +42,8 @@ class LibtcodGui(AbstractGui):
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
         libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False)
         self.con = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.panel = libtcod.console_new(SCREEN_WIDTH, MSG_PANEL_HEIGHT)
+        self.panel = libtcod.console_new(RIGHT_PANEL_WIDTH, SCREEN_HEIGHT)
+        self.panel_msg = libtcod.console_new(SCREEN_WIDTH, MSG_PANEL_HEIGHT)
 
 
     def print_critter(self, x, y, char):
@@ -95,7 +105,7 @@ class LibtcodGui(AbstractGui):
         self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp , util.xp_for_lvl(player.xl)), COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
 
         #blit the contents of "panel" to the root console
-        libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, PANEL_X, 0)
+        libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
         libtcod.console_flush()
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):

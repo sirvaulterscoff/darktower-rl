@@ -8,7 +8,7 @@ def parse_string(map):
     for line in map:
         for char in line:
             if char == '#': new_map[y].append(FT_ROCK_WALL())
-            elif char == ' ': new_map[y].append(FT_FLOOR())
+            elif char == ' ' or char == '.': new_map[y].append(FT_FLOOR())
             elif char == '+': new_map[y].append(FT_GLASS_WALL())
             x += 1
         y += 1
