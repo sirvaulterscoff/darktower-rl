@@ -27,10 +27,12 @@ class Map(object):
         self.fov_map = libtcod.map_new(self.map_width, self.map_height)
         for y in range(self.map_height):
             for x in range(self.map_width):
-                libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS, not self[y][x].flags & features.BLOCK_WALK)
+                libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS,
+                                           not self[y][x].flags & features.BLOCK_WALK)
 
     def recompute_fov(self):
-        libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS, FOV_ALGORITHM)
+        libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
+                                FOV_ALGORITHM)
 
     def place_critter(self, crit_level, crit_hd, x, y):
         crit = util.random_by_level(crit_level, critters.Critter.ALL)
@@ -41,20 +43,20 @@ class Map(object):
         self.critter_xy_cache[(x, y)] = crit
         crit.place(x, y, self)
 
-	# basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
-	# let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)
-	# set this monster HD to a value defined earlier
-	# for OOD monsters - same HD as previous case, and Critter.dlvl <= random(__dlvl__ + 2, __dlvl +3)
-	def place_monsters(self):
-		#choose random number of monsters
-		#3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
-		num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
-		#cap monster generation for now
-		num_monsters = util.cap(num_monsters, 30)
+    # basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
+    # let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)
+    # set this monster HD to a value defined earlier
+    # for OOD monsters - same HD as previous case, and Critter.dlvl <= random(__dlvl__ + 2, __dlvl +3)
+    def place_monsters(self):
+        #choose random number of monsters
+        #3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
+        num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
+        #cap monster generation for now
+        num_monsters = util.cap(num_monsters, 30)
 
         for i in range(num_monsters):
             #choose random spot for this monster
-            x,y = self.find_random_square(self.has_critter_at)
+            x, y = self.find_random_square(self.has_critter_at)
             #determining critter level. it may vary from XL - 3 to XL + 3. To let is scale better multiply by 100
             #cap it to be no lower than 1
             crit_hd = util.cap_lower(randrange(gl.__xl__ - 3, gl.__xl__ + 3), 1, 1)
@@ -64,29 +66,29 @@ class Map(object):
         if libtcod.random_get_int(0, 0, 100) >= 89:
             crit_level = libtcod.random_get_int(0, gl.__dlvl__ + 2, gl.__dlvl__ + 3)
             crit_hd = util.cap_lower(randrange(gl.__xl__ - 3, gl.__xl__ + 3), 1, 1)
-            x,y = self.find_random_square(self.has_critter_at)
+            x, y = self.find_random_square(self.has_critter_at)
             self.place_critter(crit_level, crit_hd, x, y)
 
     def has_critter_at(self, coords):
         return self.critter_xy_cache.__contains__(coords)
 
-	def get_critter_at(self, x , y):
-		return self.critter_xy_cache[(x, y)]
+    def get_critter_at(self, x, y):
+        return self.critter_xy_cache[(x, y)]
 
-	def remove_critter(self, critter):
-		self.critter_xy_cache.pop( (critter.x, critter.y) )
-		self.map_critters.remove(critter)
+    def remove_critter(self, critter):
+        self.critter_xy_cache.pop((critter.x, critter.y))
+        self.map_critters.remove(critter)
 
-	def find_random_square(self, occupied):
-		startx = libtcod.random_get_int(0, 1, self.map_width)
-		starty = libtcod.random_get_int(0, 1, self.map_height)
+    def find_random_square(self, occupied):
+        startx = libtcod.random_get_int(0, 1, self.map_width)
+        starty = libtcod.random_get_int(0, 1, self.map_height)
 
         for y in range(starty, self.map_height):
             for x in range(startx, self.map_width):
-                if self.map[y][x].passable() and not occupied( (x, y) ):
+                if self.map[y][x].passable() and not occupied((x, y)):
                     return x, y
-        #if nothing found - let's try once again
+            #if nothing found - let's try once again
         return self.find_random_square(occupied)
 
     def can_walk(self, x, y):
-        return self.map[y][x].passable() and not self.has_critter_at( (x, y))
+        return self.map[y][x].passable() and not self.has_critter_at((x, y))

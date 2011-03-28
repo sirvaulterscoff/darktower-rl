@@ -15,6 +15,7 @@ def parse_string(map):
         x = 0
     return new_map
 
+
 def find_passable_square(map):
     x, y = 0, 0
     for row in map:
@@ -24,6 +25,7 @@ def find_passable_square(map):
         y = 0
         x += 1
     return 1, 1
+
 
 class Rect:
     def __init__(self, x, y, width, heigh):
@@ -41,6 +43,7 @@ class Rect:
         return (self.x1 <= other.x2 and self.x2 >= other.x1 and
                 self.y1 <= other.y2 and self.y2 >= other.y1)
 
+
 class AbstractGenerator(object):
     def __init__(self, length, width):
         self._map = [[FT_ROCK_WALL()
@@ -53,7 +56,7 @@ class AbstractGenerator(object):
             self._map[self.width - 1][j] = FT_FIXED_WALL()
 
         for j in range(0, self.width):
-            self._map[j][0]= FT_FIXED_WALL()
+            self._map[j][0] = FT_FIXED_WALL()
             self._map[j][self.length - 1] = FT_FIXED_WALL()
 
 
@@ -172,6 +175,7 @@ class RoomsCoridorsGenerator(AbstractGenerator):
     def finish(self):
         self.generate_border()
         return self._map
+
 
 class StaticGenerator(AbstractGenerator):
     def __init__(self):

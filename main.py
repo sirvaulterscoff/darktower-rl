@@ -9,15 +9,16 @@ from map import Map
 
 
 def main_loop():
-	while gl.__game_state__ != "quit":
-		gui.render_all(map, player)
-		gui.clear_all(map.map_critters)
-		key = game_input.readkey()
-		handle_key(key)
-		for critter in map.map_critters:
-			if gl.__game_state__ == "died":
-				break
-			critter.take_turn()
+    while gl.__game_state__ != "quit":
+        gui.render_all(map, player)
+        gui.clear_all(map.map_critters)
+        key = game_input.readkey()
+        handle_key(key)
+        for critter in map.map_critters:
+            if gl.__game_state__ == "died":
+                break
+            critter.take_turn()
+
 
 def handle_key(key):
     command = parse_key(key)
@@ -28,22 +29,26 @@ def handle_key(key):
         name, args = command
         globals()["handle_" + name](*args)
 
+
 def handle_move(dx, dy):
     if gl.__game_state__ == "playing":
         if player.move(dx, dy):
             gl.__fov_recompute__ = True
             gl.__turn_count__ += 1
 
+
 def handle_quit():
     gl.__game_state__ = "quit"
+
 
 def handle_wizard():
     gl.__wizard_mode__ = True
 
+
 def handle_wait():
-	if gl.__game_state__ == "playing":
-		gl.__turn_count__ += 1
-	#TODO handle wait properly
+    if gl.__game_state__ == "playing":
+        gl.__turn_count__ += 1
+    #TODO handle wait properly
 
 
 if __name__ == "__main__":
@@ -56,11 +61,11 @@ if __name__ == "__main__":
     #map = dg.finish()
     #map = Map(dg.finish())
 
-#    dg = RoomsCoridorsGenerator(80, 40)
-#    dg.generate()
-#    map = Map(dg.finish())
-#    dg = StaticGenerator()
-#    dg.generate()
+    #    dg = RoomsCoridorsGenerator(80, 40)
+    #    dg.generate()
+    #    map = Map(dg.finish())
+    #    dg = StaticGenerator()
+    #    dg.generate()
     map = Map(dg.finish(), player)
     map.place_monsters()
     map.init_fov()
