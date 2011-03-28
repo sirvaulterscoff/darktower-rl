@@ -38,6 +38,7 @@ class Critter(object):
     ai = None
     hp = base_hp
     mp = base_mp
+    xp = 1
 
     def __init__(self):
         self.map = None
@@ -151,6 +152,8 @@ class Player(Critter):
     mp = 10
     hp = base_hp
     name = 'you'
+    xl = 1
+    xp = 0
 
     def __init__(self):
         self.map = None
@@ -172,6 +175,14 @@ class Player(Critter):
         print 'You die...'
         gl.__game_state__ = "died"
 
+    def earn_exp(self, src):
+        self.xp += src.xp
+        if self.xp > util.xp_for_lvl(self.xl):
+            self.lvl_up()
+
+    def lvl_up(self):
+        self.xl += 1
+        print "Congratulations! Level up"
 
 class Rat(Critter):
     char = 'r'

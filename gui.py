@@ -1,6 +1,7 @@
 import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from features import  *
+import util
 
 SCREEN_WIDTH = 80
 RIGHT_PANEL_WIDTH = 40
@@ -8,10 +9,11 @@ SCREEN_HEIGHT = 50
 LIMIT_FPS = 20
 
 MSG_BAR_WIDTH = 20
-MSG_PANEL_HEIGHT = 7
+MSG_PANEL_HEIGHT = SCREEN_WIDTH
 PANEL_X = SCREEN_WIDTH - RIGHT_PANEL_WIDTH
 
 COLOR_STATUS_TEXT = (166, 102, 0)
+COLOR_STATUS_VALUES = (244, 244, 244)
 HP_BAR = ((0, 0, 255), (128, 0, 255), (255, 0, 0))
 MP_BAR = ((115, 0, 255), (255, 136, 0), (255, 0, 0))
 HP_BAR_PERCENT = (0.50, 0.35)
@@ -87,6 +89,10 @@ class LibtcodGui(AbstractGui):
             HP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), HP_BAR_PERCENT)
         self.render_bar(1, 2, 13, 10, player.mp, player.base_mp,
             MP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), MP_BAR_PERCENT)
+        self.render_stats_two_column(1, 3, "AC", player.base_ac, 13, "EVADE", "player.evade", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 4, "Str", "str", 13, "To", "tough", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 5, "Dex", "des", 13, "Int", "int", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp , util.xp_for_lvl(player.xl)), COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
 
         #blit the contents of "panel" to the root console
         libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, PANEL_X, 0)
@@ -115,6 +121,14 @@ class LibtcodGui(AbstractGui):
         #now render the bar on top
         libtcod.console_set_foreground_color(self.panel, self.create_color(bar_color[severity]))
         libtcod.console_print_left(self.panel, x2 + 1 ,y, libtcod.BKGND_NONE, '#'.center(active_ticks, '#'))
+
+    def render_stats_two_column(self, x, y, text1, value, x2, text2, value2, lbl_color, value_color):
+        libtcod.console_set_foreground_color(self.panel, self.create_color(lbl_color))
+        libtcod.console_print_left(self.panel, x, y, libtcod.BKGND_NONE, text1 + ':')
+        libtcod.console_print_left(self.panel, x2, y, libtcod.BKGND_NONE, text2 + ':')
+        libtcod.console_set_foreground_color(self.panel, self.create_color(value_color))
+        libtcod.console_print_left(self.panel, x + len(text1) + 1, y, libtcod.BKGND_NONE, str(value))
+        libtcod.console_print_left(self.panel, x2 + len(text2) + 1, y, libtcod.BKGND_NONE, str(value2))
 
     def clear_all(self, critters):
         for critter in critters:

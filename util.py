@@ -45,3 +45,9 @@ def distance(x1, y1, x2, y2):
 
 def coinflip():
     return libtcod.random_get_int(0, 0, 1)
+
+EXP_MAP = (0, 10, 30, 70, 140, 270, 520, 1010, 1980, 3910, 7760, 15450, 29000, 48500, 74000, 105500, 143000, 186500,
+236000, 291500, 353000, 420500, 494000, 573500, 659000, 750500, 848000)
+def xp_for_lvl(next_lvl):
+    return EXP_MAP[next_lvl]
+
