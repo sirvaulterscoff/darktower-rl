@@ -25,6 +25,7 @@ class Critter(object):
     description_future = 'Generic critter from distant future'
     base_hd = 1
     base_hp = 1
+    base_mp = 1
     speed = 1
     base_ac = 0
     base_dmg = [(1, 1)]
@@ -36,6 +37,7 @@ class Critter(object):
     fov_range = 5
     ai = None
     hp = base_hp
+    mp = base_mp
 
     def __init__(self):
         self.map = None
@@ -71,7 +73,8 @@ class Critter(object):
             dmg = util.roll(*attack)
             #let's roll 1d20 + HD for now, assuming that monster
             # can hit player no lees than 30% of the time
-            # (thus checking it to be > 14
+            # (thus checking it to be > 14)
+            #TODO add player's/monsters' evade to calculations
             if util.roll(1, 20, self.base_hd) >= 14:
                 dmgs.append(dmg)
             else:
@@ -144,6 +147,8 @@ class Player(Critter):
     skip_register = True
     fov_range = 10
     base_hp = 10
+    base_mp = 10
+    mp = 10
     hp = base_hp
     name = 'you'
 
