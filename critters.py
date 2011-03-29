@@ -187,7 +187,7 @@ class Player(Critter):
 class Rat(Critter):
     char = 'r'
     name = 'rat'
-    color = [90, 30, 40]
+    color = [240, 240, 240]
     description_past = 'Obesity makes this plague-bearing rats realy huge. Interesting, can you even kill one that big...'
     description_present = 'Huge, fat rat somehow managed to leave sewers or households and now posess enourmous threat to unwary adventurer.'
     description_future = 'Strange mental-wave-immune creature, you have not seen ever before. According to records in central creature database (CCDB) these should be called rat'
