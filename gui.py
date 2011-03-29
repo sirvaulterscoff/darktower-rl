@@ -38,7 +38,7 @@ class AbstractGui(object):
 
 class LibtcodGui(AbstractGui):
     def __init__(self):
-        libtcod.console_set_custom_font('fonts/terminal10x10_gs_tc.png',
+        libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
         libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False)
         self.con = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
