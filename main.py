@@ -11,7 +11,11 @@ from map import Map
 def main_loop():
     while gl.__game_state__ == "playing" and not gui.window_closed():
         gui.render_all(map, player)
+        if gl.__show_chapter__:
+            gui.render_intro(gl.__chapter_text__)
+            gl.__show_chapter__ = None
         gui.clear_all(map.map_critters)
+        gui.render_ui(player)
         key = game_input.readkey()
         handle_key(key)
         for critter in map.map_critters:
