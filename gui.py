@@ -38,10 +38,11 @@ class AbstractGui(object):
 
 class LibtcodGui(AbstractGui):
     def __init__(self):
-        libtcod.console_set_custom_font('fonts/terminal10x10_gs_tc.png',
+        libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
         libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False)
         self.con = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.con2 = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.panel = libtcod.console_new(RIGHT_PANEL_WIDTH, SCREEN_HEIGHT)
         self.panel_msg = libtcod.console_new(SCREEN_WIDTH, MSG_PANEL_HEIGHT)
 
@@ -53,6 +54,25 @@ class LibtcodGui(AbstractGui):
     def clear_critter(self, x, y):
         libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, ' ')
 
+
+    def render_ui(self, player):
+        #prepare to render the GUI panel
+        libtcod.console_set_background_color(self.panel, libtcod.black)
+        libtcod.console_clear(self.panel)
+        #show the player's HP
+        self.render_bar(1, 1, 13, 10, player.hp, player.base_hp,
+                        HP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), HP_BAR_PERCENT)
+        self.render_bar(1, 2, 13, 10, player.mp, player.base_mp,
+                        MP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), MP_BAR_PERCENT)
+        self.render_stats_two_column(1, 3, "AC", player.base_ac, 13, "EVADE", "player.evade", COLOR_STATUS_TEXT,
+                                     COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 4, "Str", "str", 13, "To", "tough", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 5, "Dex", "des", 13, "Int", "int", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp, util.xp_for_lvl(player.xl))
+                                     , COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        #blit the contents of "panel" to the root console
+        libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
+        libtcod.console_flush()
 
     def render_all(self, map, player):
         if gl.__fov_recompute__:
@@ -80,8 +100,9 @@ class LibtcodGui(AbstractGui):
                         map[y][x].seen = True
 
         for critter in map.map_critters:
-            libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
-            self.print_critter(critter.x, critter.y, critter.char)
+            if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
+                libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
+                self.print_critter(critter.x, critter.y, critter.char)
 
         libtcod.console_set_foreground_color(self.con, self.create_color(player.color))
         self.print_critter(player.x, player.y, player.char)
@@ -89,23 +110,6 @@ class LibtcodGui(AbstractGui):
         if gl.__wizard_mode__:
             libtcod.console_print_left(self.con, 0, 0, libtcod.BKGND_NONE, 'WIZ MODE')
         libtcod.console_blit(self.con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
-
-        #prepare to render the GUI panel
-        libtcod.console_set_background_color(self.panel, libtcod.black)
-        libtcod.console_clear(self.panel)
-
-        #show the player's HP
-        self.render_bar(1, 1, 13, 10, player.hp, player.base_hp,
-            HP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), HP_BAR_PERCENT)
-        self.render_bar(1, 2, 13, 10, player.mp, player.base_mp,
-            MP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), MP_BAR_PERCENT)
-        self.render_stats_two_column(1, 3, "AC", player.base_ac, 13, "EVADE", "player.evade", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
-        self.render_stats_two_column(1, 4, "Str", "str", 13, "To", "tough", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
-        self.render_stats_two_column(1, 5, "Dex", "des", 13, "Int", "int", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
-        self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp , util.xp_for_lvl(player.xl)), COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
-
-        #blit the contents of "panel" to the root console
-        libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
         libtcod.console_flush()
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):
@@ -139,6 +143,21 @@ class LibtcodGui(AbstractGui):
         libtcod.console_set_foreground_color(self.panel, self.create_color(value_color))
         libtcod.console_print_left(self.panel, x + len(text1) + 1, y, libtcod.BKGND_NONE, str(value))
         libtcod.console_print_left(self.panel, x2 + len(text2) + 1, y, libtcod.BKGND_NONE, str(value2))
+
+    def render_intro(self, intro_text):
+        libtcod.console_print_center(self.con2, SCREEN_WIDTH / 3, (SCREEN_HEIGHT /3) , libtcod.BKGND_ADD, intro_text)
+        # do a cross-fading from off1 to off2
+        for i in range(1, 110):
+            libtcod.console_blit(self.con, 0, 0, 80, 50, 0, 0, 0) # renders the first screen (opaque)
+            libtcod.console_blit(self.con2, 0, 0, 80, 50, 0, 0, 0, i / 128.0,
+                                 i / 128.0) # renders the second screen (transparent)
+            libtcod.console_flush()
+        libtcod.console_wait_for_keypress(True)
+        for i in range(1, 128):
+            libtcod.console_blit(self.con2, 0, 0, 80, 50, 0, 0, 0) # renders the first screen (opaque)
+            libtcod.console_blit(self.con, 0, 0, 80, 50, 0, 0, 0, i / 128.0,
+                                 i / 128.0) # renders the second screen (transparent)
+            libtcod.console_flush()
 
     def clear_all(self, critters):
         for critter in critters:

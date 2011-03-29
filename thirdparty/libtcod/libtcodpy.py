@@ -42,6 +42,8 @@ if sys.platform.find('linux') != -1:
 else:
     _lib = ctypes.cdll['./libtcod-mingw.dll']
 
+_lib.TCOD_namegen_generate.restype = c_char_p
+_lib.TCOD_namegen_generate_custom.restype = c_char_p
 HEXVERSION = 0x010500
 STRVERSION = "1.5.0"
 TECHVERSION = 0x01050003

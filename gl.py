@@ -13,6 +13,8 @@ __msgs__ = []
 MSG_WIDTH = 50
 MSG_COUNT = 250
 
+__show_chapter__ = True
+__chapter_text__ = 'Chapter 1. Departure'
 def message(text, level):
     wraped_msg = textwrap.wrap(text, MSG_WIDTH)
 
