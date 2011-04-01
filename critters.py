@@ -33,6 +33,8 @@ class Critter(object):
     inven = []
     common = 10
     __metaclass__ = util.AutoAdd
+    __meta_field__ = ALL
+    __meta_skip__ = "skip_register"
     skip_register = True
     fov_range = 5
     ai = None
