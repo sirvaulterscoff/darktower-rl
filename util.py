@@ -1,4 +1,5 @@
 import inspect
+import random
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
 
@@ -19,6 +20,9 @@ def cap_lower(what, min, to):
 
 def random_by_level(level, items):
     items = filter(lambda a: a.dlvl == level, items)
+    return random_from_list(items)
+
+def random_from_list(items):
     start = sum(item.common for item in items)
     if not start: return None
     n = randrange(start)
@@ -29,21 +33,16 @@ def random_by_level(level, items):
             n -= item.common
     return choice(items)
 
-
 class AutoAdd(type):
 
     def __new__(mcs, name, bases, dict):
         cls = type.__new__(mcs, name, bases, dict)
-        holder = None
-        skip_field = dict.get('skip_register')
-        #if ve have meta dict
-        skip_dict = None
         if dict.has_key('__meta_dict__'):
             skip_dict = dict.get('__meta_dict__')
         else:
             skip_dict = find_base(cls)
         if not skip_dict:
-            skip_dict = { skip_field : cls.ALL }
+            skip_dict = { 'skip_register' : cls.ALL }
         for key, value in skip_dict.items():
             if not dict.get(key):
                 value.append(cls)
