@@ -1,4 +1,6 @@
 import inspect
+import itertools
+import os
 import random
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
@@ -32,6 +34,12 @@ def random_from_list(items):
         else:
             n -= item.common
     return choice(items)
+
+def random_from_list_weighted(items):
+    result = []
+    for item in items:
+        result.extend(itertools.repeat(item, item.common))
+    return result[random.randrange(0, len(result))]
 
 class AutoAdd(type):
 
@@ -117,4 +125,17 @@ EXP_MAP = (0, 10, 30, 70, 140, 270, 520, 1010, 1980, 3910, 7760, 15450, 29000, 4
 def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
+inited_names = False
+ng_names = []
+def gen_name():
+    global  inited_names, ng_names
+    if not inited_names:
+        inited_names = True
+        ng_names = init_name_get('names')
+    return libtcod.namegen_generate(ng_names[random.randrange(0, len(ng_names))])
 
+def init_name_get(postfix):
+    for file in os.listdir('../data/namegen') :
+        if file.find(postfix + '.cfg') > 0 :
+            libtcod.namegen_parse(os.path.join('..','data','namegen',file))
+    return libtcod.namegen_get_sets()

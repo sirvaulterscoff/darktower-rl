@@ -1,7 +1,9 @@
 import logging
+import math
 import os
 import random
 import sys
+import world
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from thirdparty.libtcod import libtcodpy as libtcod
@@ -86,79 +88,143 @@ TRADERS_ROLL = (2, 6,  8)
 #to obtain amulet from and wafull demon not neccessarily he should get it. Instead he should be given some important information and be directed to the next quest
 
 
+
+class QuestNPC(object):
+    #denotes if this NPC-type can be generate at first phase
+    skip_global = True
+    non_quest_givers = True
+    __metaclass__ = util.AutoAdd
+    mNPC = []
+    quest_giver_NPC = []
+    __meta_dict__ = { 'skip_global' : mNPC,
+        'non_quest_givers' : quest_giver_NPC}
+    common = 2
+
+    def __init__(self):
+        self.name = util.gen_name()
+        print 'Generated ' + str(self.name)
+
+    def __str__(self):
+        return self.name
+
+
+class GoodNPC(QuestNPC):
+    skip_global = False
+    non_quest_givers = False
+    common = 7
+    pass
+
+class BadNPC(QuestNPC):
+    skip_global = False
+    common = 7
+    pass
+
+class BetrayalNPC(BadNPC):
+    skip_global = False
+    non_quest_givers = False
+    common = 2
+    pass
+
+class WereNPC(BadNPC):
+    skip_global = False
+    non_quest_givers = False
+    common = 1
+    pass
+
+class DeityNPC(QuestNPC):
+    skip_global = False
+    non_quest_givers = False
+    common = 1
+    pass
+
+class ControlledNPC(BetrayalNPC):
+    skip_global = False
+    non_quest_givers = False
+    common = 1
+    pass
+
+class OverpoweredNPC(ControlledNPC):
+    skip_global = False
+    common = 1
+    pass
+
+class AdventureNPC(GoodNPC):
+    skip_global = False
+    common = 6
+    pass
+
+class ImmobileNPC(GoodNPC):
+    skip_global = True
+    pass
+
+class BandNPC(BadNPC):
+    skip_global = False
+    common = 3
+    pass
+
+class UniqueNPC(BadNPC):
+    skip_global = True
+    pass
+
+class TraderNPC(GoodNPC):
+    skip_global = True
+    pass
+
+class ThiefNPC(BetrayalNPC):
+    skip_global = True
+
+class SummonedNPC(GoodNPC):
+    skip_global = True
+
+class  ShadowOfThePastNPC(QuestNPC):
+    skip_global = True
+
+
+
+
 #######FIRST_PHASE: (all the NPC inhabiting the world instead of those, generated inside quests nly)
 #first let's define our world's population: this will include
 # all the NPC's of all types we have, except those which can be placed inside quesuts only
-#let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
-mNPC_count = util.roll(*MNPC_ROLL)
+
 #now let's roll for number of quest-givers. we do want them to exist
-min_quest_fivers = util.roll(*QUEST_GIVER_ROLL)
+min_quest_givers = util.roll(*QUEST_GIVER_ROLL)
+actual_quest_givers = 0
+while actual_quest_givers < min_quest_givers:
+    if actual_quest_givers > 0:
+        logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
+    #let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
+    mNPC_count = util.roll(*MNPC_ROLL)
+    #now toss
+    result = []
+    actual_quest_givers = 0
+    for x in xrange(0, mNPC_count):
+        rnd = util.random_from_list_weighted(QuestNPC.mNPC)()
+        result.append(rnd)
+        if not rnd.non_quest_givers:
+            actual_quest_givers += 1
+world.mNPC.extend(result)
+
 #now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
 immobile_npc = 0
 if util.coinflip():
     to_roll = util.roll(*IMMOBILE_NPC_ROLL)
     for i in range(0, to_roll):
         immobile_npc += util.coinflip()
+#for now let's place immobile NPCs together with main NPCs
+for i in xrange(0, immobile_npc):
+    world.mNPC.append(ImmobileNPC())
 unique_npc = util.roll(*UNIQUES_ROLL)
 traders_npc = util.roll(*TRADERS_ROLL)
-logger.debug("Rolled for %d main NPCs (%d NPC able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_fivers, immobile_npc, unique_npc, traders_npc)
+for i in xrange(0, traders_npc):
+    world.traders.append(TraderNPC())
+logger.debug("Rolled for %d main NPCs (%d (%d actual) NPC able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_givers, actual_quest_givers, immobile_npc, unique_npc, traders_npc)
 logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
-#now toss
 
-#generate_plot()
+debug_map = {}
+for item in world.mNPC:
+    cnt = debug_map.get(item.__class__, 0)
+    debug_map[item.__class__] = cnt + 1
 
-class QuestNPC(object):
-    #denotes if this NPC-type can be generate at first phase
-    non_worldgen = False
-    __metaclass__ = util.AutoAdd
-    mNPC = []
-    __meta_dict__ = { 'generated_at_1_phase' : mNPC }
-    def __init__(self):
-        pass
-
-class GoodNPC(QuestNPC):
-    pass
-
-class BadNPC(QuestNPC):
-    pass
-
-class BetrayalNPC(BadNPC):
-    pass
-
-class WereNPC(BadNPC):
-    pass
-
-class DeityNPC(QuestNPC):
-    pass
-
-class ControlledNPC(BetrayalNPC):
-    pass
-
-class OverpoweredNPC(ControlledNPC):
-    pass
-
-class AdventureNPC(GoodNPC):
-    pass
-
-class ImmobileNPC(GoodNPC):
-    pass
-
-class BandNPC(BadNPC):
-    pass
-
-class UniqueNPC(BadNPC):
-    pass
-
-class TraderNPC(GoodNPC):
-    pass
-
-class ThiefNPC(BetrayalNPC):
-    generated_at_1_phase = True
-
-class SummonedNPC(GoodNPC):
-    generated_at_1_phase = True
-
-class  ShadowOfThePastNPC(QuestNPC):
-    generated_at_1_phase = True
-
-shuffled_npcs = QuestNPC.mNPC[:]
+logger.debug("Generated following mNPC's types")
+for k,v in debug_map.items():
+    logger.debug(str(k) + '\t\t' + str(v))
