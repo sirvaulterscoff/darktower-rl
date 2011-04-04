@@ -1,3 +1,4 @@
+import inspect
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
 
@@ -30,19 +31,31 @@ def random_by_level(level, items):
 
 
 class AutoAdd(type):
+
     def __new__(mcs, name, bases, dict):
         cls = type.__new__(mcs, name, bases, dict)
         holder = None
-        if dict.get('__meta_field__'):
-            holder = cls.__meta_field__
+        skip_field = dict.get('skip_register')
+        #if ve have meta dict
+        skip_dict = None
+        if dict.has_key('__meta_dict__'):
+            skip_dict = dict.get('__meta_dict__')
         else:
-            holder = cls.ALL
-        if dict.get('__meta_skip__'):
-          if not dict.get(dict.get('__meta_skip__')):
-              holder.append(cls)
-        elif not dict.get('skip_register'):
-            holder.append(cls)
+            skip_dict = find_base(cls)
+        if not skip_dict:
+            skip_dict = { skip_field : cls.ALL }
+        for key, value in skip_dict.items():
+            if not dict.get(key):
+                value.append(cls)
         return cls
+
+def find_base(cls):
+    for bcls in cls.__bases__:
+        if bcls.__dict__.has_key('__meta_dict__'):
+            return bcls.__meta_dict__
+        else:
+            return find_base(bcls)
+    return None
 
 
 def distance(x1, y1, x2, y2):

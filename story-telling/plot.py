@@ -86,10 +86,10 @@ TRADERS_ROLL = (2, 6,  8)
 #to obtain amulet from and wafull demon not neccessarily he should get it. Instead he should be given some important information and be directed to the next quest
 
 
-#######FIRST_PHASE: (all the NPC inhabiting the world instead of those, generated inside quesut ly)
+#######FIRST_PHASE: (all the NPC inhabiting the world instead of those, generated inside quests nly)
 #first let's define our world's population: this will include
 # all the NPC's of all types we have, except those which can be placed inside quesuts only
-#let's roll for number of NPC. let it lay from . NOTE that we will also add types denoted by ! later.
+#let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
 mNPC_count = util.roll(*MNPC_ROLL)
 #now let's roll for number of quest-givers. we do want them to exist
 min_quest_fivers = util.roll(*QUEST_GIVER_ROLL)
@@ -111,7 +111,8 @@ class QuestNPC(object):
     #denotes if this NPC-type can be generate at first phase
     non_worldgen = False
     __metaclass__ = util.AutoAdd
-    __meta_skip__ = ''
+    mNPC = []
+    __meta_dict__ = { 'generated_at_1_phase' : mNPC }
     def __init__(self):
         pass
 
@@ -159,3 +160,5 @@ class SummonedNPC(GoodNPC):
 
 class  ShadowOfThePastNPC(QuestNPC):
     generated_at_1_phase = True
+
+shuffled_npcs = QuestNPC.mNPC[:]
