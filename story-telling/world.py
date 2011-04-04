@@ -1,2 +1,4 @@
+mNPC = []
+traders = []
 
   

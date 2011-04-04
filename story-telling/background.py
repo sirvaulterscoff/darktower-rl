@@ -15,6 +15,8 @@ import os
 import random
 import sys
 import textwrap
+import util
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from thirdparty.libtcod import libtcodpy as libtcod
 
@@ -151,12 +153,6 @@ conjuration
 transmutation
 """
 
-def __init__(postfix):
-    for file in os.listdir('../data/namegen') :
-        if file.find(postfix + '.cfg') > 0 :
-            libtcod.namegen_parse(os.path.join('..','data','namegen',file))
-    return libtcod.namegen_get_sets()
-
 def process_string(s = ''):
     result = s.strip()
     rng = ng_names[random.randrange(0, len(ng_names))]
@@ -213,9 +209,9 @@ def make_story():
     output = chain(*islice(izip(*parts), 0, 1))
     print textwrap.fill(' '.join(output),80)
 
-ng_names = __init__("names")
-ng_towns = __init__("town")
-ng_demons = __init__("demon")
+ng_names = util.init_name_get("names")
+ng_towns = util.init_name_get("town")
+ng_demons = util.init_name_get("demon")
 adjs = adjectives.splitlines()
 nns = nouns.splitlines()
 profs = professions.splitlines()
