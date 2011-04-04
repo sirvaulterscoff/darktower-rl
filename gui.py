@@ -7,11 +7,13 @@ SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
 LIMIT_FPS = 20
 
+MSG_PANEL_HEIGHT = gl.MSG_COUNT
+MSG_PANEL_Y = SCREEN_HEIGHT - MSG_PANEL_HEIGHT
+
 RIGHT_PANEL_WIDTH = 40
 RIGHT_PANEL_X = SCREEN_WIDTH - RIGHT_PANEL_WIDTH
+RIGHT_PANEL_HEIGHT = SCREEN_HEIGHT - MSG_PANEL_HEIGHT
 
-MSG_PANEL_HEIGHT = 10
-MSG_PANEL_Y = SCREEN_HEIGHT - MSG_PANEL_HEIGHT
 
 COLOR_STATUS_TEXT = (166, 102, 0)
 COLOR_STATUS_VALUES = (244, 244, 244)
@@ -37,6 +39,7 @@ class AbstractGui(object):
 
 
 class LibtcodGui(AbstractGui):
+    message_colours = {}
     def __init__(self):
         libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
@@ -45,6 +48,11 @@ class LibtcodGui(AbstractGui):
         self.con2 = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.panel = libtcod.console_new(RIGHT_PANEL_WIDTH, SCREEN_HEIGHT)
         self.panel_msg = libtcod.console_new(SCREEN_WIDTH, MSG_PANEL_HEIGHT)
+        self.message_colours[0] = libtcod.Color(128,128,128)
+        self.message_colours[1] = libtcod.Color(200,200,200)
+        self.message_colours[2] = libtcod.Color(128,10,10)
+        self.message_colours[3] = libtcod.Color(255,10,10)
+        self.message_colours[4] = libtcod.Color(255,255,255)
 
 
     def print_critter(self, x, y, char):
@@ -71,7 +79,17 @@ class LibtcodGui(AbstractGui):
         self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp, util.xp_for_lvl(player.xl))
                                      , COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
         #blit the contents of "panel" to the root console
-        libtcod.console_blit(self.panel, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
+        libtcod.console_blit(self.panel, 0, 0, RIGHT_PANEL_WIDTH, RIGHT_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
+
+        #print the game messages, one line at a time
+        y = 0
+        for (line, level) in gl.__msgs__:
+            if level < 1 and not gl.__wizard_mode__:
+                continue
+            libtcod.console_set_foreground_color(self.panel_msg, self.message_colours.get(level, libtcod.white))
+            libtcod.console_print_left(self.panel_msg, 0, y, libtcod.BKGND_NONE, line.ljust(SCREEN_WIDTH, ' '))
+            y += 1
+        libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y )
         libtcod.console_flush()
 
     def render_all(self, map, player):
