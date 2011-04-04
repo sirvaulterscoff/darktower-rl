@@ -32,8 +32,16 @@ def random_by_level(level, items):
 class AutoAdd(type):
     def __new__(mcs, name, bases, dict):
         cls = type.__new__(mcs, name, bases, dict)
-        if not dict.get('skip_register'):
-            cls.ALL.append(cls)
+        holder = None
+        if dict.get('__meta_field__'):
+            holder = cls.__meta_field__
+        else:
+            holder = cls.ALL
+        if dict.get('__meta_skip__'):
+          if not dict.get(dict.get('__meta_skip__')):
+              holder.append(cls)
+        elif not dict.get('skip_register'):
+            holder.append(cls)
         return cls
 
 

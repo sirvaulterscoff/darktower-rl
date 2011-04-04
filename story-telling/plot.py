@@ -105,12 +105,14 @@ logger.debug("Rolled for %d main NPCs (%d NPC able to issue quests), %d immobile
 logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
 #now toss
 
-generate_plot()
+#generate_plot()
 
 class QuestNPC(object):
-    generated_at_1_phase = True
+    #denotes if this NPC-type can be generate at first phase
+    non_worldgen = False
+    __metaclass__ = util.AutoAdd
+    __meta_skip__ = ''
     def __init__(self):
-        #denotes if this NPC-type can be generate at first phase
         pass
 
 class GoodNPC(QuestNPC):
@@ -150,10 +152,10 @@ class TraderNPC(GoodNPC):
     pass
 
 class ThiefNPC(BetrayalNPC):
-    generated_at_1_phase = False
+    generated_at_1_phase = True
 
-class SUmmonedNPC(GoodNPC):
-    generated_at_1_phase = False
+class SummonedNPC(GoodNPC):
+    generated_at_1_phase = True
 
 class  ShadowOfThePastNPC(QuestNPC):
-    generated_at_1_phase = False
+    generated_at_1_phase = True
