@@ -81,7 +81,7 @@ class Critter(object):
             if util.roll(1, 20, self.base_hd) >= 14:
                 dmgs.append(dmg)
             else:
-                print self.name.capitalize() + ' misses ' + whom.name
+                gl.message(self.name.capitalize() + ' misses ' + whom.name, 1)
         whom.take_damage(self, dmgs, attack)
 
 
@@ -118,15 +118,18 @@ class Critter(object):
                 if util.coinflip(): dmg -= 1
                 if dmg <= 0: break
             if dmg > 0 and self.hp > 0:
-                print mob.name.capitalize() + ' hits ' + self.name + ' for ' + str(dmg) + ' damage.'
+                gl.message(mob.name.capitalize() + ' hits ' + self.name + ' for ' + str(dmg) + ' damage.', 5)
                 self.hp -= dmg
+                if isinstance(self, Player):
+                    if self.hp <= self.base_hp * gl.__hp_warning__:
+                        gl.message('Low HP!!!', 'WARN')
             elif self.hp > 0:
-                print mob.name.capitalize() + ' fails to harm ' + self.name
+                gl.message (mob.name.capitalize() + ' fails to harm ' + self.name, 1)
         if self.hp <= 0:
             self.die(mob)
 
     def die(self, killer):
-        print self.name.capitalize() + ' dies'
+        gl.message(self.name.capitalize() + ' dies', 1)
         if isinstance(killer, Critter):
             killer.earn_exp(self)
         self.map.remove_critter(self)
@@ -170,11 +173,11 @@ class Player(Critter):
             self.x, self.y = newx, newy
             return True
         else:
-            print("You bump into wall")
+            gl.message("You bump into wall")
         return False
 
     def die(self, killer):
-        print 'You die...'
+        gl.message( 'You die...', 'CRITICAL')
         gl.__game_state__ = "died"
 
     def earn_exp(self, src):
@@ -184,7 +187,7 @@ class Player(Critter):
 
     def lvl_up(self):
         self.xl += 1
-        print "Congratulations! Level up"
+        gl.message ("Congratulations! Level up", 'INFO')
 
 class Rat(Critter):
     char = 'r'

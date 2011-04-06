@@ -22,6 +22,7 @@ def main_loop():
             if gl.__game_state__ == "died":
                 break
             critter.take_turn()
+    game_input.readkey()
 
 
 def handle_key(key):
