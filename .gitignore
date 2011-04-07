@@ -2,5 +2,7 @@
 *.swp
 *.py~
 *.iml
+*.ipr
+*.iws
 .idea
 
