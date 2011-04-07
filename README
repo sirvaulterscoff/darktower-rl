@@ -1,13 +1,84 @@
-                                '#######################'
-                                '## ## ## ## ## ## ## ##'
-                                '#                     #'
-                                '#########     #########'
-                                '###   ###     ###   ###'
-                                '###   ###     ###   ###'
-                                '#########     #########'
-                                '########### ###########'
-                                '#                     #'
-                                '#  #   #       #   #  #'
-                                '#    #   #   #   #    #'
-                                '#                     #'
-                                '###########@###########'
+0. Intro
+
+From the primal dust and ether demiurges created the world of Ewwel. Since then Ewwel floated in ether around the Palace of All Gods.
+Each of the demiurges had it's own region where they were free to create anything they like, so lakes, deep oceans, dense forests,
+errupting volcanoes, high mountains, dark caves were created. Ewwel and it's inhabitants was belowed by all the gods, but one - Chaos.
+Later Chaos created the realm of Transcedence and sealed Ewwel there there alongside with his own creation - world of Chaos,
+inhabited by strange and ugly creations of his dark mind. Other gods found his actions contrary to their own judgment and banished him
+to Endless Abyss where he dwell now, spreading chaos and destruction. Unfortunately demiurges were not able to break the seal of Chaos,
+so Ewwel was doomed to constantly struggle against surrounding chaos.
+Time has passed and inhabitants of Ewwel got used to new conditions, and life returned to noraml. But suddently terrible earthquakes
+tore Ewwel to small pieces, spreading them all over Transcedence. The cause of such cataclysm was hidden in mysterios deep caves
+scattered all over the Ewwel. They are said to be created by Chaos itself and contain chaos ether in it's primal form. Fearing for the
+fate of Ewwel demiurges tried to gather all the pieces together, but they were unable to tie them - so strong was the power of chaos.
+Then Harmonia - one of most powerfull demiurges - took the largest piece of Ewwel and placed on it the spire made of bones and skulls
+of defeated enemies. Then Harmonia took all the fragments of former Ewwel and strung them on the spire, placing the smallest at the top.
+Each of the pieces was called "plain", some of them was inhabited by humans, some be chaos-creatures, others was nothing more than a
+vast ocean. The spire itself was as black as eternal night and as high as the universe itself. Life on the plains was back to normal
+and demiurges lost interest in the fate of Ewwel. But one day chaos manifested itself once again. The power of spire began to decay.
+Plains began to collapse. Some were completely destroyed, others merged with underlying planes, few of them managed to resist chaos.
+   By that time the true history of the world has been forgotten and inhabitants of the plains had a little knowledge about other
+plains and about spire itself. Others were completely unaware about other plains.
+   You was born on one of the plains which was untouched by the madness of chaos.
+
+That's how the story begins. So you start at some "unaware" plane - inhabitants of which has no knowledge on spire or other planes.
+One day you've got a task which during which you was teleported to another plane. Actualy that was the root plane, where the spire
+(called here black tower or dark tower) resides.
+
+1. Desired features of the game.
+ - random plot generation. Unique plot is generated each time you play. That should be achieved through randomization of every
+ part of the story
+ - three different planes to choose from. One plain is medieval-style plane with mages, crusaders and all. One is our-time plane
+ and one if a distant-future plane with cyborgs and robots. Each of the planes will have it's own description for items
+ and mobs and other stuff. Imagine how one from medieval times can describe robot? or someone from distant future can describe a
+ horse rider. Moreover as you progress far in the game you will occasionaly see "merged" places - i.e. places from some other real.
+ No wonder you can see some scientific laboratory burried in deep caves inhabited by goblins. Some of the places are not reachable
+ by commers from some plains. I.e. medieval folk can't decrypt the door access for lab, and so on..
+ - random map generation with predefined elements, or quest-contextual generation. imagine we have a quest and a ranom map for it,
+ but if quest guardian is a raboto we have to place inside quest map another sub-map generated using "space-ship-like generator" or
+ whater
+ - predefined global map for main world. Global map means that we will have many sub-maps.
+ - hidden features and secrets. Not all the features/secrets generated every game (so you will have to play many games to see all the
+ features). As well no every plane commer can access all features
+ - severl endings. They should twist the plot like hell. In one case you're led to dark tower, where you defeat chaos and the game ends.
+ in another game you've told that actualy that won't help and you need to go to top of the tower etc.
+ - buildings and town generator. we do want a modern town with skyscrappers. so let it be stairs in shuch towers
+ - linear trawels. You don't need to run around the map from one corner to another. if you need to cover a large distance, then you
+ should be teleported there or whatever. i.e. if you go up 100 floors of the skyscrappers to defeat the boss, no need to go down for
+ the next target.
+
+Current tasks:
+1. Dungeon generators. We need more of them. First of all - we need to finish cave generator (connect the blobs together).
+Next we need dense forest generator, maze generator. Passage Generator, like
+#############
+            #
+##########  #
+#           #
+# ###########
+#
+
+with some randomizations.
+house generator, creating houses like (8=bed, T=table, h=chair,<=upstairs, +=door).
+##############
+# hT         #
+#  h         +
+#8         < #
+##############
+and town generator creating folowing layout of houses (. = road, #=houses as above)
+.....  ..#
+##.####..#
+..........
+..........
+#.###.###
+
+Moreover we need predefined features that can be randomly placed on maps. Some parts of these features (rooms) should be randomized as well
+2. Descriptions. item and monster descriptions should be stored in external text files and loaded when needed
+3. Viewport. Currently we generate 80x25 map and show it all. We need to generate larger maps showing just a small viewport, scrolling as needed
+4. Floodfill. Actualy we need a special case of flood fill. By default if will generate 3x3 cloud. But if 3x3 can't be generated then flood fill
+should be applied. example (#=wall, $=flood-filled square, %-start of flood-fill, .=unfilled square)
+ ###########
+ #%$$$$$$..
+ ###$$######
+    ##
+5. Rivers (see http://www.umbrarumregnum.net/articles/creating-rivers). Definetly should be in for large maps
+6. More to come
