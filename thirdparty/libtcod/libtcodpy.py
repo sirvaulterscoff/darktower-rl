@@ -28,6 +28,7 @@
 import sys
 import ctypes
 import os
+import platform
 from ctypes import *
 
 try:  #import NumPy if available
@@ -37,7 +38,8 @@ except ImportError:
     numpy_available = False
 
 if sys.platform.find('linux') != -1:
-    path = os.path.dirname(os.path.realpath(__file__))
+    platformType = platform.architecture()[0]
+    path = os.path.dirname(os.path.realpath(__file__)) + "/"+ platformType
     _lib = ctypes.cdll["%s/libtcod.so"%path]
 else:
     _lib = ctypes.cdll['./libtcod-mingw.dll']
@@ -583,10 +585,10 @@ def console_disable_keyboard_repeat():
 # using offscreen consoles
 def console_new(w, h):
     return _lib.TCOD_console_new(w, h)
-    
+
 def console_get_width(con):
     return _lib.TCOD_console_get_width(con)
-    
+
 def console_get_height(con):
     return _lib.TCOD_console_get_height(con)
 
@@ -610,7 +612,7 @@ def console_fill_foreground(con,r,g,b) :
         cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-        
+
     elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
         #simple python lists, convert using ctypes
         cr = (c_int * len(r))(*r)
@@ -618,24 +620,24 @@ def console_fill_foreground(con,r,g,b) :
         cb = (c_int * len(b))(*b)
     else:
         raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
-    
+
     if len(r) != len(g) or len(r) != len(b):
         raise TypeError('R, G and B must all have the same size.')
-    
+
     _lib.TCOD_console_fill_foreground(con, cr, cg, cb)
 
 def console_fill_background(con,r,g,b) :
     if (numpy_available and isinstance(r, numpy.ndarray) and
         isinstance(g, numpy.ndarray) and isinstance(b, numpy.ndarray)):
         #numpy arrays, use numpy's ctypes functions
-        
+
         r = numpy.ascontiguousarray(r, dtype=numpy.int_)
         g = numpy.ascontiguousarray(g, dtype=numpy.int_)
         b = numpy.ascontiguousarray(b, dtype=numpy.int_)
         cr = r.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         cg = g.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         cb = b.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-        
+
     elif (isinstance(r, list) and isinstance(g, list) and isinstance(b, list)):
         #simple python lists, convert using ctypes
         cr = (c_int * len(r))(*r)
@@ -643,10 +645,10 @@ def console_fill_background(con,r,g,b) :
         cb = (c_int * len(b))(*b)
     else:
         raise TypeError('R, G and B must all be of the same type (list or NumPy array)')
-    
+
     if len(r) != len(g) or len(r) != len(b):
         raise TypeError('R, G and B must all have the same size.')
-    
+
     _lib.TCOD_console_fill_background(con, cr, cg, cb)
 
 ############################
