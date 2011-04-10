@@ -37,8 +37,10 @@ def handle_key(key):
 
 def handle_move(dx, dy):
     if gl.__game_state__ == "playing":
-        if player.move(dx, dy):
+        take_turn, fov_recompute = player.move(dx, dy)
+        if fov_recompute:
             gl.__fov_recompute__ = True
+        if take_turn:
             gl.__turn_count__ += 1
 
 
@@ -53,7 +55,7 @@ def handle_wizard():
 def handle_wait():
     if gl.__game_state__ == "playing":
         gl.__turn_count__ += 1
-    #TODO handle wait properly
+        #TODO handle wait properly
 
 
 if __name__ == "__main__":
@@ -61,16 +63,16 @@ if __name__ == "__main__":
     player = Player()
     critters = [player]
 
-    dg = CaveGenerator(40, 25)
-    dg.generate()
+    #dg = CaveGenerator(40, 25)
+    #dg.generate()
     #map = dg.finish()
     #map = Map(dg.finish())
 
     #    dg = RoomsCoridorsGenerator(80, 40)
     #    dg.generate()
     #    map = Map(dg.finish())
-    #    dg = StaticGenerator()
-    #    dg.generate()
+    dg = StaticGenerator()
+    dg.generate()
     map = Map(dg.finish(), player)
     map.place_monsters()
     map.init_fov()

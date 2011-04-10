@@ -3,17 +3,51 @@ from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 
 def parse_string(map):
-    new_map = [[] for i in range(0, len(map))]
+    new_map = []
     x, y = 0, 0
+    map_chars = {'#': FT_ROCK_WALL,
+                 ' ' : FT_FLOOR,
+                 '.' : FT_FLOOR,
+                 '+' : FT_DOOR}
+    orient = None
     for line in map:
+        if is_orient(line):
+            orient = pasrse_orient(line)
+            continue
+        if is_subst(line):
+            parse_subst(line, map_chars)
+            continue
+        new_map.append([])
         for char in line:
-            if char == '#': new_map[y].append(FT_ROCK_WALL())
-            elif char == ' ' or char == '.': new_map[y].append(FT_FLOOR())
-            elif char == '+': new_map[y].append(FT_GLASS_WALL())
+            ft = map_chars.get(char)
+            if ft is None:
+                raise RuntimeError('failed to parse char ' + char)
+            new_map[y].append(ft())
             x += 1
         y += 1
         x = 0
+    if orient is not None:
+        orient.transform(new_map)
     return new_map
+
+
+def parse_subst(line, map_chars):
+    subst_line = line.replace('SUBST=', '', 1)
+    substs = subst_line.split(',')
+    for subst_item in substs:
+        subst_def = subst_item.split('=>', 1)
+        map_chars [subst_def[0]] = globals()[subst_def[1]]
+
+
+def is_subst(line):
+    return line.startswith('SUBST=')
+
+
+def pasrse_orient(line):
+    return None
+
+def is_orient(line):
+    return line.startswith('ORIENT=')
 
 
 def find_passable_square(map):
@@ -186,14 +220,16 @@ class StaticGenerator(AbstractGenerator):
 
     def finish(self):
         return parse_string([
+                'SUBST=:=>FT_GLASS_WALL',
+                'ORIENT=RANDOM',
                 '#######################',
                 '## ## ## ## ## ## ## ##',
                 '#                     #',
-                '#########     #########',
-                '###   +++     ###   ###',
-                '###   ###     +++   ###',
-                '###+#####     ####+####',
-                '##+######## ######+####',
+                '####+####     ####+####',
+                '###   :::     ###   ###',
+                '###   ###     :::   ###',
+                '###:#####     ####:####',
+                '##:######## ######:####',
                 '#                     #',
                 '#  #   #       #   #  #',
                 '#    #   #   #   #    #',

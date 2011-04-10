@@ -27,9 +27,12 @@ class Map(object):
         self.fov_map = libtcod.map_new(self.map_width, self.map_height)
         for y in range(self.map_height):
             for x in range(self.map_width):
-                libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS,
-                                           not self[y][x].flags & features.BLOCK_WALK)
+                self.update_fov_for(x, y)
 
+
+    def update_fov_for(self, x, y):
+        libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS,
+                                           not self[y][x].flags & features.BLOCK_WALK)
     def recompute_fov(self):
         libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
                                 FOV_ALGORITHM)
@@ -80,8 +83,8 @@ class Map(object):
         self.map_critters.remove(critter)
 
     def find_random_square(self, occupied):
-        startx = libtcod.random_get_int(0, 1, self.map_width)
-        starty = libtcod.random_get_int(0, 1, self.map_height)
+        startx = libtcod.random_get_int(0, 0, self.map_width)
+        starty = libtcod.random_get_int(0, 0, self.map_height)
 
         for y in range(starty, self.map_height):
             for x in range(startx, self.map_width):

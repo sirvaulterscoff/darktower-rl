@@ -167,14 +167,15 @@ class Player(Critter):
         newx, newy = self.x + dx, self.y + dy
         if self.map.has_critter_at((newx, newy)):
             self.attack(self.map.get_critter_at(newx, newy))
-            return True
+            return True, False
         next_tile = self.map[newy][newx]
-        if next_tile.passable():
+        move_to, take_turn, fov_recalc = next_tile.player_move_into(self, newx, newy)
+        if move_to:
             self.x, self.y = newx, newy
-            return True
-        else:
+            return take_turn, fov_recalc
+        elif next_tile.is_wall():
             gl.message("You bump into wall")
-        return False
+        return take_turn, fov_recalc
 
     def die(self, killer):
         gl.message( 'You die...', 'CRITICAL')
