@@ -13,7 +13,8 @@ __author__ = 'svs'
 
 class cloud_test(unittest.TestCase):
     def test_cloud_placement(self):
-        map = dungeon_generators.parse_string([
+        sg = dungeon_generators.StaticGenerator()
+        map = sg.parse_string([
                                         '.....',
                                         '..#..',
                                         '.....'])
@@ -28,7 +29,8 @@ class cloud_test(unittest.TestCase):
         assert to_string(map) == '.%%%.n.%#%.n.%%%.n'
 
     def test_flood_fill(self):
-        map = dungeon_generators.parse_string([
+        sg = dungeon_generators.StaticGenerator()
+        map = sg.parse_string([
                                     '#########',
                                     '#........',
                                     '#########'])

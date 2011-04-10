@@ -1,53 +1,7 @@
 from random import randrange
 from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
-
-def parse_string(map):
-    new_map = []
-    x, y = 0, 0
-    map_chars = {'#': FT_ROCK_WALL,
-                 ' ' : FT_FLOOR,
-                 '.' : FT_FLOOR,
-                 '+' : FT_DOOR}
-    orient = None
-    for line in map:
-        if is_orient(line):
-            orient = pasrse_orient(line)
-            continue
-        if is_subst(line):
-            parse_subst(line, map_chars)
-            continue
-        new_map.append([])
-        for char in line:
-            ft = map_chars.get(char)
-            if ft is None:
-                raise RuntimeError('failed to parse char ' + char)
-            new_map[y].append(ft())
-            x += 1
-        y += 1
-        x = 0
-    if orient is not None:
-        orient.transform(new_map)
-    return new_map
-
-
-def parse_subst(line, map_chars):
-    subst_line = line.replace('SUBST=', '', 1)
-    substs = subst_line.split(',')
-    for subst_item in substs:
-        subst_def = subst_item.split('=>', 1)
-        map_chars [subst_def[0]] = globals()[subst_def[1]]
-
-
-def is_subst(line):
-    return line.startswith('SUBST=')
-
-
-def pasrse_orient(line):
-    return None
-
-def is_orient(line):
-    return line.startswith('ORIENT=')
+import util
 
 
 def find_passable_square(map):
@@ -219,7 +173,7 @@ class StaticGenerator(AbstractGenerator):
         pass
 
     def finish(self):
-        return parse_string([
+        return self.parse_string([
                 'SUBST=:=>FT_GLASS_WALL',
                 'ORIENT=RANDOM',
                 '#######################',
@@ -237,3 +191,74 @@ class StaticGenerator(AbstractGenerator):
                 '#######################'
         ])
 
+    def parse_string(self, map):
+        new_map = []
+        x, y = 0, 0
+        map_chars = {'#': FT_ROCK_WALL,
+                     ' ' : FT_FLOOR,
+                     '.' : FT_FLOOR,
+                     '+' : FT_DOOR}
+        orient = None
+        for line in map:
+            if self.is_orient(line):
+                orient = self.parse_orient(line)
+                continue
+            if self.is_subst(line):
+                self.parse_subst(line, map_chars)
+                continue
+            new_map.append([])
+            for char in line:
+                ft = map_chars.get(char)
+                if ft is None:
+                    raise RuntimeError('failed to parse char ' + char)
+                new_map[y].append(ft())
+                x += 1
+            y += 1
+            x = 0
+        if orient is not None:
+            new_map = orient(new_map)
+
+        return new_map
+
+
+    def parse_subst(self, line, map_chars):
+        subst_line = line.replace('SUBST=', '', 1)
+        substs = subst_line.split(',')
+        for subst_item in substs:
+            subst_def = subst_item.split('=>', 1)
+            map_chars [subst_def[0]] = globals()[subst_def[1]]
+
+
+    def is_subst(self, line):
+        return line.startswith('SUBST=')
+
+
+    def parse_orient(self, line):
+        orient = line.replace('ORIENT=', '', 1)
+        if orient == 'RANDOM':
+            return lambda x: random_rotate(x)
+        else:
+            return None
+
+    def is_orient(self, line):
+        return line.startswith('ORIENT=')
+    
+
+def random_rotate(map):
+    rev_x, rev_y = util.coinflip(), util.coinflip();
+    swap_x_y = util.coinflip()
+    if rev_x:
+        for line in map:
+            line.reverse()
+    if rev_y:
+        map.reverse()
+    if swap_x_y:
+        x, y = 0, 0
+        new_map = []
+        for x in xrange(0, len(map[0])):
+            new_line = []
+            for y in xrange(0, len(map)):
+                new_line.append(map[y][x])
+            new_map.append(new_line);
+        return new_map
+    return map
