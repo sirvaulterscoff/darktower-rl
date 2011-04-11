@@ -86,10 +86,15 @@ class LibtcodGui(AbstractGui):
                 if seen or visible:
                     libtcod.console_print_left(self.con, consolex, consoley, libtcod.BKGND_NONE, map[y][x].char)
                     #if it's not in LOS, but seen - print in dim color
+                else:
+                    libtcod.console_print_left(self.con, consolex, consoley, libtcod.BKGND_NONE, ' ')
                 if not visible:
                     if seen:
                         libtcod.console_set_fore(self.con, consolex, consoley, self.create_color(map[y][x].dim_color))
                         libtcod.console_set_back(self.con, consolex, consoley, self.create_color(map[y][x].dim_color_back),
+                                                 libtcod.BKGND_SET)
+                    else:
+                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.black,
                                                  libtcod.BKGND_SET)
                 else:
                     #if it's in LOS - print and mark as seen
