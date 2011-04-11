@@ -1,5 +1,6 @@
 ORIENT=RANDOM
 SUBST=:=>FT_WINDOW
+NAME=small_room1
 ########
 #......#
 :......+
@@ -7,6 +8,7 @@ SUBST=:=>FT_WINDOW
 ########
 END
 ORIENT=RANDOM
+NAME=small_room2
 ########
 #......#
 #..#...+
@@ -14,6 +16,7 @@ ORIENT=RANDOM
 ########
 END
 ORIENT=RANDOM
+NAME=small_room3
 ##########
 #...#....#
 #...+....+
@@ -21,7 +24,7 @@ ORIENT=RANDOM
 ##########
 END
 ORIENT=RANDOM
-
+NAME=small_room4
 ##########
 #...#....#
 #...+....+
@@ -32,6 +35,7 @@ ORIENT=RANDOM
 END
 SUBST=:=>FT_WINDOW
 ORIENT=RANDOM
+NAME=small_room5
 ####:#####
 #........#
 #........+

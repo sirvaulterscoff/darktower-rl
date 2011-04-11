@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from dungeon_generators import CaveGenerator, parse_string, StaticGenerator
+from dungeon_generators import CaveGenerator, StaticGenerator
 
 from features import *
 import unittest
@@ -12,11 +12,12 @@ class TestCaveGenerator(unittest.TestCase):
     def testFinish(self):
         sg = StaticGenerator()
         gen = CaveGenerator(5, 5)
-        gen._map = sg.parse_string(['#####',
+        gen._map = sg.parse_string(['NAME=TEST',
+                                '#####',
                                  '#   #',
                                  '# # #',
                                  '#   #',
-                                 '#####'])[0]
+                                 '#####'])['TEST']
         map = gen.finish()
         print_map(map)
         etalon_map = [[FT_ROCK_WALL() for i in range(0, 5)],

@@ -193,7 +193,7 @@ class StaticGenerator(AbstractGenerator):
         ])[0]
 
     def parse_string(self, map):
-        maps = []
+        maps = {}
         new_map = []
         x, y = 0, 0
         map_chars = {'#': FT_ROCK_WALL,
@@ -201,6 +201,7 @@ class StaticGenerator(AbstractGenerator):
                      '.': FT_FLOOR,
                      '+': FT_DOOR}
         default_map_chars = map_chars.copy()
+        name_count,name = 0, None
         orient = None
         if isinstance(map, list):
             iterable = map
@@ -215,12 +216,17 @@ class StaticGenerator(AbstractGenerator):
             if self.is_subst(line):
                 self.parse_subst(line, map_chars)
                 continue
+            if self.is_name(line):
+                name = self.parse_name(line)
+                continue
             if self.is_end_map(line):
                 if orient is not None:
                     new_map = orient(new_map)
-                maps.append(new_map)
+                if name is None:
+                    name = 'map' + str (name_count)
+                maps[name] = new_map
                 new_map = []
-                y, x = 0,0
+                y, x, name, name_count = 0,0, None, name_count + 1
                 orient = None
                 map_chars = default_map_chars.copy()
                 finished = True
@@ -239,7 +245,9 @@ class StaticGenerator(AbstractGenerator):
         if not finished:
             if orient is not None:
                 new_map = orient(new_map)
-            maps.append(new_map)
+            if name is None:
+                name = 'map' + str (name_count)
+            maps[name] = new_map
 
         return maps
 
@@ -269,9 +277,15 @@ class StaticGenerator(AbstractGenerator):
     def is_end_map(self, line):
         return line == "END"
 
+    def is_name(self, line):
+        return line.startswith('NAME=')
+
+    def parse_name(self, line):
+        return line.replace('NAME=', '', 1)
+
 
 def random_rotate(map):
-    rev_x, rev_y = util.coinflip(), util.coinflip();
+    rev_x, rev_y = util.coinflip(), util.coinflip()
     swap_x_y = util.coinflip()
     if rev_x:
         for line in map:
@@ -279,29 +293,48 @@ def random_rotate(map):
     if rev_y:
         map.reverse()
     if swap_x_y:
-        x, y = 0, 0
         new_map = []
         for x in xrange(0, len(map[0])):
             new_line = []
             for y in xrange(0, len(map)):
                 new_line.append(map[y][x])
-            new_map.append(new_line);
+            new_map.append(new_line)
         return new_map
     return map
 
 
 class RandomRoomGenerator(StaticGenerator):
-    available_maps = []
+    map_files = []
     def __init__(self):
         super(RandomRoomGenerator, self).__init__()
+        self.parsed_files = {}
+        self.available_maps = {}
         for file in os.listdir('./data/rooms'):
             if file.find('.map') > 0:
-                self.available_maps.append(os.path.join('.', 'data', 'rooms', file))
+                self.map_files.append(os.path.join('.', 'data', 'rooms', file))
 
-    def finish(self):
-        map_file = choice(self.available_maps)
+    def parse_file(self, map_file):
         file = open(map_file, 'r')
         file_content = file.read()
         file.close()
-        return choice(self.parse_string(file_content))
+        maps = self.parse_string(file_content)
+        self.parsed_files[map_file] = maps
+        self.available_maps.update(maps)
+        return maps
+
+    def finish(self):
+        map_file = choice(self.map_files)
+        if self.parsed_files.get(map_file):
+            maps = self.parsed_files.get(map_file)
+        else:
+            maps = self.parse_file(map_file)
+        return choice(maps.values())
+
+    def map_by_name(self, name):
+        if self.available_maps.get(name):
+            return self.available_maps[name]
+        else:
+            for file in self.map_files:
+                self.parse_file(file)
+            return self.available_maps.get(name)
 

@@ -22,11 +22,19 @@ KEYS = [
         (['x'], 'look'),
         (['?'], 'help'),
         ([libtcod.KEY_F1], 'wizard'),
+        (['M'], 'toggle_map'),
         ]
 
-def handle_keys(self, call_back):
-    key = libtcod.console_wait_for_keypress(True)
-
+def readLine():
+    line = ''
+    while True:
+        key = libtcod.console_wait_for_keypress(True)
+        #No need to react on service keys
+        if key.vk == libtcod.KEY_ESCAPE or key.c == 'x':
+            return None
+        if key.c == '\n':
+            return line
+        line += chr(key.c)
 
 def readkey():
     while True:

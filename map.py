@@ -55,10 +55,15 @@ class Map(object):
         #choose random number of monsters
         #3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
         num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
-        #cap monster generation for now
-        num_monsters = util.cap(num_monsters, 30)
-        num_monsters = util.cap(num_monsters, self.square - 2)
-        num_monsters = util.cap(num_monsters, self.square - 2)
+        free_squares = -2
+        for line in self.map:
+            for tile in line:
+                if tile.passable(): free_squares += 1
+
+        num_monsters = util.cap(num_monsters, free_squares)
+        #was capped ?!
+        if num_monsters == free_squares:
+            num_monsters = randrange(free_squares /2 , free_squares)
 
         for i in range(num_monsters):
             #choose random spot for this monster

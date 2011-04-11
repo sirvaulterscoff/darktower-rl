@@ -1,3 +1,4 @@
+import game_input
 import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from features import  *
@@ -212,3 +213,25 @@ class LibtcodGui(AbstractGui):
         color2 = libtcod.Color(color.r, color.g, color.b)
         libtcod.color_set_hsv(color2, h, s, v)
         return color2
+
+    def render_dialog(self, title):
+        libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
+        line = ''
+        while True:
+            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, ' '.rjust(len(line) + 2, ' '))
+            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, line + '_')
+            libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
+            libtcod.console_flush()
+            key = libtcod.console_wait_for_keypress(False)
+            if key.c == 27:
+                return None
+            if key.c == 13:
+                return line
+            if key.c == 8:
+                line = line[0:len(line) - 1]
+            elif key.c != 0:
+                line += chr(key.c)
+
+    def clear_screen(self):
+        libtcod.console_clear(self.con)
+
