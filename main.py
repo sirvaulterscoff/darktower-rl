@@ -2,7 +2,7 @@
 from critters import *
 from dungeon_generators import *
 import game_input
-from gui import  LibtcodGui
+from gui import  *
 from game_input import *
 from features import *
 from map import Map
@@ -15,7 +15,7 @@ def main_loop():
         if gl.__show_chapter__:
             gui.render_intro(gl.__chapter_text__)
             gl.__show_chapter__ = None
-        gui.clear_all(map.map_critters)
+        #gui.clear_all(map.map_critters)
         gui.render_ui(player)
         key = game_input.readkey()
         if handle_key(key):
@@ -61,7 +61,7 @@ def handle_toggle_map():
     gui.clear_screen()
     dg = RandomRoomGenerator()
     map = Map(dg.map_by_name(map_name), player)
-    #map.place_monsters()
+    map.place_monsters()
     map.init_fov()
     player.x, player.y = find_passable_square(map.map)
 
@@ -77,10 +77,11 @@ if __name__ == "__main__":
     global map
     gui = LibtcodGui()
     player = Player()
-    critters = [player]
+    player.camx2 = VIEWPORT_WIDTH -1
+    player.camy2 = VIEWPORT_HEIGHT - 1
 
-    #dg = CaveGenerator(40, 25)
-    #dg.generate()
+    dg = CaveGenerator(100, 100)
+    dg.generate()
     #map = dg.finish()
     #map = Map(dg.finish())
 
@@ -88,8 +89,8 @@ if __name__ == "__main__":
     #    dg.generate()
     #    map = Map(dg.finish())
     #dg = StaticGenerator()
-    dg = RandomRoomGenerator()
-    dg.generate()
+    #dg = RandomRoomGenerator()
+    #dg.generate()
 
     map = Map(dg.finish(), player)
     map.place_monsters()

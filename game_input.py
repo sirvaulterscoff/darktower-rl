@@ -38,7 +38,7 @@ def readLine():
 
 def readkey():
     while True:
-        key = libtcod.console_wait_for_keypress(True)
+        key = libtcod.console_wait_for_keypress(False)
         #No need to react on service keys
         if key.vk == libtcod.KEY_ENTER and libtcod.KEY_ALT:
             #Alt+Enter: toggle fullscreen

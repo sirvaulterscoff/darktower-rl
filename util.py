@@ -17,7 +17,7 @@ def cap(what, to=100000):
 
 def cap_lower(what, min, to):
     if what < min: return to
-    return min
+    return what
 
 
 def random_by_level(level, items):
