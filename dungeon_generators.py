@@ -1,4 +1,5 @@
-from random import randrange
+import os
+from random import randrange, random, choice
 from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
@@ -189,25 +190,45 @@ class StaticGenerator(AbstractGenerator):
                 '#    #   #   #   #    #',
                 '#                     #',
                 '#######################'
-        ])
+        ])[0]
 
     def parse_string(self, map):
+        maps = []
         new_map = []
         x, y = 0, 0
         map_chars = {'#': FT_ROCK_WALL,
-                     ' ' : FT_FLOOR,
-                     '.' : FT_FLOOR,
-                     '+' : FT_DOOR}
+                     ' ': FT_FLOOR,
+                     '.': FT_FLOOR,
+                     '+': FT_DOOR}
+        default_map_chars = map_chars.copy()
         orient = None
-        for line in map:
+        if isinstance(map, list):
+            iterable = map
+        elif isinstance(map, str):
+            iterable = map.splitlines()
+
+        finished = False
+        for line in iterable:
             if self.is_orient(line):
                 orient = self.parse_orient(line)
                 continue
             if self.is_subst(line):
                 self.parse_subst(line, map_chars)
                 continue
+            if self.is_end_map(line):
+                if orient is not None:
+                    new_map = orient(new_map)
+                maps.append(new_map)
+                new_map = []
+                y, x = 0,0
+                orient = None
+                map_chars = default_map_chars.copy()
+                finished = True
+                continue
+            if len(line) <=1 : continue
             new_map.append([])
             for char in line:
+                finished = False
                 ft = map_chars.get(char)
                 if ft is None:
                     raise RuntimeError('failed to parse char ' + char)
@@ -215,10 +236,12 @@ class StaticGenerator(AbstractGenerator):
                 x += 1
             y += 1
             x = 0
-        if orient is not None:
-            new_map = orient(new_map)
+        if not finished:
+            if orient is not None:
+                new_map = orient(new_map)
+            maps.append(new_map)
 
-        return new_map
+        return maps
 
 
     def parse_subst(self, line, map_chars):
@@ -226,7 +249,7 @@ class StaticGenerator(AbstractGenerator):
         substs = subst_line.split(',')
         for subst_item in substs:
             subst_def = subst_item.split('=>', 1)
-            map_chars [subst_def[0]] = globals()[subst_def[1]]
+            map_chars[subst_def[0]] = globals()[subst_def[1]]
 
 
     def is_subst(self, line):
@@ -242,7 +265,10 @@ class StaticGenerator(AbstractGenerator):
 
     def is_orient(self, line):
         return line.startswith('ORIENT=')
-    
+
+    def is_end_map(self, line):
+        return line == "END"
+
 
 def random_rotate(map):
     rev_x, rev_y = util.coinflip(), util.coinflip();
@@ -262,3 +288,20 @@ def random_rotate(map):
             new_map.append(new_line);
         return new_map
     return map
+
+
+class RandomRoomGenerator(StaticGenerator):
+    available_maps = []
+    def __init__(self):
+        super(RandomRoomGenerator, self).__init__()
+        for file in os.listdir('./data/rooms'):
+            if file.find('.map') > 0:
+                self.available_maps.append(os.path.join('.', 'data', 'rooms', file))
+
+    def finish(self):
+        map_file = choice(self.available_maps)
+        file = open(map_file, 'r')
+        file_content = file.read()
+        file.close()
+        return choice(self.parse_string(file_content))
+

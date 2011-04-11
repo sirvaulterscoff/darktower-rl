@@ -17,6 +17,7 @@ class Map(object):
         self.map_height = len(map_src)
         self.map_width = len(map_src[0])
         self.player = player
+        self.square = self.map_height * self.map_width
         player.map = self
         self.fov_map = None
 
@@ -56,6 +57,8 @@ class Map(object):
         num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
         #cap monster generation for now
         num_monsters = util.cap(num_monsters, 30)
+        num_monsters = util.cap(num_monsters, self.square - 2)
+        num_monsters = util.cap(num_monsters, self.square - 2)
 
         for i in range(num_monsters):
             #choose random spot for this monster

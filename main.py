@@ -10,7 +10,7 @@ from map import Map
 
 def main_loop():
     while gl.__game_state__ == "playing" and not gui.window_closed():
-        gui.render_all(map, player)
+        gui.render_map(map, player)
         if gl.__show_chapter__:
             gui.render_intro(gl.__chapter_text__)
             gl.__show_chapter__ = None
@@ -71,8 +71,10 @@ if __name__ == "__main__":
     #    dg = RoomsCoridorsGenerator(80, 40)
     #    dg.generate()
     #    map = Map(dg.finish())
-    dg = StaticGenerator()
+    #dg = StaticGenerator()
+    dg = RandomRoomGenerator()
     dg.generate()
+
     map = Map(dg.finish(), player)
     map.place_monsters()
     map.init_fov()

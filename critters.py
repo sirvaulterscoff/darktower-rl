@@ -18,6 +18,7 @@ class Critter(object):
     color = [255, 255, 255]
     x = 0
     y = 0
+    last_seen_at = None
     regen_rate = 1
     flags = WALKING
     description_past = 'Generic critter from the past'

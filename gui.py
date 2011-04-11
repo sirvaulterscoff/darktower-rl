@@ -63,6 +63,50 @@ class LibtcodGui(AbstractGui):
         libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, ' ')
 
 
+    def render_map(self, map, player):
+        if gl.__fov_recompute__:
+            gl.__fov_recompute__ = False
+            map.recompute_fov()
+
+        for y in range(map.map_height):
+            for x in range(map.map_width):
+                seen = map.map[y][x].seen | gl.__wizard_mode__
+                visible = libtcod.map_is_in_fov(map.fov_map, x, y)
+                #if tile is seen or visible to player - print it
+                if seen or visible:
+                    libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, map[y][x].char)
+                    #if it's not in LOS, but seen - print in dim color
+                if not visible:
+                    if seen:
+                        libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].dim_color))
+                        libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].dim_color_back),
+                                                 libtcod.BKGND_SET)
+                else:
+                    #if it's in LOS - print and mark as seen
+                    libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].color))
+                    libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].color_back), libtcod.BKGND_SET)
+                    #if current tile is visible for now - mark as seen
+                    map[y][x].seen = True
+
+        for critter in map.map_critters:
+            if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
+                libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
+                self.print_critter(critter.x, critter.y, critter.char)
+                critter.last_seen_at = critter.x, critter.y
+            elif critter.last_seen_at is not None:
+                color = self.create_color(critter.color)
+                color = self.dim_color(color)
+                libtcod.console_set_foreground_color(self.con, color)
+                self.print_critter(critter.x, critter.y, critter.char)
+
+        libtcod.console_set_foreground_color(self.con, self.create_color(player.color))
+        self.print_critter(player.x, player.y, player.char)
+
+        if gl.__wizard_mode__:
+            libtcod.console_print_left(self.con, 0, 0, libtcod.BKGND_NONE, 'WIZ MODE')
+        libtcod.console_blit(self.con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
+        libtcod.console_flush()
+
     def render_ui(self, player):
         #prepare to render the GUI panel
         libtcod.console_set_background_color(self.panel, libtcod.black)
@@ -90,44 +134,6 @@ class LibtcodGui(AbstractGui):
             libtcod.console_print_left(self.panel_msg, 0, y, libtcod.BKGND_NONE, line.ljust(SCREEN_WIDTH, ' '))
             y += 1
         libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y )
-        libtcod.console_flush()
-
-    def render_all(self, map, player):
-        if gl.__fov_recompute__:
-            gl.__fov_recompute__ = False
-            map.recompute_fov()
-
-            for y in range(map.map_height):
-                for x in range(map.map_width):
-                    seen = map.map[y][x].seen | gl.__wizard_mode__
-                    visible = libtcod.map_is_in_fov(map.fov_map, x, y)
-                    #if tile is seen or visible to player - print it
-                    if seen or visible:
-                        libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, map[y][x].char)
-                        #if it's not in LOS, but seen - print in dim color
-                    if not visible:
-                        if seen:
-                            libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].dim_color))
-                            libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].dim_color_back),
-                                                     libtcod.BKGND_SET)
-                    else:
-                        #if it's in LOS - print and mark as seen
-                        libtcod.console_set_fore(self.con, x, y, self.create_color(map[y][x].color))
-                        libtcod.console_set_back(self.con, x, y, self.create_color(map[y][x].color_back), libtcod.BKGND_SET)
-                        #if current tile is visible for now - mark as seen
-                        map[y][x].seen = True
-
-        for critter in map.map_critters:
-            if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
-                libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
-                self.print_critter(critter.x, critter.y, critter.char)
-
-        libtcod.console_set_foreground_color(self.con, self.create_color(player.color))
-        self.print_critter(player.x, player.y, player.char)
-
-        if gl.__wizard_mode__:
-            libtcod.console_print_left(self.con, 0, 0, libtcod.BKGND_NONE, 'WIZ MODE')
-        libtcod.console_blit(self.con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):
@@ -196,3 +202,13 @@ class LibtcodGui(AbstractGui):
 
     def window_closed(self):
         return libtcod.console_is_window_closed()
+
+    def dim_color(self, color):
+        h, s, v = libtcod.color_get_hsv(color)
+        # 1.0 .. 0.2
+        s *= 0.25
+        # 1.0 .. 0.75
+        v *= 0.25
+        color2 = libtcod.Color(color.r, color.g, color.b)
+        libtcod.color_set_hsv(color2, h, s, v)
+        return color2

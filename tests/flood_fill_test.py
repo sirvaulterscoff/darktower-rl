@@ -17,7 +17,7 @@ class cloud_test(unittest.TestCase):
         map = sg.parse_string([
                                         '.....',
                                         '..#..',
-                                        '.....'])
+                                        '.....'])[0]
         def check(x, y):
             if y >= len(map) or x >= len(map[0]):
                 return False
@@ -33,7 +33,7 @@ class cloud_test(unittest.TestCase):
         map = sg.parse_string([
                                     '#########',
                                     '#........',
-                                    '#########'])
+                                    '#########'])[0]
         def check(x, y):
             if y >= len(map) or x >= len(map[0]):
                 return False

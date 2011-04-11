@@ -16,7 +16,7 @@ class TestCaveGenerator(unittest.TestCase):
                                  '#   #',
                                  '# # #',
                                  '#   #',
-                                 '#####'])
+                                 '#####'])[0]
         map = gen.finish()
         print_map(map)
         etalon_map = [[FT_ROCK_WALL() for i in range(0, 5)],
