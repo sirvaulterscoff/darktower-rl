@@ -64,7 +64,7 @@ def handle_toggle_map():
     map.place_monsters()
     map.init_fov()
     player.x, player.y = find_passable_square(map.map)
-
+    gui.viewport = None
     gui.render_map(map,player)
 
 def handle_wait():

@@ -68,7 +68,7 @@ def FT_FIXED_WALL(): return DungeonFeature('#', (130, 110, 50), (0, 0, 100), fla
 def FT_ROCK_WALL(): return DungeonFeature("#", (130, 110, 50), (0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK)
 def FT_GLASS_WALL(): return DungeonFeature("#", (30, 30, 160), (0, 0, 100), flags=BLOCK_WALK)
 def FT_WINDOW(): return DungeonFeature("0", (128, 128, 160), (0, 0, 60), flags=BLOCK_WALK)
-def FT_FLOOR(): return DungeonFeature(".", (255, 255, 255), (60, 60, 60), ft_types["floor"])
+def FT_FLOOR(): return DungeonFeature(".", (255, 255, 255), (0, 0, 100), ft_types["floor"])
 def FT_DOOR(): return Door(False)
 def FT_CHAIR(): return Furniture('h',(120, 120, 0), (40, 40, 0), ft_types["furniture"], flags=BLOCK_WALK)
 def FT_TABLE(): return Furniture('T',(120, 120, 0), (40, 40, 0), ft_types["furniture"], flags=BLOCK_WALK)
