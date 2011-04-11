@@ -73,6 +73,7 @@ class LibtcodGui(AbstractGui):
 
 
     def render_map(self, map, player):
+        #todo optimize (see http://umbrarumregnum.110mb.com/cookbook/node/24)
         if not self.viewport:
             self.viewport = Viewport(VIEWPORT_WIDTH, VIEWPORT_HEIGHT, map)
         if gl.__fov_recompute__:
