@@ -21,9 +21,9 @@ def main_loop():
         if handle_key(key):
             for critter in map.map_critters:
                 if gl.__game_state__ == "died":
+                    game_input.readkey()
                     break
                 critter.take_turn()
-    game_input.readkey()
 
 
 def handle_key(key):

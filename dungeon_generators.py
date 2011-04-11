@@ -4,6 +4,10 @@ from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
 
+try:
+    import psyco ; psyco.full()
+except ImportError:
+    print 'Sadly no psyco'
 
 def find_passable_square(map):
     x, y = 0, 0
@@ -77,15 +81,17 @@ class CaveGenerator(AbstractGenerator):
                 ticks -= 1
 
     def finish(self):
+        count_walls = self.count_neigh_walls
+        wall, floor = FT_ROCK_WALL, FT_FLOOR
         for x in range(1, self.length - 1):
             for y in range(1, self.width - 1):
-                wall_count = self.count_neigh_walls(y, x)
+                wall_count = count_walls(y, x)
 
                 if self._map[y][x].is_floor():
                     if wall_count > 5:
-                        self._map[y][x] = FT_ROCK_WALL()
+                        self._map[y][x] = wall()
                 elif wall_count < 4:
-                    self._map[y][x] = FT_FLOOR()
+                    self._map[y][x] = floor()
 
         return self._map
 

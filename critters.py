@@ -15,7 +15,7 @@ class Critter(object):
     name = 'crit'
     ALL = []
     char = '@'
-    color = [255, 255, 255]
+    color = (255, 255, 255)
     x = 0
     y = 0
     last_seen_at = None
@@ -150,7 +150,7 @@ class Critter(object):
 class Player(Critter):
     x, y = 0, 0
     char = '@'
-    color = [255, 255, 255]
+    color = (255, 255, 255)
     skip_register = True
     fov_range = 10
     base_hp = 10
@@ -196,7 +196,7 @@ class Player(Critter):
 class Rat(Critter):
     char = 'r'
     name = 'rat'
-    color = [240, 240, 240]
+    color = (240, 240, 240)
     description_past = 'Obesity makes this plague-bearing rats realy huge. Interesting, can you even kill one that big...'
     description_present = 'Huge, fat rat somehow managed to leave sewers or households and now posess enourmous threat to unwary adventurer.'
     description_future = 'Strange mental-wave-immune creature, you have not seen ever before. According to records in central creature database (CCDB) these should be called rat'
@@ -209,7 +209,7 @@ class Bat(Critter):
     char = 'w'
     name = 'bat'
     flags = FLYING
-    color = [0, 255, 60]
+    color = (0, 255, 60)
     description_past = 'Strange green glow comes from afar... Maybe it\'s a lost sool seeking exit from endless caverns... Wait! It\'s a bat?! Ouch, stop biting me!'
     description_present = 'Tiny bat emmiting a strange green glow, fliting high above the ground. If you can only catch one alive it can become a nice lantern.'
     description_future = 'Flying creature, glowing with strange mutagenic radiation - it would be better if you don\'t touch it'
@@ -224,7 +224,7 @@ class Orc(Critter):
     char = 'o'
     name = 'orc'
     flags = WALKING | INTELLIGENT
-    color = [255, 0, 0]
+    color = (255, 0, 0)
     description_past = 'Beware! This mighty ugly-looking humanoid will eat you for dinner. Nightmare comes to live. By the way, there should be it\' friends somewhere nearby'
     description_present = 'Surely you have read about orcs (remember all this books, about hobbits, elves and others). This one looks exactly... dissimilary.'
     description_future = 'This creature looks as if it managed to escape from mad-scientist lab, where it was created. Several scars are spread along it\' torso, giving you hint that this creature is not going to chat with you.'

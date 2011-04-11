@@ -3,7 +3,11 @@ import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from features import  *
 import util
-
+try:
+    import psyco ; psyco.full()
+except ImportError:
+    print 'Sadly no psyco'
+    
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 40
 LIMIT_FPS = 20
@@ -33,6 +37,7 @@ MSG_SEVERITY = { 1 : MSG_NEW_COLOR,
                  2 : MSG_WARNING_COLOR,
                  0 : MSG_OLD_COLOR}
 
+parsed_colors = {}
 class AbstractGui(object):
     def __init__(self):
         pass
@@ -150,6 +155,7 @@ class LibtcodGui(AbstractGui):
         self.render_stats_two_column(1, 5, "Dex", "des", 13, "Int", "int", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
         self.render_stats_two_column(1, 6, "XL", player.xl, 13, "EXP", "%d/%d" % (player.xp, util.xp_for_lvl(player.xl))
                                      , COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
+        self.render_stats_two_column(1, 7, "Turns", gl.__turn_count__, 13, "", "", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
         #blit the contents of "panel" to the root console
         libtcod.console_blit(self.panel, 0, 0, RIGHT_PANEL_WIDTH, RIGHT_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
 
@@ -224,7 +230,9 @@ class LibtcodGui(AbstractGui):
 
 
     def create_color(self, color):
-        return libtcod.Color(color[0], color[1], color[2])
+        if not parsed_colors.get(color):
+            parsed_colors[color] = libtcod.Color(*color)
+        return parsed_colors[color]
 
     def window_closed(self):
         return libtcod.console_is_window_closed()
