@@ -106,3 +106,6 @@ class Map(object):
 
     def passable(self, x, y):
         return self.map[y][x].passable()
+
+    def coords_okay(self, x, y):
+        return not (x < 0 or y< 0 or x >= self.map_width or y >= self.map_height)

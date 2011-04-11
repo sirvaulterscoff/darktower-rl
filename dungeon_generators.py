@@ -199,7 +199,8 @@ class StaticGenerator(AbstractGenerator):
         map_chars = {'#': FT_ROCK_WALL,
                      ' ': FT_FLOOR,
                      '.': FT_FLOOR,
-                     '+': FT_DOOR}
+                     '+': FT_DOOR,
+                     '0': FT_WINDOW}
         default_map_chars = map_chars.copy()
         name_count,name = 0, None
         orient = None
@@ -254,10 +255,10 @@ class StaticGenerator(AbstractGenerator):
 
     def parse_subst(self, line, map_chars):
         subst_line = line.replace('SUBST=', '', 1)
-        substs = subst_line.split(',')
+        substs = subst_line.split(' ')
         for subst_item in substs:
             subst_def = subst_item.split('=>', 1)
-            map_chars[subst_def[0]] = globals()[subst_def[1]]
+            map_chars[subst_def[0]] = eval(subst_def[1])
 
 
     def is_subst(self, line):

@@ -166,6 +166,8 @@ class Player(Critter):
 
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
+        if not self.map.coords_okay(newx, newy):
+            return False, False
         if self.map.has_critter_at((newx, newy)):
             self.attack(self.map.get_critter_at(newx, newy))
             return True, False

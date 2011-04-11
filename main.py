@@ -61,7 +61,7 @@ def handle_toggle_map():
     gui.clear_screen()
     dg = RandomRoomGenerator()
     map = Map(dg.map_by_name(map_name), player)
-    map.place_monsters()
+    #map.place_monsters()
     map.init_fov()
     player.x, player.y = find_passable_square(map.map)
 
