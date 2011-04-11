@@ -200,7 +200,13 @@ class StaticGenerator(AbstractGenerator):
                      ' ': FT_FLOOR,
                      '.': FT_FLOOR,
                      '+': FT_DOOR,
-                     '0': FT_WINDOW}
+                     '0': FT_WINDOW,
+                     'F' : FT_RANDOM_FURNITURE,
+                     '<' : FT_STAIRCASES_UP,
+                     '>' : FT_STAIRCASES_DOWN,
+                     'h' : FT_CHAIR,
+                     'T' : FT_TABLE,
+                     '8' : FT_BED}
         default_map_chars = map_chars.copy()
         name_count,name = 0, None
         orient = None

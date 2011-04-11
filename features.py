@@ -1,3 +1,4 @@
+from random import choice
 import gl
 
 BLOCK_WALK = 1
@@ -5,6 +6,8 @@ BLOCK_LOS = 2
 NONE = 4
 
 ft_types = {
+    "stairs" : 4,
+    "furniture" : 3,
     "door": 2,
     "wall": 1,
     "floor": 0
@@ -58,6 +61,8 @@ class Door (DungeonFeature):
             return False, True, True
         return True, True, True
 
+class Furniture(DungeonFeature):
+    pass
 
 def FT_FIXED_WALL(): return DungeonFeature('#', [130, 110, 50], [0, 0, 100], flags=BLOCK_LOS | BLOCK_WALK)
 def FT_ROCK_WALL(): return DungeonFeature("#", [130, 110, 50], [0, 0, 100], flags=BLOCK_LOS | BLOCK_WALK)
@@ -65,3 +70,9 @@ def FT_GLASS_WALL(): return DungeonFeature("#", [30, 30, 160], [0, 0, 100], flag
 def FT_WINDOW(): return DungeonFeature("0", [128, 128, 160], [0, 0, 60], flags=BLOCK_WALK)
 def FT_FLOOR(): return DungeonFeature(".", [255, 255, 255], [60, 60, 60], ft_types["floor"])
 def FT_DOOR(): return Door(False)
+def FT_CHAIR(): return Furniture('h',[120, 120, 0], [40, 40, 0], ft_types["furniture"], flags=BLOCK_WALK)
+def FT_TABLE(): return Furniture('T',[120, 120, 0], [40, 40, 0], ft_types["furniture"], flags=BLOCK_WALK)
+def FT_BED(): return Furniture('8',[120, 120, 0], [40, 40, 0], ft_types["furniture"], flags=BLOCK_WALK)
+def FT_RANDOM_FURNITURE(): return choice ([FT_CHAIR, FT_TABLE, FT_BED])()
+def FT_STAIRCASES_UP(): return DungeonFeature("<", [255,255,255], [80,80,80], ft_types["stairs"])
+def FT_STAIRCASES_DOWN(): return DungeonFeature(">", [255,255,255], [80,80,80], ft_types["stairs"])
