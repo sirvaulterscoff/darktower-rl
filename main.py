@@ -6,6 +6,10 @@ from gui import  *
 from game_input import *
 from features import *
 from map import Map
+try:
+    import psyco ; psyco.full()
+except ImportError:
+    print 'Sadly no psyco'
 
 
 def main_loop():
@@ -44,7 +48,7 @@ def handle_move(dx, dy):
             gl.__fov_recompute__ = True
         if take_turn:
             gl.__turn_count__ += 1
-        return True
+        return take_turn
 
 
 def handle_quit():

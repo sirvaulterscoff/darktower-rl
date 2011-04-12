@@ -3,11 +3,7 @@ import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from features import  *
 import util
-try:
-    import psyco ; psyco.full()
-except ImportError:
-    print 'Sadly no psyco'
-    
+
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 40
 LIMIT_FPS = 20
@@ -65,17 +61,21 @@ class LibtcodGui(AbstractGui):
 
 
     def print_critter(self, x, y, char):
-        libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, char)
+        libtcod.console_set_char(self.con, x, y, char)
 
 
     def clear_critter(self, x, y):
-        libtcod.console_print_left(self.con, x, y, libtcod.BKGND_NONE, ' ')
+        libtcod.console_set_char(self.con, x, y, ' ')
 
 
     def render_map(self, map, player):
         #todo optimize (see http://umbrarumregnum.110mb.com/cookbook/node/24)
         if not self.viewport:
+            cc = self.create_color
             self.viewport = Viewport(VIEWPORT_WIDTH, VIEWPORT_HEIGHT, map)
+            for y in range(0, map.map_height):
+                for x in range(0, map.map_width):
+                    map[y][x].parse_color(cc)
         if gl.__fov_recompute__:
             gl.logger.debug('Recomputing fov')
             gl.__fov_recompute__ = False
@@ -84,35 +84,35 @@ class LibtcodGui(AbstractGui):
         consolex, consoley = 0,0
         self.viewport.update_coords(player.x, player.y)
         gl.logger.debug('Diplaying viewport from %d:%d to %d:%d' % (self.viewport.x, self.viewport.y, self.viewport.x2, self.viewport.y2))
-        for y in range(self.viewport.y, self.viewport.y2):
-            for x in range(self.viewport.x, self.viewport.x2):
-                seen = map.map[y][x].seen | gl.__wizard_mode__
+        for y in xrange(self.viewport.y, self.viewport.y2):
+            for x in xrange(self.viewport.x, self.viewport.x2):
+                tile = map[y][x]
+                seen = tile.seen | gl.__wizard_mode__
                 visible = libtcod.map_is_in_fov(map.fov_map, x, y)
                 #if tile is seen or visible to player - print it
                 if seen or visible:
-                    libtcod.console_print_left(self.con, consolex, consoley, libtcod.BKGND_NONE, map[y][x].char)
+                    libtcod.console_set_char(self.con, consolex, consoley, tile.char)
                     #if it's not in LOS, but seen - print in dim color
                 else:
-                    libtcod.console_print_left(self.con, consolex, consoley, libtcod.BKGND_NONE, ' ')
+                    libtcod.console_set_char(self.con, consolex, consoley, ' ')
                 if not visible:
                     if seen:
-                        libtcod.console_set_fore(self.con, consolex, consoley, self.create_color(map[y][x].dim_color))
-                        libtcod.console_set_back(self.con, consolex, consoley, self.create_color(map[y][x].dim_color_back),
-                                                 libtcod.BKGND_SET)
+                        libtcod.console_set_fore(self.con, consolex, consoley, tile.dim_color)
+                        libtcod.console_set_back(self.con, consolex, consoley, tile.dim_color_back, libtcod.BKGND_SET)
                     else:
-                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.black,
-                                                 libtcod.BKGND_SET)
+                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.black, libtcod.BKGND_SET)
                 else:
                     #if it's in LOS - print and mark as seen
-                    libtcod.console_set_fore(self.con, consolex, consoley, self.create_color(map[y][x].color))
-                    libtcod.console_set_back(self.con, consolex, consoley, self.create_color(map[y][x].color_back), libtcod.BKGND_SET)
+                    libtcod.console_set_fore(self.con, consolex, consoley, tile.color)
+                    libtcod.console_set_back(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
                     #if current tile is visible for now - mark as seen
-                    map[y][x].seen = True
+                    tile.seen = True
                 consolex += 1
             consolex = 0
             consoley += 1
 
         gl.logger.debug('Printing critters')
+        cc = self.create_color
         for critter in map.map_critters:
             if not self.viewport.in_view(critter.x, critter.y):
                 continue
@@ -120,18 +120,18 @@ class LibtcodGui(AbstractGui):
                 continue
             x, y = self.viewport.adjust_coords(critter.x, critter.y)
             if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
-                libtcod.console_set_foreground_color(self.con, self.create_color(critter.color))
+                libtcod.console_set_foreground_color(self.con, cc(critter.color))
                 self.print_critter(x, y, critter.char)
                 critter.last_seen_at = critter.x, critter.y
             elif critter.last_seen_at is not None:
-                color = self.create_color(critter.color)
+                color = cc(critter.color)
                 color = dim_color(color)
                 libtcod.console_set_foreground_color(self.con, color)
                 self.print_critter(x, y, critter.char)
 
 
         gl.logger.debug('Printing player')
-        libtcod.console_set_foreground_color(self.con, self.create_color(player.color))
+        libtcod.console_set_foreground_color(self.con, cc(player.color))
         x, y = self.viewport.adjust_coords(player.x, player.y)
         self.print_critter(x, y, player.char)
 
@@ -153,14 +153,15 @@ class LibtcodGui(AbstractGui):
         libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
 
     def render_ui(self, player):
+        cc = self.create_color
         #prepare to render the GUI panel
         libtcod.console_set_background_color(self.panel, libtcod.black)
         libtcod.console_clear(self.panel)
         #show the player's HP
         self.render_bar(1, 1, 13, 10, player.hp, player.base_hp,
-                        HP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), HP_BAR_PERCENT)
+                        HP_BAR, libtcod.darker_red, cc(COLOR_STATUS_TEXT), HP_BAR_PERCENT)
         self.render_bar(1, 2, 13, 10, player.mp, player.base_mp,
-                        MP_BAR, libtcod.darker_red, self.create_color(COLOR_STATUS_TEXT), MP_BAR_PERCENT)
+                        MP_BAR, libtcod.darker_red, cc(COLOR_STATUS_TEXT), MP_BAR_PERCENT)
         self.render_stats_two_column(1, 3, "AC", player.base_ac, 13, "EVADE", "player.evade", COLOR_STATUS_TEXT,
                                      COLOR_STATUS_VALUES)
         self.render_stats_two_column(1, 4, "Str", "str", 13, "To", "tough", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)

@@ -4,11 +4,6 @@ from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
 
-try:
-    import psyco ; psyco.full()
-except ImportError:
-    print 'Sadly no psyco'
-
 def find_passable_square(map):
     x, y = 0, 0
     for row in map:

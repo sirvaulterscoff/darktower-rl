@@ -42,6 +42,12 @@ class DungeonFeature(object):
     def player_over(self, player):
         pass
 
+    def parse_color(self, parser):
+        self.color = parser(self.color)
+        self.dim_color = parser(self.dim_color)
+        self.color_back = parser(self.color_back)
+        self.dim_color_back = parser(self.dim_color_back)
+
 class Door (DungeonFeature):
     def __init__(self, opened=False):
         char = '+'
