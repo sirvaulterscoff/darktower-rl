@@ -2,7 +2,11 @@ import sys
 import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from logging import log
-libtcod.console_set_keyboard_repeat(100, 20)
+
+def default_rate():
+    libtcod.console_set_keyboard_repeat(200, 50)
+
+default_rate()
 KEYS = [
         (['y', '7', libtcod.KEY_KP7], ('move', (-1, -1))),
         (['k', '8', libtcod.KEY_UP, libtcod.KEY_KP8], ('move', (0, -1))),
@@ -60,3 +64,5 @@ def parse_key(key):
         if key in keys:
             return cmd
     return None
+
+
