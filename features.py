@@ -6,11 +6,13 @@ BLOCK_LOS = 2
 NONE = 4
 
 ft_types = {
+    "road" : 5,
     "stairs" : 4,
     "furniture" : 3,
     "door": 2,
     "wall": 1,
-    "floor": 0
+    "floor": 0,
+
 }
 
 class DungeonFeature(object):
@@ -29,6 +31,9 @@ class DungeonFeature(object):
 
     def is_floor(self):
         return self.type == 0
+
+    def is_road(self):
+        return self.type == 5
 
     def passable(self):
         return not self.flags & BLOCK_WALK
@@ -76,7 +81,19 @@ def FT_GLASS_WALL(): return DungeonFeature("#", (30, 30, 160), (0, 0, 100), flag
 def FT_WINDOW(): return DungeonFeature("0", (128, 128, 160), (0, 0, 60), flags=BLOCK_WALK)
 def FT_WELL(): return DungeonFeature("o", (255, 255, 255), (0, 0, 60), ft_types['furniture'], flags=BLOCK_WALK)
 def FT_TREE(): return DungeonFeature("T", (0, 90, 0), (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS)
+def FT_STATUE(): return DungeonFeature("T", (100, 100, 100), (80, 80, 80), ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS)
+def FT_FOUNTAIN(): return DungeonFeature("{", (20, 60, 200), (10, 30, 100), ft_types['furniture'], flags=BLOCK_WALK)
+def FT_BUSH(): return DungeonFeature("*", (0, 90, 0), (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK)
 def FT_FLOOR(): return DungeonFeature(".", (255, 255, 255), (0, 0, 100), ft_types["floor"])
+def FT_ROAD(back=None, char=' '):
+    df= DungeonFeature(char, (0, 0, 0), (0, 0, 0), ft_types["road"])
+    if  back == None:
+        df.color_back = (128,128,128)
+        df.dim_color_back = (50,50,50)
+    else:
+        df.color_back = back
+    return df
+
 def FT_CARPET(back=None, char='.'):
     df = DungeonFeature(char, (0, 0, 0), (0, 0, 0), ft_types["floor"])
     if  back == None:
@@ -87,7 +104,7 @@ def FT_CARPET(back=None, char='.'):
         #df.dim_color_back = dim_color(back)
     return df
 def FT_GRASS():
-    df = DungeonFeature(choice(['`', ',']),
+    df = DungeonFeature(choice(['`', ',', '.']),
     choice( [ (0, 80, 0),(20, 80, 0), (0,80,20), (20,80,20)]), (0, 30, 10), ft_types["floor"])
     return df
 def FT_DOOR(): return Door(False)

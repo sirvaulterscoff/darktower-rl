@@ -1,5 +1,6 @@
 import os
 import sys
+import dungeon_generators
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from dungeon_generators import CaveGenerator, StaticGenerator
@@ -10,9 +11,8 @@ import unittest
 
 class TestCaveGenerator(unittest.TestCase):
     def testFinish(self):
-        sg = StaticGenerator()
         gen = CaveGenerator(5, 5)
-        gen._map = sg.parse_string(['NAME=TEST',
+        gen._map = dungeon_generators.parse_string(['NAME=TEST',
                                 '#####',
                                  '#   #',
                                  '# # #',

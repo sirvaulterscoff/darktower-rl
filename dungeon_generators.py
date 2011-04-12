@@ -4,6 +4,143 @@ from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
 
+NO_FLIP = 0
+HORIZONTAL_FLIP = 1
+VERTICAL_FLIP = 2
+ROTATE = 4
+FORCE_HORIZONTAL_FLIP = (1 << 4) | HORIZONTAL_FLIP
+FORCE_VERTICAL_FLIP = (1 << 5) | VERTICAL_FLIP
+FORCE_ROTATE = (1 << 6) | ROTATE
+ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
+
+def parse_string(map, orient_override=ANY):
+    maps = {}
+    new_map = []
+    x, y = 0, 0
+    map_chars = {'#': FT_ROCK_WALL,
+                 ' ': FT_FLOOR,
+                 '.': FT_FLOOR,
+                 ',': FT_GRASS,
+                 '+': FT_DOOR,
+                 '0': FT_WINDOW,
+                 'F' : FT_RANDOM_FURNITURE,
+                 '<' : FT_STAIRCASES_UP,
+                 '>' : FT_STAIRCASES_DOWN,
+                 'h' : FT_CHAIR,
+                 'T' : FT_TABLE,
+                 '8' : FT_BED}
+    default_map_chars = map_chars.copy()
+    name_count,name = 0, None
+    orient = None
+    if isinstance(map, list):
+        iterable = map
+    elif isinstance(map, str):
+        iterable = map.splitlines()
+
+    finished = False
+    for line in iterable:
+        if is_orient(line):
+            orient = parse_orient(line)
+            continue
+        if is_subst(line):
+            parse_subst(line, map_chars)
+            continue
+        if is_name(line):
+            name = parse_name(line)
+            continue
+        if is_end_map(line):
+            if orient is not None:
+                new_map = orient(new_map, orient_override)
+            if name is None:
+                name = 'map' + str (name_count)
+            maps[name] = new_map
+            new_map = []
+            y, x, name, name_count = 0,0, None, name_count + 1
+            orient = None
+            map_chars = default_map_chars.copy()
+            finished = True
+            continue
+        if len(line) <=1 : continue
+        new_map.append([])
+        for char in line:
+            finished = False
+            ft = map_chars.get(char)
+            if ft is None:
+                raise RuntimeError('failed to parse char ' + char)
+            new_map[y].append(ft())
+            x += 1
+        y += 1
+        x = 0
+    if not finished:
+        if orient is not None:
+            new_map = orient(new_map, orient_override)
+        if name is None:
+            name = 'map' + str (name_count)
+        maps[name] = new_map
+
+    return maps
+
+
+def parse_subst(line, map_chars):
+    subst_line = line.replace('SUBST=', '', 1)
+    substs = subst_line.split(' ')
+    for subst_item in substs:
+        subst_def = subst_item.split('=>', 1)
+        if subst_def[1].count(':') > 0:
+            func_args = subst_def[1].replace(':', '(', 1)
+            map_chars[subst_def[0]] = lambda : eval(func_args+')')
+        else:
+            map_chars[subst_def[0]] = eval(subst_def[1])
+
+
+def is_subst(line):
+    return line.startswith('SUBST=')
+
+
+def parse_orient(line):
+    orient = line.replace('ORIENT=', '', 1)
+    if orient == 'RANDOM':
+        return lambda x, settings: random_rotate(x, settings)
+    else:
+        return None
+
+def is_orient(line):
+    return line.startswith('ORIENT=')
+
+def is_end_map(line):
+    return line == "END"
+
+def is_name(line):
+    return line.startswith('NAME=')
+
+def parse_name(line):
+    return line.replace('NAME=', '', 1)
+
+
+def random_rotate(map, settings = ANY):
+    rev_x, rev_y = util.coinflip(), util.coinflip()
+    if settings & FORCE_VERTICAL_FLIP:
+        rev_x = 1
+    if settings & FORCE_HORIZONTAL_FLIP:
+        rev_y = 1
+    swap_x_y = util.coinflip()
+    if settings & FORCE_ROTATE:
+        swap_x_y = 1
+    if rev_x and settings & VERTICAL_FLIP:
+        for line in map:
+            line.reverse()
+    if rev_y and settings & HORIZONTAL_FLIP:
+        map.reverse()
+    if swap_x_y and settings & ROTATE:
+        new_map = []
+        for x in xrange(0, len(map[0])):
+            new_line = []
+            for y in xrange(0, len(map)):
+                new_line.append(map[y][x])
+            new_map.append(new_line)
+        return new_map
+    return map
+
 def find_passable_square(map):
     x, y = 0, 0
     for row in map:
@@ -166,170 +303,20 @@ class RoomsCoridorsGenerator(AbstractGenerator):
         self.generate_border()
         return self._map
 
-
-class StaticGenerator(AbstractGenerator):
-    def __init__(self):
-        pass
-
-    def generate(self):
-        pass
-
-    def finish(self):
-        return self.parse_string([
-                'SUBST=:=>FT_GLASS_WALL',
-                'ORIENT=RANDOM',
-                '#######################',
-                '## ## ## ## ## ## ## ##',
-                '#                     #',
-                '####+####     ####+####',
-                '###   :::     ###   ###',
-                '###   ###     :::   ###',
-                '###:#####     ####:####',
-                '##:######## ######:####',
-                '#                     #',
-                '#  #   #       #   #  #',
-                '#    #   #   #   #    #',
-                '#                     #',
-                '#######################'
-        ])[0]
-
-    def parse_string(self, map):
-        maps = {}
-        new_map = []
-        x, y = 0, 0
-        map_chars = {'#': FT_ROCK_WALL,
-                     ' ': FT_FLOOR,
-                     '.': FT_FLOOR,
-                     '+': FT_DOOR,
-                     '0': FT_WINDOW,
-                     'F' : FT_RANDOM_FURNITURE,
-                     '<' : FT_STAIRCASES_UP,
-                     '>' : FT_STAIRCASES_DOWN,
-                     'h' : FT_CHAIR,
-                     'T' : FT_TABLE,
-                     '8' : FT_BED}
-        default_map_chars = map_chars.copy()
-        name_count,name = 0, None
-        orient = None
-        if isinstance(map, list):
-            iterable = map
-        elif isinstance(map, str):
-            iterable = map.splitlines()
-
-        finished = False
-        for line in iterable:
-            if self.is_orient(line):
-                orient = self.parse_orient(line)
-                continue
-            if self.is_subst(line):
-                self.parse_subst(line, map_chars)
-                continue
-            if self.is_name(line):
-                name = self.parse_name(line)
-                continue
-            if self.is_end_map(line):
-                if orient is not None:
-                    new_map = orient(new_map)
-                if name is None:
-                    name = 'map' + str (name_count)
-                maps[name] = new_map
-                new_map = []
-                y, x, name, name_count = 0,0, None, name_count + 1
-                orient = None
-                map_chars = default_map_chars.copy()
-                finished = True
-                continue
-            if len(line) <=1 : continue
-            new_map.append([])
-            for char in line:
-                finished = False
-                ft = map_chars.get(char)
-                if ft is None:
-                    raise RuntimeError('failed to parse char ' + char)
-                new_map[y].append(ft())
-                x += 1
-            y += 1
-            x = 0
-        if not finished:
-            if orient is not None:
-                new_map = orient(new_map)
-            if name is None:
-                name = 'map' + str (name_count)
-            maps[name] = new_map
-
-        return maps
-
-
-    def parse_subst(self, line, map_chars):
-        subst_line = line.replace('SUBST=', '', 1)
-        substs = subst_line.split(' ')
-        for subst_item in substs:
-            subst_def = subst_item.split('=>', 1)
-            if subst_def[1].count(':') > 0:
-                func_args = subst_def[1].replace(':', '(', 1)
-                map_chars[subst_def[0]] = lambda : eval(func_args+')')
-            else:
-                map_chars[subst_def[0]] = eval(subst_def[1])
-
-
-    def is_subst(self, line):
-        return line.startswith('SUBST=')
-
-
-    def parse_orient(self, line):
-        orient = line.replace('ORIENT=', '', 1)
-        if orient == 'RANDOM':
-            return lambda x: random_rotate(x)
-        else:
-            return None
-
-    def is_orient(self, line):
-        return line.startswith('ORIENT=')
-
-    def is_end_map(self, line):
-        return line == "END"
-
-    def is_name(self, line):
-        return line.startswith('NAME=')
-
-    def parse_name(self, line):
-        return line.replace('NAME=', '', 1)
-
-
-def random_rotate(map):
-    rev_x, rev_y = util.coinflip(), util.coinflip()
-    swap_x_y = util.coinflip()
-    if rev_x:
-        for line in map:
-            line.reverse()
-    if rev_y:
-        map.reverse()
-    if swap_x_y:
-        new_map = []
-        for x in xrange(0, len(map[0])):
-            new_line = []
-            for y in xrange(0, len(map)):
-                new_line.append(map[y][x])
-            new_map.append(new_line)
-        return new_map
-    return map
-
-
-class RandomRoomGenerator(StaticGenerator):
+class RandomRoomGenerator(AbstractGenerator):
     map_files = []
-    def __init__(self):
-        super(RandomRoomGenerator, self).__init__()
+    def __init__(self, flavour=''):
         self.parsed_files = {}
         self.available_maps = {}
         for file in os.listdir('./data/rooms'):
-            if file.find('.map') > 0:
+            if file.find(flavour + '.map') > 0:
                 self.map_files.append(os.path.join('.', 'data', 'rooms', file))
 
     def parse_file(self, map_file):
         file = open(map_file, 'r')
         file_content = file.read()
         file.close()
-        maps = self.parse_string(file_content)
+        maps = parse_string(file_content)
         self.parsed_files[map_file] = maps
         self.available_maps.update(maps)
         return maps
@@ -350,3 +337,181 @@ class RandomRoomGenerator(StaticGenerator):
                 self.parse_file(file)
             return self.available_maps.get(name)
 
+class CityGenerator(RandomRoomGenerator):
+    RANK_CITY = 3
+    def __init__(self, flavour, width, height, rank, filler=FT_GRASS, road=FT_ROAD, break_road=10,
+                 room_placer=None):
+        ms_start = libtcod.sys_elapsed_milli()
+        self.flavour = flavour
+        self.width = width
+        self.height = height
+        self.rank = rank
+        self.filler=filler
+        self.road=road
+        self.break_road = break_road
+        self._map = [[filler()
+                      for x in xrange(0, width)]
+                        for y in xrange(0,height)]
+        ms_end = libtcod.sys_elapsed_milli()
+        print 'Filled in '+ str(ms_end - ms_start) + ' ms'
+        self.roadminy, self.roadmaxy=height,0
+        self.room_placer = room_placer
+
+    def generate(self):
+        taverns = util.coinflip()
+        shops = util.coinflip()
+        hotel = util.coinflip()
+
+        #roll for number of houses. it'lee be 4-8 houses for small village
+        #and 6-12 for town. and much for for large city. but that's it for now
+        house_count = util.roll(self.rank,3, self.rank)
+        room_gen = RandomRoomGenerator('rooms')
+        self.generate_road()
+
+        if self.room_placer is None:
+            self.generate_rooms_random_place(house_count, room_gen)
+        else:
+            self.room_placer(self, house_count, room_gen)
+
+    def generate_rooms_along_road(self, house_count, room_gen):
+        x = util.roll(2, 3)
+        x2 = int(x)
+        house_top = house_count / 2 + house_count % 2
+        house_bot = house_count / 2
+        for z in xrange(0, house_top):
+            room = room_gen.finish()
+            if house_bot > 0:
+                room2 = room_gen.finish()
+            y = self.roadminy - len(room) + (self.roadmaxy - self.roadminy)
+            y2 = self.roadminy
+            xw = x + len(room[0]); xh = y + len(room)
+            if xw < self.width and xh < self.height:
+                newxy = self.adjust_x_y_anywhere(x, y, xw, xh, delta=-1)
+                if newxy is None:
+                    continue
+                x, y = newxy
+                self.copy_room(room, x, y)
+                x = xw
+                x += util.roll(2,2)
+            if house_bot > 0:
+                x2w = x2 + len(room2[0])
+                y2w = y2 + len(room2)
+                if x2w > self.width or y2w > self.height:
+                    continue
+                newxy2 = self.adjust_x_y_anywhere(x2, y2, x2w, y2w, delta=+1)
+                if newxy2 is not None:
+                    x2, y2 = newxy2
+                    self.copy_room(room2, x2, y2)
+                    x2 += len(room2[0])
+                    x2 += util.roll(2,2)
+                    house_bot -= 1
+
+
+    def generate_rooms_random_place(self, house_count, room_gen):
+        occupied = []
+        for x in xrange(0, house_count):
+            room = room_gen.finish()
+            itercnt = 10
+            while True:
+                itercnt -= 1
+                if itercnt <= 0:
+                    room = None
+                    break
+                w = len(room[0])
+                h = len(room)
+                x, y = randrange(1, self.width - w), randrange(1, self.height - h)
+                pair = self.adjust_x_y_anywhere(x, y, x + w, y + h)
+                if pair is None:
+                    continue
+                x, y = pair
+                no_rooms = True
+                for placed_room in occupied:
+                    new_rect = Rect(x, y, len(room[0]), len(room))
+                    if placed_room.intersect(new_rect):
+                        no_rooms = False
+                        break
+                if no_rooms:
+                    break
+
+            if room is None: continue
+            occupied.append(Rect(x, y, len(room[0]), len(room)))
+            self.copy_room(room, x, y)
+
+    def copy_room(self, room, x, y):
+        x1, y1 = x, y
+        for row in room:
+            for tile in row:
+                self._map[y1][x1] = tile
+                x1 += 1
+            x1 = x
+            y1 += 1
+
+    def adjust_x_y_anywhere(self, x, y, x2, y2, delta = None):
+        #will move up or down
+        if delta is None:
+            delta = util.coinflip()
+            if delta == 0 : delta = -1
+        itercnt = 100
+        while True:
+            itercnt -= 1
+            #dont want it to hang foreva
+            if itercnt <= 0: return None
+            okay = True
+            for i in range (x, x2):
+                for j in range (y, y2):
+                    #if it's a road - then adjust our coords
+                    if self._map[j][i].is_road():
+                        y += delta; y2 += delta
+                        okay = False
+                        if min(y, y2) <= 0 or max(y, y2) >= self.height:
+                            return None
+                        #were not okay, breaking
+                        break
+                #coords were adjusted break for main While loop
+                if not okay:
+                    break
+
+            #no road crossed, were safe
+            if okay:
+                break
+        return x, y
+
+    def generate_road(self):
+        ms_start = libtcod.sys_elapsed_milli()
+        _h = self.height / 3
+        road_y = randrange(_h - util.roll(1, 10), _h + util.roll(1, 10))
+        len_no_break = randrange(self.break_road / 2, self.break_road)
+        old_road_y = road_y
+        delta = 0
+        if self.rank > self.RANK_CITY:
+            delta = 1
+        for x in xrange(0, self.width):
+            len_no_break -= 1
+            if len_no_break <= 0:
+                len_no_break = randrange(self.break_road / 2, self.break_road)
+                y_delta = util.roll(1, 3)
+                #nope, try another turn
+                if y_delta == 1:
+                    len_no_break = 1
+                elif y_delta == 2:
+                    old_road_y, road_y = road_y, util.cap_lower(road_y - 1, 0, 0)
+                    delta = -1
+                else:
+                    old_road_y, road_y = road_y, util.cap(road_y + 1, self.height)
+                    delta = 1
+
+            self.roadminy = min(self.roadminy, road_y)
+            self.roadmaxy = max(self.roadmaxy, road_y)
+            if old_road_y != road_y:
+                self._map[old_road_y][x] = self.road()
+                self._map[road_y][x] = self.road()
+                old_road_y = road_y
+            else:
+                self._map[road_y][x] = self.road()
+                if self.rank >= self.RANK_CITY:
+                    self._map[road_y + delta][x] = self.road()
+        ms_end = libtcod.sys_elapsed_milli()
+        print 'generated in ' + str(ms_end - ms_start) + ' ms'
+
+    def finish(self):
+        return self._map

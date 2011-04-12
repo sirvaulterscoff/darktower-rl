@@ -120,19 +120,19 @@ class LibtcodGui(AbstractGui):
                 continue
             x, y = self.viewport.adjust_coords(critter.x, critter.y)
             if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
-                libtcod.console_set_foreground_color(self.con, cc(critter.color))
+                libtcod.console_set_fore(self.con,x, y, cc(critter.color))
                 self.print_critter(x, y, critter.char)
                 critter.last_seen_at = critter.x, critter.y
             elif critter.last_seen_at is not None:
                 color = cc(critter.color)
                 color = dim_color(color)
-                libtcod.console_set_foreground_color(self.con, color)
+                libtcod.console_set_fore(self.con, x, y, color)
                 self.print_critter(x, y, critter.char)
 
 
         gl.logger.debug('Printing player')
-        libtcod.console_set_foreground_color(self.con, cc(player.color))
         x, y = self.viewport.adjust_coords(player.x, player.y)
+        libtcod.console_set_fore(self.con ,x, y, cc(player.color))
         self.print_critter(x, y, player.char)
 
         if gl.__wizard_mode__:
@@ -233,6 +233,8 @@ class LibtcodGui(AbstractGui):
 
 
     def create_color(self, color):
+        if isinstance(color, libtcod.Color):
+            return color
         if not parsed_colors.get(color):
             parsed_colors[color] = libtcod.Color(*color)
         return parsed_colors[color]
@@ -242,6 +244,7 @@ class LibtcodGui(AbstractGui):
 
 
     def render_dialog(self, title):
+        libtcod.console_set_keyboard_repeat(1000, 500)
         libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
         line = ''
         while True:
@@ -249,10 +252,12 @@ class LibtcodGui(AbstractGui):
             libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, line + '_')
             libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
             libtcod.console_flush()
-            key = libtcod.console_wait_for_keypress(False)
+            key = libtcod.console_wait_for_keypress(True)
             if key.c == 27:
+                game_input.default_rate()
                 return None
             if key.c == 13:
+                game_input.default_rate()
                 return line
             if key.c == 8:
                 line = line[0:len(line) - 1]
