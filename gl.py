@@ -16,7 +16,7 @@ MSG_COUNT = 10
 
 __hp_warning__ = 0.5
 
-__show_chapter__ = True
+__show_chapter__ = False
 __chapter_text__ = 'Chapter 1. Departure'
 #DEBUG - debug only (wiz mode), NONE -general info, WARN - warning (hp/mp),
 # critical - critical hits, stepping on traps, critical hp level,

@@ -23,6 +23,7 @@ KEYS = [
         (['?'], 'help'),
         ([libtcod.KEY_F1], 'wizard'),
         (['M'], 'toggle_map'),
+        (['K'], 'kill_all_humans'),
         ]
 
 def readLine():

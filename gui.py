@@ -125,7 +125,7 @@ class LibtcodGui(AbstractGui):
                 critter.last_seen_at = critter.x, critter.y
             elif critter.last_seen_at is not None:
                 color = self.create_color(critter.color)
-                color = self.dim_color(color)
+                color = dim_color(color)
                 libtcod.console_set_foreground_color(self.con, color)
                 self.print_critter(x, y, critter.char)
 
@@ -140,6 +140,17 @@ class LibtcodGui(AbstractGui):
 
         libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
+
+    def render_messages(self):
+        #print the game messages, one line at a time
+        y = 0
+        for (line, level) in gl.__msgs__:
+            if level < 1 and not gl.__wizard_mode__:
+                continue
+            libtcod.console_set_foreground_color(self.panel_msg, self.message_colours.get(level, libtcod.white))
+            libtcod.console_print_left(self.panel_msg, 0, y, libtcod.BKGND_NONE, line.ljust(SCREEN_WIDTH, ' '))
+            y += 1
+        libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
 
     def render_ui(self, player):
         #prepare to render the GUI panel
@@ -159,16 +170,6 @@ class LibtcodGui(AbstractGui):
         self.render_stats_two_column(1, 7, "Turns", gl.__turn_count__, 13, "", "", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
         #blit the contents of "panel" to the root console
         libtcod.console_blit(self.panel, 0, 0, RIGHT_PANEL_WIDTH, RIGHT_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
-
-        #print the game messages, one line at a time
-        y = 0
-        for (line, level) in gl.__msgs__:
-            if level < 1 and not gl.__wizard_mode__:
-                continue
-            libtcod.console_set_foreground_color(self.panel_msg, self.message_colours.get(level, libtcod.white))
-            libtcod.console_print_left(self.panel_msg, 0, y, libtcod.BKGND_NONE, line.ljust(SCREEN_WIDTH, ' '))
-            y += 1
-        libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y )
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):
         TEXT_PAD = 8
@@ -238,15 +239,6 @@ class LibtcodGui(AbstractGui):
     def window_closed(self):
         return libtcod.console_is_window_closed()
 
-    def dim_color(self, color):
-        h, s, v = libtcod.color_get_hsv(color)
-        # 1.0 .. 0.2
-        s *= 0.25
-        # 1.0 .. 0.75
-        v *= 0.25
-        color2 = libtcod.Color(color.r, color.g, color.b)
-        libtcod.color_set_hsv(color2, h, s, v)
-        return color2
 
     def render_dialog(self, title):
         libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
@@ -288,3 +280,14 @@ class Viewport(object):
     def in_view(self, x, y):
         return x>=self.x  and x<self.x2 and y >= self.y and y < self.y2
 
+def dim_color(color):
+    if isinstance(color, tuple):
+        color = libtcod.Color(*color)
+    h, s, v = libtcod.color_get_hsv(color)
+    # 1.0 .. 0.2
+    s *= 0.25
+    # 1.0 .. 0.75
+    v *= 0.25
+    color2 = libtcod.Color(color.r, color.g, color.b)
+    libtcod.color_set_hsv(color2, h, s, v)
+    return color2

@@ -270,7 +270,11 @@ class StaticGenerator(AbstractGenerator):
         substs = subst_line.split(' ')
         for subst_item in substs:
             subst_def = subst_item.split('=>', 1)
-            map_chars[subst_def[0]] = eval(subst_def[1])
+            if subst_def[1].count(':') > 0:
+                func_args = subst_def[1].replace(':', '(', 1)
+                map_chars[subst_def[0]] = lambda : eval(func_args+')')
+            else:
+                map_chars[subst_def[0]] = eval(subst_def[1])
 
 
     def is_subst(self, line):

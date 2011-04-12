@@ -17,6 +17,7 @@ def main_loop():
             gl.__show_chapter__ = None
         #gui.clear_all(map.map_critters)
         gui.render_ui(player)
+        gui.render_messages()
         key = game_input.readkey()
         if handle_key(key):
             for critter in map.map_critters:
@@ -60,12 +61,24 @@ def handle_toggle_map():
     map_name = gui.render_dialog('Enter map name')
     gui.clear_screen()
     dg = RandomRoomGenerator()
-    map = Map(dg.map_by_name(map_name), player)
+    _map = dg.map_by_name(map_name)
+    if not _map:
+        gl.message('No such map', 'CRITICAL')
+        gui.render_messages()
+        return
+    map = Map(_map, player)
     map.place_monsters()
     map.init_fov()
     player.x, player.y = find_passable_square(map.map)
     gui.viewport = None
     gui.render_map(map,player)
+
+def handle_kill_all_humans():
+    global map
+    if not gl.__wizard_mode__:
+        return
+    map.map_critters = []
+    map.critter_xy_cache = {}
 
 def handle_wait():
     if gl.__game_state__ == "playing":
@@ -80,7 +93,7 @@ if __name__ == "__main__":
     player.camx2 = VIEWPORT_WIDTH -1
     player.camy2 = VIEWPORT_HEIGHT - 1
 
-    dg = CaveGenerator(100, 100)
+    dg = CaveGenerator(60, 60)
     dg.generate()
     #map = dg.finish()
     #map = Map(dg.finish())

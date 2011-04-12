@@ -1,6 +1,6 @@
 from random import choice
 import gl
-
+from gui import dim_color
 BLOCK_WALK = 1
 BLOCK_LOS = 2
 NONE = 4
@@ -68,7 +68,22 @@ def FT_FIXED_WALL(): return DungeonFeature('#', (130, 110, 50), (0, 0, 100), fla
 def FT_ROCK_WALL(): return DungeonFeature("#", (130, 110, 50), (0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK)
 def FT_GLASS_WALL(): return DungeonFeature("#", (30, 30, 160), (0, 0, 100), flags=BLOCK_WALK)
 def FT_WINDOW(): return DungeonFeature("0", (128, 128, 160), (0, 0, 60), flags=BLOCK_WALK)
+def FT_WELL(): return DungeonFeature("o", (255, 255, 255), (0, 0, 60), ft_types['furniture'], flags=BLOCK_WALK)
+def FT_TREE(): return DungeonFeature("T", (0, 90, 0), (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS)
 def FT_FLOOR(): return DungeonFeature(".", (255, 255, 255), (0, 0, 100), ft_types["floor"])
+def FT_CARPET(back=None, char='.'):
+    df = DungeonFeature(char, (0, 0, 0), (0, 0, 0), ft_types["floor"])
+    if  back == None:
+        df.color_back = (128,128,128)
+        df.dim_color_back = (50,50,50)
+    else:
+        df.color_back = back
+        #df.dim_color_back = dim_color(back)
+    return df
+def FT_GRASS():
+    df = DungeonFeature(choice(['`', ',']),
+    choice( [ (0, 80, 0),(20, 80, 0), (0,80,20), (20,80,20)]), (0, 30, 10), ft_types["floor"])
+    return df
 def FT_DOOR(): return Door(False)
 def FT_CHAIR(): return Furniture('h',(120, 120, 0), (40, 40, 0), ft_types["furniture"], flags=BLOCK_WALK)
 def FT_TABLE(): return Furniture('T',(120, 120, 0), (40, 40, 0), ft_types["furniture"], flags=BLOCK_WALK)
