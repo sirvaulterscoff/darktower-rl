@@ -83,7 +83,7 @@ def FT_WELL(): return DungeonFeature("o", (255, 255, 255), (0, 0, 60), ft_types[
 def FT_TREE(): return DungeonFeature("T", (0, 90, 0), (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS)
 def FT_STATUE(): return DungeonFeature("T", (100, 100, 100), (80, 80, 80), ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS)
 def FT_FOUNTAIN(): return DungeonFeature("{", (20, 60, 200), (10, 30, 100), ft_types['furniture'], flags=BLOCK_WALK)
-def FT_BUSH(): return DungeonFeature("*", (0, 90, 0), (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK)
+def FT_BUSH(color=(0, 90, 0)): return DungeonFeature("*", color, (0, 40, 0), ft_types['furniture'], flags=BLOCK_WALK)
 def FT_FLOOR(): return DungeonFeature(".", (255, 255, 255), (0, 0, 100), ft_types["floor"])
 def FT_ROAD(back=None, char=' '):
     df= DungeonFeature(char, (0, 0, 0), (0, 0, 0), ft_types["road"])
