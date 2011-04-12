@@ -20,7 +20,7 @@ import util
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from thirdparty.libtcod import libtcodpy as libtcod
 
-born = """You was born in __village__. You spent your childhood laying under beautifull trees, watching others fight and day every day.
+born = """You was born in __village__. You spent your childhood laying under beautifull trees, watching others fight every day.
     You was left by your parents in a dark cave near __city__. Fortunatly __name__ found you.
     You was sixth son in a big family. When you was 10 an awfull hurricane destroyed your village, leaving you as the only survivor. You wandered around the country for some time and was later adopted by __name__ - __proffesion__.
     Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near __city__. A __adjective__ amulet was found near his corpse, but no one wish to touch it.
@@ -129,10 +129,10 @@ advocat
 metalsmith
 wizard
 healer
-woodcutter
-fisherman
+mage
+summoner
 bowman
-guard
+alchemist
 bard
 hunter
 assassin
