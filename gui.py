@@ -47,7 +47,7 @@ class LibtcodGui(AbstractGui):
     def __init__(self):
         libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-        libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False)
+        libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False, renderer=libtcod.RENDERER_OPENGL)
         self.con = libtcod.console_new(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
         self.con2 = libtcod.console_new(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
         self.panel = libtcod.console_new(RIGHT_PANEL_WIDTH, SCREEN_HEIGHT)
@@ -58,7 +58,6 @@ class LibtcodGui(AbstractGui):
         self.message_colours[3] = libtcod.Color(255,10,10)
         self.message_colours[4] = libtcod.Color(255,255,255)
         self.viewport = None
-
 
     def print_critter(self, x, y, char):
         libtcod.console_set_char(self.con, x, y, char)
@@ -97,14 +96,14 @@ class LibtcodGui(AbstractGui):
                     libtcod.console_set_char(self.con, consolex, consoley, ' ')
                 if not visible:
                     if seen:
-                        libtcod.console_set_fore(self.con, consolex, consoley, tile.dim_color)
-                        libtcod.console_set_back(self.con, consolex, consoley, tile.dim_color_back, libtcod.BKGND_SET)
+                        libtcod.console_set_char_foreground(self.con, consolex, consoley, tile.dim_color)
+                        libtcod.console_set_char_background(self.con, consolex, consoley, tile.dim_color_back, libtcod.BKGND_SET)
                     else:
-                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.black, libtcod.BKGND_SET)
+                        libtcod.console_set_char_background(self.con, consolex, consoley, libtcod.black, libtcod.BKGND_SET)
                 else:
                     #if it's in LOS - print and mark as seen
-                    libtcod.console_set_fore(self.con, consolex, consoley, tile.color)
-                    libtcod.console_set_back(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
+                    libtcod.console_set_char_foreground(self.con, consolex, consoley, tile.color)
+                    libtcod.console_set_char_background(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
                     #if current tile is visible for now - mark as seen
                     tile.seen = True
                 consolex += 1
@@ -120,23 +119,23 @@ class LibtcodGui(AbstractGui):
                 continue
             x, y = self.viewport.adjust_coords(critter.x, critter.y)
             if libtcod.map_is_in_fov(map.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
-                libtcod.console_set_foreground_color(self.con, cc(critter.color))
+                libtcod.console_set_char_foreground(self.con, x, y, cc(critter.color))
                 self.print_critter(x, y, critter.char)
                 critter.last_seen_at = critter.x, critter.y
             elif critter.last_seen_at is not None:
                 color = cc(critter.color)
                 color = dim_color(color)
-                libtcod.console_set_foreground_color(self.con, color)
+                libtcod.console_set_char_foreground(self.con, x, y, color)
                 self.print_critter(x, y, critter.char)
 
 
         gl.logger.debug('Printing player')
-        libtcod.console_set_foreground_color(self.con, cc(player.color))
         x, y = self.viewport.adjust_coords(player.x, player.y)
+        libtcod.console_set_char_foreground(self.con, x, y, cc(player.color))
         self.print_critter(x, y, player.char)
 
         if gl.__wizard_mode__:
-            libtcod.console_print_left(self.con, 0, VIEWPORT_HEIGHT - 1, libtcod.BKGND_NONE, 'WIZ MODE')
+            libtcod.console_print(self.con, 0, VIEWPORT_HEIGHT - 1, 'WIZ MODE')
 
         libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
@@ -147,15 +146,15 @@ class LibtcodGui(AbstractGui):
         for (line, level) in gl.__msgs__:
             if level < 1 and not gl.__wizard_mode__:
                 continue
-            libtcod.console_set_foreground_color(self.panel_msg, self.message_colours.get(level, libtcod.white))
-            libtcod.console_print_left(self.panel_msg, 0, y, libtcod.BKGND_NONE, line.ljust(SCREEN_WIDTH, ' '))
+            libtcod.console_set_default_foreground(self.panel_msg, self.message_colours.get(level, libtcod.white))
+            libtcod.console_print(self.panel_msg, 0, y, line.ljust(SCREEN_WIDTH, ' '))
             y += 1
         libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
 
     def render_ui(self, player):
         cc = self.create_color
         #prepare to render the GUI panel
-        libtcod.console_set_background_color(self.panel, libtcod.black)
+        libtcod.console_set_default_background(self.panel, libtcod.black)
         libtcod.console_clear(self.panel)
         #show the player's HP
         self.render_bar(1, 1, 13, 10, player.hp, player.base_hp,
@@ -176,16 +175,15 @@ class LibtcodGui(AbstractGui):
         TEXT_PAD = 8
         tick_price = int(maximum / total_width)
 
-        #render the background first
-        libtcod.console_set_background_color(self.panel, dim_color)
+        libtcod.console_set_default_background(self.panel, dim_color)
         formated_str = "HP: %i/%i" % (value, maximum)
         #if displayed value == 0 - skip rendering bar
         if maximum == 0:
             return
-        libtcod.console_set_foreground_color(self.panel, text_color)
-        libtcod.console_print_left(self.panel, x, y, libtcod.BKGND_NONE, formated_str)
-        libtcod.console_set_foreground_color(self.panel, self.create_color(bar_color[0]))
-        libtcod.console_print_left(self.panel, x2, y, libtcod.BKGND_NONE, '[' + ''.ljust(total_width, '_') + ']')
+        libtcod.console_set_default_foreground(self.panel, text_color)
+        libtcod.console_print(self.panel, x, y, formated_str)
+        libtcod.console_set_default_foreground(self.panel, self.create_color(bar_color[0]))
+        libtcod.console_print(self.panel, x2, y, '[' + ''.ljust(total_width, '_') + ']')
         active_ticks = value * tick_price
         severity = 0
         #now choose apropriate color depending on how much value left (compared to maximum)
@@ -193,19 +191,19 @@ class LibtcodGui(AbstractGui):
             if active_ticks <= maximum * color_lvl:
                 severity += 1
         #now render the bar on top
-        libtcod.console_set_foreground_color(self.panel, self.create_color(bar_color[severity]))
-        libtcod.console_print_left(self.panel, x2 + 1 ,y, libtcod.BKGND_NONE, '#'.center(active_ticks, '#'))
+        libtcod.console_set_default_foreground(self.panel, self.create_color(bar_color[severity]))
+        libtcod.console_print(self.panel, x2 + 1 ,y, '#'.center(active_ticks, '#'))
 
     def render_stats_two_column(self, x, y, text1, value, x2, text2, value2, lbl_color, value_color):
-        libtcod.console_set_foreground_color(self.panel, self.create_color(lbl_color))
-        libtcod.console_print_left(self.panel, x, y, libtcod.BKGND_NONE, text1 + ':')
-        libtcod.console_print_left(self.panel, x2, y, libtcod.BKGND_NONE, text2 + ':')
-        libtcod.console_set_foreground_color(self.panel, self.create_color(value_color))
-        libtcod.console_print_left(self.panel, x + len(text1) + 1, y, libtcod.BKGND_NONE, str(value))
-        libtcod.console_print_left(self.panel, x2 + len(text2) + 1, y, libtcod.BKGND_NONE, str(value2))
+        libtcod.console_set_default_foreground(self.panel, self.create_color(lbl_color))
+        libtcod.console_print(self.panel, x, y, text1 + ':')
+        libtcod.console_print(self.panel, x2, y, text2 + ':')
+        libtcod.console_set_default_foreground(self.panel, self.create_color(value_color))
+        libtcod.console_print(self.panel, x + len(text1) + 1, y, str(value))
+        libtcod.console_print(self.panel, x2 + len(text2) + 1, y,str(value2))
 
     def render_intro(self, intro_text):
-        libtcod.console_print_center(self.con2, SCREEN_WIDTH / 3, (SCREEN_HEIGHT /3) , libtcod.BKGND_ADD, intro_text)
+        libtcod.console_print(self.con2, SCREEN_WIDTH / 3, (SCREEN_HEIGHT /3) , intro_text)
         # do a cross-fading from off1 to off2
         for i in range(1, 110):
             libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0) # renders the first screen (opaque)
@@ -245,8 +243,8 @@ class LibtcodGui(AbstractGui):
         libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
         line = ''
         while True:
-            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, ' '.rjust(len(line) + 2, ' '))
-            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, line + '_')
+            libtcod.console_print(self.con, 11, 11, ' '.rjust(len(line) + 2, ' '))
+            libtcod.console_print(self.con, 11, 11, line + '_')
             libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
             libtcod.console_flush()
             key = libtcod.console_wait_for_keypress(False)

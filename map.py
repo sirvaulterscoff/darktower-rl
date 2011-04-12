@@ -5,7 +5,7 @@ from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
 
-FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
+FOV_ALGORITHM = libtcod.FOV_RESTRICTIVE
 FOV_LIGHT_WALLS = True
 
 class Map(object):
