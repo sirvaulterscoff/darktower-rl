@@ -1,0 +1,9 @@
+ORIENT=RANDOM
+SUBST=:=>FT_WINDOW /=>choice((FT_WINDOW,FT_ROCK_WALL))
+NAME=small_tavern1
+########
+#hTh.Th#
+#......+
+#Th.hTh#
+########
+END

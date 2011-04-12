@@ -1,5 +1,5 @@
 import os
-from random import randrange, random, choice
+from random import randrange, random, choice, shuffle
 from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
@@ -13,7 +13,25 @@ FORCE_VERTICAL_FLIP = (1 << 5) | VERTICAL_FLIP
 FORCE_ROTATE = (1 << 6) | ROTATE
 ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
 
-def parse_string(map, orient_override=ANY):
+class MapDef(object):
+    def __init__(self, desc, name= '', orient=None):
+        self.desc = desc
+        self.width = len(desc[0])
+        self.height = len(desc)
+        self.name = name
+        self.orient = orient
+
+    def materialize(self, override_orient = ANY):
+        _map = self.desc[:]
+        for y in xrange(0, self.height):
+            _map[y] = self.desc[y][:]
+            for x in xrange(0, self.width):
+                _map[y][x] = _map[y][x]()
+        if self.orient is not None:
+            return self.orient(_map, override_orient)
+        return _map
+
+def parse_string(map):
     maps = {}
     new_map = []
     x, y = 0, 0
@@ -49,10 +67,9 @@ def parse_string(map, orient_override=ANY):
             name = parse_name(line)
             continue
         if is_end_map(line):
-            if orient is not None:
-                new_map = orient(new_map, orient_override)
             if name is None:
                 name = 'map' + str (name_count)
+            new_map = MapDef(new_map, name, orient)
             maps[name] = new_map
             new_map = []
             y, x, name, name_count = 0,0, None, name_count + 1
@@ -67,15 +84,14 @@ def parse_string(map, orient_override=ANY):
             ft = map_chars.get(char)
             if ft is None:
                 raise RuntimeError('failed to parse char ' + char)
-            new_map[y].append(ft())
+            new_map[y].append(ft)
             x += 1
         y += 1
         x = 0
     if not finished:
-        if orient is not None:
-            new_map = orient(new_map, orient_override)
         if name is None:
             name = 'map' + str (name_count)
+        new_map = MapDef(new_map, name, orient)
         maps[name] = new_map
 
     return maps
@@ -175,6 +191,8 @@ class AbstractGenerator(object):
                       for i in range(0, length)]
                      for j in range(0, width)]
 
+    def generate(self):
+        pass
     def generate_border(self):
         for j in range(0, self.length):
             self._map[0][j] = FT_FIXED_WALL()
@@ -303,13 +321,13 @@ class RoomsCoridorsGenerator(AbstractGenerator):
         self.generate_border()
         return self._map
 
-class RandomRoomGenerator(AbstractGenerator):
+class StaticRoomGenerator(AbstractGenerator):
     map_files = []
     def __init__(self, flavour=''):
         self.parsed_files = {}
         self.available_maps = {}
         for file in os.listdir('./data/rooms'):
-            if file.find(flavour + '.map') > 0:
+            if file.find(flavour + '.map') > -1:
                 self.map_files.append(os.path.join('.', 'data', 'rooms', file))
 
     def parse_file(self, map_file):
@@ -327,17 +345,25 @@ class RandomRoomGenerator(AbstractGenerator):
             maps = self.parsed_files.get(map_file)
         else:
             maps = self.parse_file(map_file)
+        return choice(maps.values()).materialize()
+
+    def random(self):
+        map_file = choice(self.map_files)
+        if self.parsed_files.get(map_file):
+            maps = self.parsed_files.get(map_file)
+        else:
+            maps = self.parse_file(map_file)
         return choice(maps.values())
 
     def map_by_name(self, name):
         if self.available_maps.get(name):
-            return self.available_maps[name]
+            return self.available_maps[name].materialize()
         else:
             for file in self.map_files:
                 self.parse_file(file)
-            return self.available_maps.get(name)
+            return self.available_maps.get(name).materialize()
 
-class CityGenerator(RandomRoomGenerator):
+class CityGenerator(StaticRoomGenerator):
     RANK_CITY = 3
     def __init__(self, flavour, width, height, rank, filler=FT_GRASS, road=FT_ROAD, break_road=10,
                  room_placer=None):
@@ -345,9 +371,11 @@ class CityGenerator(RandomRoomGenerator):
         self.flavour = flavour
         self.width = width
         self.height = height
+        #city rank - larger cities have laarger ranks
         self.rank = rank
         self.filler=filler
         self.road=road
+        #at what step road should begin to deform
         self.break_road = break_road
         self._map = [[filler()
                       for x in xrange(0, width)]
@@ -355,38 +383,82 @@ class CityGenerator(RandomRoomGenerator):
         ms_end = libtcod.sys_elapsed_milli()
         print 'Filled in '+ str(ms_end - ms_start) + ' ms'
         self.roadminy, self.roadmaxy=height,0
+        #method for placing generated rooms
         self.room_placer = room_placer
 
     def generate(self):
-        taverns = util.coinflip()
-        shops = util.coinflip()
-        hotel = util.coinflip()
-
+        shops = 0
+        hotel = 0
+        taverns = util.roll(1, self.rank, -1)
+        if self.rank >=3:
+            if util.coinflip():
+                shops = util.roll(1, self.rank, -2)
+            hotel = util.coinflip()
         #roll for number of houses. it'lee be 4-8 houses for small village
         #and 6-12 for town. and much for for large city. but that's it for now
         house_count = util.roll(self.rank,3, self.rank)
-        room_gen = RandomRoomGenerator('rooms')
+        noble_house_count = util.roll(1, self.rank, -3)
+        gl.logger.debug('Generating buildings: %d rooms, %d noble, %d tavern, %d shops, %d hotel' % (house_count, noble_house_count, taverns, shops, hotel))
+        gen = self.create_room_generator(house_count, noble_house_count, taverns, shops, hotel)
         self.generate_road()
 
+        for x in (noble_house_count, taverns, shops, hotel):
+            house_count += util.cap_lower(x, 0, 0)
+        gl.logger.debug('Total number of houses: %d' % house_count)
         if self.room_placer is None:
-            self.generate_rooms_random_place(house_count, room_gen)
+            self.generate_rooms_random_place(house_count, gen)
         else:
-            self.room_placer(self, house_count, room_gen)
+            self.room_placer(self, house_count, gen)
 
-    def generate_rooms_along_road(self, house_count, room_gen):
+    def create_room_generator(self, house_count, noble_house_count, taverns, shops, hotel):
+        prefix = ''
+        if self.rank <= 3: prefix = 'small_'
+        elif self.rank >=7: prefix = 'large_'
+        else: prefix = 'med_'
+        all_houses = []
+        rooms_gen = StaticRoomGenerator(prefix + 'rooms')
+        #place general houses
+        for i in xrange(0, house_count):
+            all_houses.append(lambda : rooms_gen.random())
+        #place noble houses
+        if noble_house_count > 0:
+            noble_room_gen = StaticRoomGenerator(prefix + 'noble')
+            for i in xrange(0, noble_house_count):
+                all_houses.append(lambda: noble_room_gen.random())
+        #place 1 residence
+        if self.rank >= 7 and util.coinflip():
+            gl.logger.debug('Generating residence')
+            residence_room_gen = StaticRoomGenerator('residence')
+            all_houses.append(lambda: residence_room_gen.random())
+        if taverns > 0:
+            tavern_room_gen = StaticRoomGenerator(prefix+'tavern')
+            for x in xrange(0, taverns):
+                all_houses.append(lambda: tavern_room_gen.random())
+        if shops > 0:
+            shop_room_gen = StaticRoomGenerator(prefix + 'shop')
+            for x in xrange (0, shops):
+                all_houses.append(lambda: shop_room_gen.random())
+        if hotel > 0:
+            hotel_gen = StaticRoomGenerator(prefix + 'hotels')
+            all_houses.append(lambda: hotel_gen.random())
+        shuffle(all_houses)
+        for house in all_houses:
+            yield house()
+
+    def generate_rooms_along_road(self, house_count, room_gen, allow_crop = True):
         x = util.roll(2, 3)
         x2 = int(x)
         house_top = house_count / 2 + house_count % 2
         house_bot = house_count / 2
         for z in xrange(0, house_top):
-            room = room_gen.finish()
+            room = room_gen.next().materialize()
             if house_bot > 0:
-                room2 = room_gen.finish()
+                room2 = room_gen.next().materialize()
             y = self.roadminy - len(room) + (self.roadmaxy - self.roadminy)
             y2 = self.roadminy
             xw = x + len(room[0]); xh = y + len(room)
             if xw < self.width and xh < self.height:
-                newxy = self.adjust_x_y_anywhere(x, y, xw, xh, delta=-1)
+                newxy = self.adjust_x_y_anywhere(x, y, xw, xh, -1, allow_crop)
                 if newxy is None:
                     continue
                 x, y = newxy
@@ -398,7 +470,7 @@ class CityGenerator(RandomRoomGenerator):
                 y2w = y2 + len(room2)
                 if x2w > self.width or y2w > self.height:
                     continue
-                newxy2 = self.adjust_x_y_anywhere(x2, y2, x2w, y2w, delta=+1)
+                newxy2 = self.adjust_x_y_anywhere(x2, y2, x2w, y2w, 1, allow_crop)
                 if newxy2 is not None:
                     x2, y2 = newxy2
                     self.copy_room(room2, x2, y2)
@@ -407,10 +479,17 @@ class CityGenerator(RandomRoomGenerator):
                     house_bot -= 1
 
 
-    def generate_rooms_random_place(self, house_count, room_gen):
+    def generate_rooms_random_place(self, house_count, room_gen, allow_crop = True):
         occupied = []
-        for x in xrange(0, house_count):
-            room = room_gen.finish()
+        room = None
+        iter_cnt = house_count
+        while True:
+            if iter_cnt < 0: break
+            if room is None:
+                try:
+                    room = room_gen.next().materialize()
+                except StopIteration:
+                    break
             itercnt = 10
             while True:
                 itercnt -= 1
@@ -420,7 +499,7 @@ class CityGenerator(RandomRoomGenerator):
                 w = len(room[0])
                 h = len(room)
                 x, y = randrange(1, self.width - w), randrange(1, self.height - h)
-                pair = self.adjust_x_y_anywhere(x, y, x + w, y + h)
+                pair = self.adjust_x_y_anywhere(x, y, x + w, y + h, allow_crop)
                 if pair is None:
                     continue
                 x, y = pair
@@ -436,6 +515,8 @@ class CityGenerator(RandomRoomGenerator):
             if room is None: continue
             occupied.append(Rect(x, y, len(room[0]), len(room)))
             self.copy_room(room, x, y)
+            iter_cnt -= 1
+            room = None
 
     def copy_room(self, room, x, y):
         x1, y1 = x, y
@@ -446,7 +527,8 @@ class CityGenerator(RandomRoomGenerator):
             x1 = x
             y1 += 1
 
-    def adjust_x_y_anywhere(self, x, y, x2, y2, delta = None):
+    def adjust_x_y_anywhere(self, x, y, x2, y2, delta = None, allow_crop= True):
+        w,h = x2 - x, y2 - y
         #will move up or down
         if delta is None:
             delta = util.coinflip()
@@ -474,6 +556,10 @@ class CityGenerator(RandomRoomGenerator):
             #no road crossed, were safe
             if okay:
                 break
+            if not allow_crop:
+                if x < 0 or y < 0 or x+w >= len(self._map[0]) or y+h >= len(self._map):
+                    return None
+
         return x, y
 
     def generate_road(self):

@@ -1,0 +1,14 @@
+SUBST=:=>FT_WINDOW ,=>FT_GRASS ==>choice((FT_ROCK_WALL,FT_DOOR))
+SUBST=b=>FT_BUSH t=>FT_TREE o=>FT_WELL .=>FT_CARPET
+SUBST=c=>FT_CARPET:(120,0,0)
+ORIENT=RANDOM
+NAME=large_house_with_garden3
+##########::####,,,,,,,
+#....#.........#bbtbbb,
+#F...#.........+,,,,,b,
+:.ccc#ccccccc.h#,,,,,b,
+#.ccc+ccccccc.T:,,o,,,,
+:.ccc#ccccccc.h#,,,,,b,
+#F...#.........#,hTh,b,
+#....#.........#bbtbbb,
+######::########,,,,,,,

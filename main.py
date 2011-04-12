@@ -64,7 +64,7 @@ def handle_toggle_map():
         return
     map_name = gui.render_dialog('Enter map name')
     gui.clear_screen()
-    dg = RandomRoomGenerator()
+    dg = StaticRoomGenerator()
     _map = dg.map_by_name(map_name)
     if not _map:
         gl.message('No such map', 'CRITICAL')
@@ -99,16 +99,16 @@ if __name__ == "__main__":
 
     #dg = CaveGenerator(60, 60)
     dg = CityGenerator('',80, 40, 5, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
-    dg.generate()
+    #dg = CityGenerator('',80, 40, 5, break_road=5, room_placer=CityGenerator.generate_rooms_along_road)
+    dg = CityGenerator('',80, 40, 5, break_road=5)
     #map = dg.finish()
     #map = Map(dg.finish())
 
     #    dg = RoomsCoridorsGenerator(80, 40)
     #    dg.generate()
     #    map = Map(dg.finish())
-    #dg = StaticGenerator()
-    #dg = RandomRoomGenerator()
-    #dg.generate()
+    #dg = StaticRoomGenerator()
+    dg.generate()
 
     map = Map(dg.finish(), player)
     map.place_monsters()
