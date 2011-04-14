@@ -60,29 +60,34 @@ TRADERS_ROLL = (2, 6,  8)
 ###PART2 - key characters
 #at the start of quest generation we will define key NPCs, who will follow you
 #throughout the game. Main types of such main NPCs(MNPC):
-# [*][ ][   4] good NPC, which will give you quest, reward you (and will participate at least at 2 quests?)
-# [ ][ ][1 3 ] bad NPC, which will hold one of quest-items (or sub-quest) and will actualy run away (or even capture you) and reappear at the end quest
+# [*][+][   4] good NPC, which will give you quest, reward you (and will participate at least at 2 quests?)
+# [ ][+][1 3 ] bad NPC, which will hold one of quest-items (or sub-quest) and will actualy run away (or even capture you) and reappear at the end quest
 # [*][+][1 34] betrayal-type NPC, which will pretend to be good and send you to certain death. Soon you find the truth and follow him to in order to kill. Will meet him once again later
 # [*][ ][1234] were-NPC (^_^). Appears as human (for example), later  (end of quest) turns out to be a demon or king or your relative or whatever. that type can follow any path above (good, bad, betray)
 # [*][+][1234] deity-NPC. Appears as human but after the quest turn out to be deity and give you the main quest or give you directions for next step. Can be actualy a master of some realm, where you get tepelorted occassionaly
-# [*][ ][1 34] controlled-NPC. This can be either bad or betrayal-type (prefered). After defeating him will turn out to be controlled by some other MNPC
+# [*][+][1 34] controlled-NPC. This can be either bad or betrayal-type (prefered). After defeating him will turn out to be controlled by some other MNPC
 # [ ][+][1 3 ] overpowered-NPC. This seems to be overpowered. Will beat you to death or capture or banish or whatever the first time. Will stay alive the next time,but when you manage to beat him turns out to be just a minor puppet of some other might MNPC
 # [ ][+][ 2  ] adventure-NPC. Just like you, but knows a bit more. Will eventualy meet with you several times, giving you pieces of information. This is not quest-target NPC, though he can be placed inside quests (quest-info) or during main-plot (main-plot info) or both (prefered)
-#![ ][+][   4] thief-NPC. Will eventualy steal the quest item, running away. Following him you can find his master or even get to another realm
+#![ ][ ][   4] thief-NPC. Will eventualy steal the quest item, running away. Following him you can find his master or even get to another realm
 #![ ][ ][ 2  ] summoned-NPC (or resurected, or cured). Should be placed inside quests and will help you out later (variant of adventure-NPC).
-# [ ][ ][ 2  ] immobile-NPC (trees, stones, statues etc). Sources of subquests of information. Can be then referend by end-game NPC as a "powerfull mage" or "fallen deity" or whatever. Possibly you return to them or summon them to you
-#![ ][+][ 2  ] shadows-of-the-past-NPC. will eventualy appear as ghosts or shadows either trying to kill you (some past reference), or asking you to help, or telling you about quest-item or quest-mob or main-plot. Should be place-defined in later casess. Can be shadows of quest-targets
-# [ ][ ][1 3 ] band-NPC. Just a random ones. will roam around with band, offering sub-quests. can be avoided - others can refer to them
-# [ ][+][123 ] unique-NPCs. Predefined ones. Can be refered, fought or will provide info. no special cases.
-# [ ][+][12  ] trader-NPCs. Will eventualy pop up and offer you to buy something. it can randomly be something useless, sub-quest item or something needed to reach secret places. If the player reject bying sub-quest item he than will have to buy it for a higher price or fight NPC. In that case NPC is actualy bad or betrayal-type NPC
-# help-NPCs. Will eventualy help you out with tough bosses. Nothing more at all.
-# mercenary-NPCs. While carrying quest-item to quest-giver you can be assaulted by mercenary(ies) hired to kill you to get quest-item.
+# [ ][=][ 2  ] immobile-NPC (trees, stones, statues etc). Sources of subquests of information. Can be then referend by end-game NPC as a "powerfull mage" or "fallen deity" or whatever. Possibly you return to them or summon them to you
+#![ ][ ][ 2  ] shadows-of-the-past-NPC. will eventualy appear as ghosts or shadows either trying to kill you (some past reference), or asking you to help, or telling you about quest-item or quest-mob or main-plot. Should be place-defined in later casess. Can be shadows of quest-targets
+# [ ][=][1 3 ] band-NPC. Just a random ones. will roam around with band, offering sub-quests. can be avoided - others can refer to them
+# [ ][=][123 ] unique-NPCs. Predefined ones. Can be refered, fought or will provide info. no special cases.
+# [ ][=][12  ] trader-NPCs. Will eventualy pop up and offer you to buy something. it can randomly be something useless, sub-quest item or something needed to reach secret places. If the player reject bying sub-quest item he than will have to buy it for a higher price or fight NPC. In that case NPC is actualy bad or betrayal-type NPC
+#![ ][ ][    ] help-NPCs. Will eventualy help you out with tough bosses. Nothing more at all.
+#![ ][ ][    ] mercenary-NPCs. While carrying quest-item to quest-giver you can be assaulted by mercenary(ies) hired to kill you to get quest-item.
 
 #some of the listed NPCs are generate inside quests. First we should define those,
 # who will be encountered throughtout the game (marked as +).
-# Then we define quest_givers marked as *.
+# + - mainNPCs - i.e. persistent ones. generated once - at the start
+# * Then we define quest_givers .
+# = mark those that are generated despite of others (have their own roll to be generated guring mNPC generation)
 # Quest targets are marked as
-# 1 for killable target (quest target itself), 2 for talk-only-target, 3 for guard-type (guard quest item), 4 break-down plot (change plot)
+# 1 for killable target (quest target itself),
+# 2 for talk-only-target,
+# 3 for guard-type (guard quest item),
+# 4 break-down plot (change plot)
 # ! denotes NPCs which are occasionaly generated during quest generation-only!
 #Actualy we don't want classic quests. instead let's use the quest as some meating point for plot-oriented-NPC. i.e. if the player is sent
 #to obtain amulet from and wafull demon not neccessarily he should get it. Instead he should be given some important information and be directed to the next quest
@@ -90,18 +95,8 @@ TRADERS_ROLL = (2, 6,  8)
 
 
 class QuestNPC(object):
-    #denotes if this NPC-type can be generate at first phase
-    skip_global = True
-    non_quest_givers = True
-    non_unique = True
-    __metaclass__ = util.AutoAdd
     mNPC = []
     quest_giver_NPC = []
-    uniques = []
-    __meta_dict__ = {
-        'skip_global' : mNPC,
-        'non_quest_givers' : quest_giver_NPC,
-        'non_unique' : uniques}
     common = 2
 
     def __init__(self):
@@ -111,80 +106,92 @@ class QuestNPC(object):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def register(cls, what, main_npc = True, quest_giver = False):
+        if main_npc:
+            QuestNPC.mNPC.append(what)
+        if quest_giver:
+            QuestNPC.quest_giver_NPC.append(what)
+
 
 class GoodNPC(QuestNPC):
-    skip_global = False
-    non_quest_givers = False
     common = 7
-    pass
 
 class BadNPC(QuestNPC):
-    skip_global = False
     common = 7
     pass
 
 class BetrayalNPC(BadNPC):
-    skip_global = False
-    non_quest_givers = False
     common = 2
     pass
 
 class WereNPC(BadNPC):
-    skip_global = False
-    non_quest_givers = False
     common = 1
     pass
 
 class DeityNPC(QuestNPC):
-    skip_global = False
-    non_quest_givers = False
     common = 1
     pass
 
 class ControlledNPC(BetrayalNPC):
-    skip_global = False
-    non_quest_givers = False
     common = 1
     pass
 
 class OverpoweredNPC(ControlledNPC):
-    skip_global = False
     common = 1
     pass
 
 class AdventureNPC(GoodNPC):
-    skip_global = False
     common = 6
     pass
 
 class ImmobileNPC(GoodNPC):
-    skip_global = True
     pass
 
 class BandNPC(BadNPC):
-    skip_global = False
     common = 3
     pass
 
 class UniqueNPC(BadNPC):
-    skip_global = True
-    non_unique = False
-    pass
+    id = None
+    _uniques = {}
+
+    @classmethod
+    def register_self(cls, id, wat):
+        UniqueNPC._uniques[id] = wat
+
+
+random_artefact_here = '[place here random artefact]'
+#static unique for now
+class Oddyssy(UniqueNPC, AdventureNPC):
+    id = 'Oddyssy'
+    name = random.choice(['Odd Yssy', 'Oddyssy'])
+    real_name = name
+    description = 'A long journey in search of mythical relic ' + random_artefact_here + ' led him to a foreign land where this relic is hidden, according to rummors.'
+    common = 10
+
+UniqueNPC.register_self(Oddyssy.id, Oddyssy)
+
 
 class TraderNPC(GoodNPC):
-    skip_global = True
     pass
 
 class ThiefNPC(BetrayalNPC):
-    skip_global = True
+    pass
 
 class SummonedNPC(GoodNPC):
-    skip_global = True
+    pass
 
 class  ShadowOfThePastNPC(QuestNPC):
-    skip_global = True
+    pass
 
-
+QuestNPC.register(GoodNPC, True, True)
+QuestNPC.register(BadNPC, True, False)
+QuestNPC.register(BetrayalNPC, True, True)
+QuestNPC.register(DeityNPC, True, True)
+QuestNPC.register(ControlledNPC, True, True)
+QuestNPC.register(OverpoweredNPC, True)
+QuestNPC.register(AdventureNPC, True)
 
 
 #######FIRST_PHASE: (all the NPC inhabiting the world except those, generated inside quests nly)
@@ -205,7 +212,7 @@ while actual_quest_givers < min_quest_givers:
     for x in xrange(0, mNPC_count):
         rnd = util.random_from_list_weighted(QuestNPC.mNPC)()
         result.append(rnd)
-        if not rnd.non_quest_givers:
+        if not QuestNPC.quest_giver_NPC.__contains__(rnd):
             actual_quest_givers += 1
 world.mNPC.extend(result)
 
@@ -220,15 +227,17 @@ for i in xrange(0, immobile_npc):
     world.mNPC.append(ImmobileNPC())
 unique_npc = util.roll(*UNIQUES_ROLL)
 
-uniques = set()
+uniques = {}
 for i in xrange(0, unique_npc):
-    uniques.add(util.random_from_list_weighted(QuestNPC.uniques))
-world.uniques = uniques
+    unique = util.random_from_list_weighted(UniqueNPC._uniques.values())
+    uniques[unique.id] = unique()
+world.uniques = uniques.values()
+world.mNPC.extend(uniques.values())
 
 traders_npc = util.roll(*TRADERS_ROLL)
 for i in xrange(0, traders_npc):
     world.traders.append(TraderNPC())
-logger.debug("Rolled for %d main NPCs (%d (%d actual) NPC able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_givers, actual_quest_givers, immobile_npc, unique_npc, traders_npc)
+logger.debug("Rolled for %d main NPCs (Min %d actual %d NPCs are able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_givers, actual_quest_givers, immobile_npc, unique_npc, traders_npc)
 logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
 
 debug_map = {}

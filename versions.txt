@@ -1,8 +1,13 @@
-
+[=] - assigned task
+[*] - current task
+[+] - finished task
+[/] - postponed task
 Current tasks:
 I Story telling
-    0. Finish off uniques generation - just a stub for now
-    1. Global set of names, so that names never repeat inside one random block of text
+    0.[+] Finish off uniques generation - just a stub for now
+    0.1[/ until I.3] Rewrite bacground to string.Template
+    1.[*] Global set of names, so that names never repeat inside one random block of text.
+    1.1. Predefined names generator (to extend random name generator)
     2. Name generation for mNPC and traders
     2.1 Random description generation
     3. Ability to subsitute mNPCs names to background text, defering them as bad and good ones
@@ -16,6 +21,7 @@ I Story telling
 
 II. Dungeon generators.
     We need more of them.
+    0. Document static maps format
     1. Finish cave generator (connect the blobs together).
     actualy we may need some other general function like = check_missing_feature
     which will check the room (bubble) if it has some feature like: door or up/down stairs or portal.
