@@ -47,38 +47,3 @@ One day you've got a task which during which you was teleported to another plane
  should be teleported there or whatever. i.e. if you go up 100 floors of the skyscrappers to defeat the boss, no need to go down for
  the next target.
 
-Current tasks:
-1. Dungeon generators. We need more of them. First of all - we need to finish cave generator (connect the blobs together).
-Next we need dense forest generator, maze generator. Passage Generator, like
-#############
-            #
-##########  #
-#           #
-# ###########
-#
-
-with some randomizations.
-house generator, creating houses like (8=bed, T=table, h=chair,<=upstairs, +=door).
-##############
-# hT         #
-#  h         +
-#8         < #
-##############
-and town generator creating folowing layout of houses (. = road, #=houses as above)
-.....  ..#
-##.####..#
-..........
-..........
-#.###.###
-
-Moreover we need predefined features that can be randomly placed on maps. Some parts of these features (rooms) should be randomized as well
-2. Descriptions. item and monster descriptions should be stored in external text files and loaded when needed
-3. Viewport. Currently we generate 80x25 map and show it all. We need to generate larger maps showing just a small viewport, scrolling as needed
-4. Floodfill. Actualy we need a special case of flood fill. By default if will generate 3x3 cloud. But if 3x3 can't be generated then flood fill
-should be applied. example (#=wall, $=flood-filled square, %-start of flood-fill, .=unfilled square)
- ###########
- #%$$$$$$..
- ###$$######
-    ##
-5. Rivers (see http://www.umbrarumregnum.net/articles/creating-rivers). Definetly should be in for large maps
-6. More to come

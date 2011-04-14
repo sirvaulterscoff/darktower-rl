@@ -1,0 +1,68 @@
+
+Current tasks:
+I Story telling
+    0. Finish off uniques generation - just a stub for now
+    1. Global set of names, so that names never repeat inside one random block of text
+    2. Name generation for mNPC and traders
+    2.1 Random description generation
+    3. Ability to subsitute mNPCs names to background text, defering them as bad and good ones
+    (i.e. if background says that you were robbed by sum1 - that can be a bad NPC you'll meet later)
+    4. Artifact and unique items (basic skeleton)
+    5. Add Artifact or unique items reference to backgroun text
+    6?. Unique NPCs parser engine
+    6. Random shuffle NPCs, define basic quests
+    7. Make text from what we have so far
+    8. Layout first quest start - background, NPC placement, apropriate map
+
+II. Dungeon generators.
+    We need more of them.
+    1. Finish cave generator (connect the blobs together).
+    actualy we may need some other general function like = check_missing_feature
+    which will check the room (bubble) if it has some feature like: door or up/down stairs or portal.
+    if it does - that buble is okay. So first - randomly place that features and then
+    try to connect bubles. Disallow player placement in a bubble with downstairs only.
+    2. Add entrance description and house orientation to static generator
+    3. Move features to extern file, parse it. As i use functions all over
+    the project to create tiles - create functions (parse file, then add them to globals)
+    4. Add a check for mandatory tiles - FT_ROCK_WALL, FT_FLOOR, FT_GRASS, FT_ROAD
+    5. Add tree border (optional) to CityGenerator
+    6. Add some trees (optional) to city generator see II.11
+    7. Moar features to place
+    8. Split maps into layers, to generate buildings 2 and more floors high
+    9.0 Store the rects of parsed maps (we will need them later). Also find rooms in shuch
+    maps and store them as well. Transform rects as we rotate or flip the map.
+    9. Adjust rendering of other tiles to reflect you going up or down the floors
+    basically, we can make only trees and other houses to render for the second floor
+    and only wells and such to render for -1 floor
+    10. Actions and special places for maps (places where the quest starts or ends). Possibly
+    we need this right before I.8
+    11. Next we need dense forest generator
+    12. option for map description, to limit number of generations of certain room
+    (i.e. some rooms can be generated once per game, or once per level)
+
+Future goals
+    1. maze generator
+    2. Passage Generator, like
+#############
+            #
+##########  #
+#           #
+# ###########
+#
+
+with some randomizations.
+    3. More customization of city generator. Add some branch roads, add lakes for countrysides etc
+    4. Item and monster descriptions should be stored in external text files and loaded when needed
+
+    5. Floodfill. Actualy we need a special case of flood fill. By default if will generate 3x3 cloud. But if 3x3 can't be generated then flood fill
+    should be applied. example (#=wall, $=flood-filled square, %-start of flood-fill, .=unfilled square)
+ ###########
+ #%$$$$$$..
+ ###$$######
+    ##
+5. Rivers (see http://www.umbrarumregnum.net/articles/creating-rivers). Definetly should be in for large maps
+
+Features done
+1. Viewport. 11-04-2011
+2. Room generator 11-04-2011
+3. City generator 12-04-2001
