@@ -64,7 +64,7 @@ TRADERS_ROLL = (2, 6,  8)
 # [ ][ ][1 3 ] bad NPC, which will hold one of quest-items (or sub-quest) and will actualy run away (or even capture you) and reappear at the end quest
 # [*][+][1 34] betrayal-type NPC, which will pretend to be good and send you to certain death. Soon you find the truth and follow him to in order to kill. Will meet him once again later
 # [*][ ][1234] were-NPC (^_^). Appears as human (for example), later  (end of quest) turns out to be a demon or king or your relative or whatever. that type can follow any path above (good, bad, betray)
-# [*][+][1234] deity-NPC. Appears as human but after the quest turn out to be deity and give you the main quest or give you directions for next step
+# [*][+][1234] deity-NPC. Appears as human but after the quest turn out to be deity and give you the main quest or give you directions for next step. Can be actualy a master of some realm, where you get tepelorted occassionaly
 # [*][ ][1 34] controlled-NPC. This can be either bad or betrayal-type (prefered). After defeating him will turn out to be controlled by some other MNPC
 # [ ][+][1 3 ] overpowered-NPC. This seems to be overpowered. Will beat you to death or capture or banish or whatever the first time. Will stay alive the next time,but when you manage to beat him turns out to be just a minor puppet of some other might MNPC
 # [ ][+][ 2  ] adventure-NPC. Just like you, but knows a bit more. Will eventualy meet with you several times, giving you pieces of information. This is not quest-target NPC, though he can be placed inside quests (quest-info) or during main-plot (main-plot info) or both (prefered)
@@ -93,11 +93,15 @@ class QuestNPC(object):
     #denotes if this NPC-type can be generate at first phase
     skip_global = True
     non_quest_givers = True
+    non_unique = True
     __metaclass__ = util.AutoAdd
     mNPC = []
     quest_giver_NPC = []
-    __meta_dict__ = { 'skip_global' : mNPC,
-        'non_quest_givers' : quest_giver_NPC}
+    uniques = []
+    __meta_dict__ = {
+        'skip_global' : mNPC,
+        'non_quest_givers' : quest_giver_NPC,
+        'non_unique' : uniques}
     common = 2
 
     def __init__(self):
@@ -164,6 +168,7 @@ class BandNPC(BadNPC):
 
 class UniqueNPC(BadNPC):
     skip_global = True
+    non_unique = False
     pass
 
 class TraderNPC(GoodNPC):
@@ -182,7 +187,7 @@ class  ShadowOfThePastNPC(QuestNPC):
 
 
 
-#######FIRST_PHASE: (all the NPC inhabiting the world instead of those, generated inside quests nly)
+#######FIRST_PHASE: (all the NPC inhabiting the world except those, generated inside quests nly)
 #first let's define our world's population: this will include
 # all the NPC's of all types we have, except those which can be placed inside quesuts only
 
@@ -214,6 +219,12 @@ if util.coinflip():
 for i in xrange(0, immobile_npc):
     world.mNPC.append(ImmobileNPC())
 unique_npc = util.roll(*UNIQUES_ROLL)
+
+uniques = set()
+for i in xrange(0, unique_npc):
+    uniques.add(util.random_from_list_weighted(QuestNPC.uniques))
+world.uniques = uniques
+
 traders_npc = util.roll(*TRADERS_ROLL)
 for i in xrange(0, traders_npc):
     world.traders.append(TraderNPC())

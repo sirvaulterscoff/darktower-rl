@@ -1,4 +1,5 @@
 mNPC = []
 traders = []
+uniques = set()
 
   
