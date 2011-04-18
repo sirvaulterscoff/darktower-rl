@@ -233,3 +233,35 @@ class Orc(Critter):
     base_ac = 1
     base_dmg = [(1, 3)]
     dlvl = 3
+
+class Orc(Critter):
+    char = 't'
+    name = 'troll'
+    flags = WALKING | INTELLIGENT
+    color = (220, 120, 120)
+    description_past = 'Troll'
+    description_present = 'Troll'
+    description_future = 'Troll'
+    base_hd = 5
+    base_hp = 10
+    base_ac = 1
+    base_dmg = [(1, 3)]
+    dlvl = 3
+
+def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000):
+    ff = None
+    if exact:
+        ff = lambda x: x.base_hd == hd
+    else:
+        ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd
+    hd_match = filter(ff, Critter.ALL)
+    if len (hd_match) < 1:#if no such NPC, take any and adjust HD
+        anymob = util.random_from_list_weighted(Critter.ALL, inverse)()
+        new_hd = hd
+        if not exact:
+            new_hd = max_hd
+        anymob.adjust_hd(new_hd)
+        return anymob
+
+    return util.random_from_list_weighted(hd_match, inverse)()
+

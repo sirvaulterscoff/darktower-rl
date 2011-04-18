@@ -1,13 +1,8 @@
-import logging
-import math
-import os
-import random
-import sys
+from npc import *
 import world
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from thirdparty.libtcod import libtcodpy as libtcod
 from __init__ import logger
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 #1d10 + 12 roll for mNPC
 MNPC_ROLL = (1, 10, 12)
@@ -20,180 +15,23 @@ UNIQUES_ROLL = (5, 2, 3)
 #traders roll. we want at leat 10 of them, 20 at max.
 TRADERS_ROLL = (2, 6,  8)
 
-###PART1 - quests
-#the typical layout of the plot
-# you get a random number of quests (say between 3 and 10). each quest consists of following part
-# a) your aim in quest (obtain, kill, bring, find, steal, make, buy and so on)
-# b) what (or whom) = depends on a) - amulet, ring, orb, treasure
-# c) quest-giver
-# d) quest-item (person) placement. It can lay somewhere alone, can be hold by powerfull mob, can be
-#    guarded by band of mobs, can be hold by another NPC (sub-quest, or story-line-break)
-# d.1) actual nature of quest item
-#   -general item (no special abs)
-#   -teleportator or whatever, which will teleport you
-#   -some powerfull item which will allow you to enter some secret place late-game
-#   -the soul of a demon, or statue of a powerfull mage or whatever
-# e)quest-item-holder (or a person if quest is to kill someone). Anyway any quest item should
-# make the possible the future advancement of plot. i.e. quest-holder can turn-out to be your
-# -relative who will ask you to help him,
-# -demon - who will offer his service in exchange for his life,
-# -some powerfull wizard (you're not able to kill him and he'll live leaving a portal)
-# -a piecefull mob which will instead ask you to kill quest-giver (which can be a demon)
-# f) random NPC, which can lead you to quest item or tell something about it
-# g) quest item environment - apropriate environment for an itme
-# h) quest item location - apropriate room/cave or whatever for item located within g)
 
-#anyway the first 1-2 quests should lead you to another realm (main realm)
-#and the last quest should lead you to npc who can explain you the constant plot (main, not random plot)
-#first quest is given you since the start of the game - so you need not to search for NPC
-#an example:
-
-#you was asked to bring to A a herbs (random item) from nearby forest (quest- item allows only forest location)
-#upon entering the forest you met a man (random NPC, attached to quest) which told you
-#that such herbs are actualy guarded by Minotaur (quest-item-holder) which can be found near the cave-entrance(quest_location)
-#when you encountered minotaur he told you: he will give you quest item, if you help him to break the curse (kill wizrd, sub-quest)
-#or this herbs are actualy - another random item guarded by random_creature, and quest giver send you to certain death (betrayal-break)
-#upon completing subquest (kill wizard) you get herbs and return to quest_giver.
-# quest-giver give you potion of heroism claiming it will make you invincible, but instead it make you teleport to random room with 100 teleports in it
-#or (betrayal plot) you come back to quest-giver to kill him, but instead you find a portal he used to escape and step through the portal
-
-###PART2 - key characters
-#at the start of quest generation we will define key NPCs, who will follow you
-#throughout the game. Main types of such main NPCs(MNPC):
-# [*][+][   4] good NPC, which will give you quest, reward you (and will participate at least at 2 quests?)
-# [ ][+][1 3 ] bad NPC, which will hold one of quest-items (or sub-quest) and will actualy run away (or even capture you) and reappear at the end quest
-# [*][+][1 34] betrayal-type NPC, which will pretend to be good and send you to certain death. Soon you find the truth and follow him to in order to kill. Will meet him once again later
-# [*][ ][1234] were-NPC (^_^). Appears as human (for example), later  (end of quest) turns out to be a demon or king or your relative or whatever. that type can follow any path above (good, bad, betray)
-# [*][+][1234] deity-NPC. Appears as human but after the quest turn out to be deity and give you the main quest or give you directions for next step. Can be actualy a master of some realm, where you get tepelorted occassionaly
-# [*][+][1 34] controlled-NPC. This can be either bad or betrayal-type (prefered). After defeating him will turn out to be controlled by some other MNPC
-# [ ][+][1 3 ] overpowered-NPC. This seems to be overpowered. Will beat you to death or capture or banish or whatever the first time. Will stay alive the next time,but when you manage to beat him turns out to be just a minor puppet of some other might MNPC
-# [ ][+][ 2  ] adventure-NPC. Just like you, but knows a bit more. Will eventualy meet with you several times, giving you pieces of information. This is not quest-target NPC, though he can be placed inside quests (quest-info) or during main-plot (main-plot info) or both (prefered)
-#![ ][ ][   4] thief-NPC. Will eventualy steal the quest item, running away. Following him you can find his master or even get to another realm
-#![ ][ ][ 2  ] summoned-NPC (or resurected, or cured). Should be placed inside quests and will help you out later (variant of adventure-NPC).
-# [ ][=][ 2  ] immobile-NPC (trees, stones, statues etc). Sources of subquests of information. Can be then referend by end-game NPC as a "powerfull mage" or "fallen deity" or whatever. Possibly you return to them or summon them to you
-#![ ][ ][ 2  ] shadows-of-the-past-NPC. will eventualy appear as ghosts or shadows either trying to kill you (some past reference), or asking you to help, or telling you about quest-item or quest-mob or main-plot. Should be place-defined in later casess. Can be shadows of quest-targets
-# [ ][=][1 3 ] band-NPC. Just a random ones. will roam around with band, offering sub-quests. can be avoided - others can refer to them
-# [ ][=][123 ] unique-NPCs. Predefined ones. Can be refered, fought or will provide info. no special cases.
-# [ ][=][12  ] trader-NPCs. Will eventualy pop up and offer you to buy something. it can randomly be something useless, sub-quest item or something needed to reach secret places. If the player reject bying sub-quest item he than will have to buy it for a higher price or fight NPC. In that case NPC is actualy bad or betrayal-type NPC
-#![ ][ ][    ] help-NPCs. Will eventualy help you out with tough bosses. Nothing more at all.
-#![ ][ ][    ] mercenary-NPCs. While carrying quest-item to quest-giver you can be assaulted by mercenary(ies) hired to kill you to get quest-item.
-
-#some of the listed NPCs are generate inside quests. First we should define those,
-# who will be encountered throughtout the game (marked as +).
-# + - mainNPCs - i.e. persistent ones. generated once - at the start
-# * Then we define quest_givers .
-# = mark those that are generated despite of others (have their own roll to be generated guring mNPC generation)
-# Quest targets are marked as
-# 1 for killable target (quest target itself),
-# 2 for talk-only-target,
-# 3 for guard-type (guard quest item),
-# 4 break-down plot (change plot)
-# ! denotes NPCs which are occasionaly generated during quest generation-only!
-#Actualy we don't want classic quests. instead let's use the quest as some meating point for plot-oriented-NPC. i.e. if the player is sent
-#to obtain amulet from and wafull demon not neccessarily he should get it. Instead he should be given some important information and be directed to the next quest
+def assign_random_name_from_list(instances, names, demon = False):
+    for npc in world.mNPC:
+        if npc.name is not None:
+            continue
+        if isinstance(npc, instances) and len(names) > 0:
+            if util.coinflip():
+                name = choice(names)
+                names.remove(name)
+                npc.name = name
+                npc.is_demon = demon
+                logger.debug('Creating reference NPC ' +str(npc.__class__) +' for ' + name + ' from background')
 
 
-
-class QuestNPC(object):
-    mNPC = []
-    quest_giver_NPC = []
-    common = 2
-
-    def __init__(self):
-        self.name = util.gen_name()
-        print 'Generated ' + str(self.name)
-
-    def __str__(self):
-        return self.name
-
-    @classmethod
-    def register(cls, what, main_npc = True, quest_giver = False):
-        if main_npc:
-            QuestNPC.mNPC.append(what)
-        if quest_giver:
-            QuestNPC.quest_giver_NPC.append(what)
-
-
-class GoodNPC(QuestNPC):
-    common = 7
-
-class BadNPC(QuestNPC):
-    common = 7
-    pass
-
-class BetrayalNPC(BadNPC):
-    common = 2
-    pass
-
-class WereNPC(BadNPC):
-    common = 1
-    pass
-
-class DeityNPC(QuestNPC):
-    common = 1
-    pass
-
-class ControlledNPC(BetrayalNPC):
-    common = 1
-    pass
-
-class OverpoweredNPC(ControlledNPC):
-    common = 1
-    pass
-
-class AdventureNPC(GoodNPC):
-    common = 6
-    pass
-
-class ImmobileNPC(GoodNPC):
-    pass
-
-class BandNPC(BadNPC):
-    common = 3
-    pass
-
-class UniqueNPC(BadNPC):
-    id = None
-    _uniques = {}
-
-    @classmethod
-    def register_self(cls, id, wat):
-        UniqueNPC._uniques[id] = wat
-
-
-random_artefact_here = '[place here random artefact]'
-#static unique for now
-class Oddyssy(UniqueNPC, AdventureNPC):
-    id = 'Oddyssy'
-    name = random.choice(['Odd Yssy', 'Oddyssy'])
-    real_name = name
-    description = 'A long journey in search of mythical relic ' + random_artefact_here + ' led him to a foreign land where this relic is hidden, according to rummors.'
-    common = 10
-
-UniqueNPC.register_self(Oddyssy.id, Oddyssy)
-
-
-class TraderNPC(GoodNPC):
-    pass
-
-class ThiefNPC(BetrayalNPC):
-    pass
-
-class SummonedNPC(GoodNPC):
-    pass
-
-class  ShadowOfThePastNPC(QuestNPC):
-    pass
-
-QuestNPC.register(GoodNPC, True, True)
-QuestNPC.register(BadNPC, True, False)
-QuestNPC.register(BetrayalNPC, True, True)
-QuestNPC.register(DeityNPC, True, True)
-QuestNPC.register(ControlledNPC, True, True)
-QuestNPC.register(OverpoweredNPC, True)
-QuestNPC.register(AdventureNPC, True)
-
-
+from background import make_story
+story = make_story()
+print story
 #######FIRST_PHASE: (all the NPC inhabiting the world except those, generated inside quests nly)
 #first let's define our world's population: this will include
 # all the NPC's of all types we have, except those which can be placed inside quesuts only
@@ -210,12 +48,12 @@ while actual_quest_givers < min_quest_givers:
     result = []
     actual_quest_givers = 0
     for x in xrange(0, mNPC_count):
-        rnd = util.random_from_list_weighted(QuestNPC.mNPC)()
-        result.append(rnd)
+        rnd = util.random_from_list_weighted(QuestNPC.mNPC)
+        result.append(rnd())
         if not QuestNPC.quest_giver_NPC.__contains__(rnd):
             actual_quest_givers += 1
 world.mNPC.extend(result)
-
+world.quest_givers = filter(lambda x: QuestNPC.quest_giver_NPC.__contains__(x.__class__), result)
 #now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
 immobile_npc = 0
 if util.coinflip():
@@ -240,6 +78,25 @@ for i in xrange(0, traders_npc):
 logger.debug("Rolled for %d main NPCs (Min %d actual %d NPCs are able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_givers, actual_quest_givers, immobile_npc, unique_npc, traders_npc)
 logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
 
+#now let's fill names
+if world.antagonist is not None:
+    antagonists = filter(lambda x: isinstance(x, BadNPC) or isinstance(x, OverpoweredNPC) or isinstance(x, WereNPC) or isinstance(x, ControlledNPC), world.mNPC)
+    _antagonist = choice(antagonists)
+    if _antagonist is None:
+        _antagonist = random.choice((BadNPC, OverpoweredNPC, ControlledNPC, WereNPC))()
+    _antagonist.name = world.antagonist
+    world.antagonist = _antagonist
+    logger.debug('Generated antagonist ' + str(world.antagonist))
+
+#now let's take names from background gen and set them randomly to apropirate NPCS
+assign_random_name_from_list(GoodNPC, world.good_npc_names)
+assign_random_name_from_list((BadNPC, ControlledNPC, OverpoweredNPC, WereNPC), world.bad_npc_names)
+assign_random_name_from_list((WereNPC, BadNPC), world.demon_npc_names, demon=True)
+assign_random_name_from_list(DeityNPC, world.deity_npc_names)
+#all that left without names gets brand new name
+for npc in world.mNPC:
+    if npc.name is None:
+        npc.name = util.gen_name(check_unique=world.npc_names)
 debug_map = {}
 for item in world.mNPC:
     cnt = debug_map.get(item.__class__, 0)
@@ -248,3 +105,9 @@ for item in world.mNPC:
 logger.debug("Generated following mNPC's types")
 for k,v in debug_map.items():
     logger.debug(str(k) + '\t\t' + str(v))
+
+#now we are ready to set off.
+first_quest_giver = choice(world.quest_givers)
+first_quest_giver.doit(world)
+
+

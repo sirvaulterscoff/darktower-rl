@@ -35,10 +35,17 @@ def random_from_list(items):
             n -= item.common
     return choice(items)
 
-def random_from_list_weighted(items):
+def random_from_list_weighted(items, inverse = False):
     result = []
+    _max = 0
+    if inverse:
+        _max = reduce(lambda x,y: max(x, y.common), items).common
     for item in items:
-        result.extend(itertools.repeat(item, item.common))
+        #if inverse - reverse monster common. we still giva a chance to monsters with highest common
+        if inverse:
+            result.extend(itertools.repeat(item, _max - item.common + 1))
+        else:
+            result.extend(itertools.repeat(item, item.common))
     return result[random.randrange(0, len(result))]
 
 class AutoAdd(type):
@@ -125,17 +132,43 @@ EXP_MAP = (0, 10, 30, 70, 140, 270, 520, 1010, 1980, 3910, 7760, 15450, 29000, 4
 def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
-inited_names = False
-ng_names = []
-def gen_name():
-    global  inited_names, ng_names
-    if not inited_names:
-        inited_names = True
-        ng_names = init_name_get('names')
-    return libtcod.namegen_generate(ng_names[random.randrange(0, len(ng_names))])
-
-def init_name_get(postfix):
+def init_name_gen(postfix):
     for file in os.listdir('../data/namegen') :
         if file.find(postfix + '.cfg') > 0 :
             libtcod.namegen_parse(os.path.join('..','data','namegen',file))
     return libtcod.namegen_get_sets()
+
+static_names = """Void Vic Mark Pablo Moose_Tachio Taco See_Shall Omen_Ra Betsi
+"""
+static_cities = """SilverCove
+"""
+
+def create_name_gen(prefix, statics):
+    ng_names = init_name_gen(prefix)
+    if statics is not None:
+        names_list = map(lambda x: x.strip().replace('_', ' '), statics.strip().split(' '))
+        random.shuffle(names_list)
+        static_names_gen = itertools.cycle(names_list)
+    while True:
+        if roll(1, 3) == 1 and statics is not None:
+            name = static_names_gen.next()
+            yield name
+        name = libtcod.namegen_generate(ng_names[random.randrange(0, len(ng_names))])
+        yield name
+
+
+ng_names = {
+    'name' : create_name_gen('names', static_names),
+    'demon' : create_name_gen('names', None),
+    'city' : create_name_gen('town', static_cities)
+}
+
+def gen_name(flavour='name', check_unique=None):
+    if check_unique is not None:
+        while True:
+            name = ng_names[flavour].next()
+            if check_unique.isdisjoint(name):
+                check_unique.add(name)
+                return name
+            
+    return ng_names[flavour].next()

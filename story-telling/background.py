@@ -7,60 +7,67 @@
 # like you left for town, you had to leave your village, was kidnapped and managed to escape etc
 
 #examples
-# You were born in _random_village_. From an early age you find yourself constantly involved in all kind
+# You were born in ${birth_village}. From an early age you find yourself constantly involved in all kind of troubles
 # of troubles. At the age of 16 you became an apprentice of __random_name - __random_title_, who taught
 # you everything he know himself. Later on you left for a large town, seeking well-paid work
+import inspect
 from itertools import chain, izip, islice, islice
-import os
 import random
-import sys
+import string
 import textwrap
 import util
+import world
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from thirdparty.libtcod import libtcodpy as libtcod
 
-born = """You was born in __village__. You spent your childhood laying under beautifull trees, watching others fight every day.
-    You was left by your parents in a dark cave near __city__. Fortunatly __name__ found you.
-    You was sixth son in a big family. When you was 10 an awfull hurricane destroyed your village, leaving you as the only survivor. You wandered around the country for some time and was later adopted by __name__ - __proffesion__.
-    Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near __city__. A __adjective__ amulet was found near his corpse, but no one wish to touch it.
+class LambdaMap(dict):
+    def __getitem__(self, y):
+        item = super(LambdaMap, self).__getitem__(y)
+        if inspect.isfunction(item):
+            return item()
+        else:
+            return item
+
+born = """You was born in ${birth_village}. You spent your childhood laying under beautifull trees, watching others fight every day.
+    You was left by your parents in a dark cave near ${birth_city}. Fortunatly ${name} found you.
+    You was sixth son in a big family. When you was 10 an awfull hurricane destroyed your village, leaving you as the only survivor. You wandered around the country for some time and was later adopted by ${good_npc} - $profession.
+    Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near ${city}. A ${adjective} amulet ${artifact_amulet} was found near his corpse, but no one wish to touch it.
     You never knew neither your parents nor your home. You was raised by gypsies and was forced to do all the hard work.
-    Hidden in dark forest your home __village__ was home to all sort outcasts. Not neccessary to say that your life here was not easy.
-    Blue fires of inferno burn those who dare to come close to __village__ of __adjective__ fire. This terrible place is your home.
-    Unaware adventurer can occasionaly slip on slick slope adn find himself surrounded by strange creatures dwelling in caves of __village__. Though they don't possess a direct threat, they treat human beings as their own child despite of human's age. That's how your story begins.
-    In the deep halls of mountain __city__ humans and hobbits and dwarves live hand by hand since the world creation. You are realy luky to have born is such a piecfull place.
-    From the depth of lake __village__ comes a dim light which can be seen dark nights. Deep beneath silent waters of lake there is a hidden city of __city__. City opens it doors to noone but rare guests form __city__. In a small house __profession__'s wife gave a birth to a boy: to you.
-    Floating rocks surround the city of __Adjective__ __Noun__: __city__. Noone is allowed to pass through the gates. Those who dare to sneak in are squashed by floating boulders. City itself is a miserable place, ruled by __name__ it began to degrade long time ago. Not a surprise that your childhood there was not easy.
-    Surrounded by erupppting volcanoes city of __Noun__ is unassailable fortress ruled by mighty __name__. Mighty heroes and powerfull mages all around the realm of __Adjective__ __Noun__ are all born in __city__, as well as you.
-    High in the mountains hidden in clouds lies the city __city__. Once a glorious capital of __city__ it lies in ruins now. Endless civil wars almost destroyed the city. Trying to escape the horrors of war your family moved to a __village__, where they gave birth to you."""
+    Hidden in dark forest your home ${birth_village} was home to all sort outcasts. Not neccessary to say that your life here was not easy.
+    Blue fires of inferno burn those who dare to come close to ${birt_village} of $adjective fire. This terrible place is your home.
+    Unaware adventurer can occasionaly slip on slick slope and find himself surrounded by strange creatures dwelling in caves of ${village}. Though they don't possess a direct threat, they treat human beings as their own child despite of human's age. That's how your story begins.
+    In the deep halls of mountain $birth_city humans and hobbits and dwarves live hand by hand since the world creation. You are realy luky to have born is such a piecfull place.
+    From the depth of lake $village comes a dim light which can be seen dark nights. Deep beneath silent waters of lake there is a hidden city of ${birth_city}. City opens it doors to noone but rare guests form ${city}. In a small house ${profession}'s wife gave a birth to a boy: to you.
+    Floating rocks surround the city of $Adjective ${Noun}: ${birth_city}. No one is allowed to pass through the gates. Those who dare to sneak in are squashed by floating boulders. City itself is a miserable place, ruled by ${enemy} it began to degrade long time ago. Not a surprise that your childhood there was not easy.
+    Surrounded by erupppting volcanoes city of $Noun is unassailable fortress ruled by mighty ${name}. Mighty heroes and powerfull mages all around the realm of $Adjective $Noun are all born in ${birth_city}, as well as you.
+    High in the mountains hidden in clouds lies the city ${city}. Once a glorious capital of ${Adjective}${noun} it lies in ruins now. Endless civil wars almost destroyed the city. Trying to escape the horrors of war your family moved to a ${birth_village}, where they gave birth to you."""
 
-fillers = """At the age of __age__ you face your first enemy - __demon__ - minor demon tried to draw your blood. Constant combats with bands of thugs made you unbelievably strong.
+fillers = """At the age of $age you face your first enemy - $demon_npc - minor demon tried to draw your blood. Constant combats with bands of thugs made you unbelievably strong.
 From an early age you find yourself constantly involved in all kind of troubles.
 You was captured by slave-traders, but somehow you managed to escape alive.
 Throughout your childhood you had to fight with outnumbering thugs, defending your life. Now deep scars remind you of this battles.
 It's impossible to kill invulnerable enemy - that's a lesson you've learned one day. Thanks god, you managed to survive... unlike your friends.
-Lock-picking and pick-pocketing made you life careless... for a shirt period of time. One day plate-covered warrior appeared before you naming himself __name__ and claiming that he's after justice and blah-blah-blah. Until that moment you didn't know you can run that fast.
-At the age of __age__ you somehow you managed to enter __Adjective__ __noun__: a cruel band which threatened all the surrounding villages and cities of __city__. You left bad company soon, to make your own. So you moved to __city__ of __Adjective__, but was charmed by it's lifestyle so that you completly forgotten your ideas to bring death to the city.
-After finishing the school you came to __city__ where you was employed as __profession__. All the moneys you've earned you have donated to __name__ the god of __skill__. Finally you realized that diety has no interest in your donations, though priests do. Finally you left the city and began wandering around.
+Lock-picking and pick-pocketing made you life careless... for a shirt period of time. One day plate-covered warrior appeared before you naming himself $name and claiming that he's after justice and blah-blah-blah. Until that moment you didn't know you can run that fast.
+At the age of $age you somehow you managed to enter $Adjective ${noun}: a cruel band which threatened all the surrounding villages and cities of ${city}. You left bad company soon, to make your own. So you moved to ${city} of ${Adjective}, but was charmed by it's lifestyle so that you completly forgotten your ideas to bring death to the city.
+After finishing the school you came to $city where you was employed as ${profession}. All the moneys you've earned you have donated to ${deity_npc} the god of $skill. Finally you realized that diety has no interest in your donations, though priests do. Finally you left the city and began wandering around.
 Hardworking employee is valued by his employers, but you was to lazy to work at all. You've read a lot of books and decided that life of a "sea wolf" is just for you. But you was too lazy even to gather your own crew or get your own ship.
 Perfect at almost everything you was bad at communicating with others. Now you have no friends. Good news you are so perfect - you don't have enemies as well.
-When you was __age__ you met a powerfull wizard __name__ who was well known for his nasty temper. He promised to teach you the art of magic, but he turned out to be an acolyte of __demon__ the greater demon. Actualy his plan was to capture you and... who knows what's next. Anyway, you have managed to cheat him and escape.
+When you was $age you met a powerfull wizard $enemy who was well known for his nasty temper. He promised to teach you the art of magic, but he turned out to be an acolyte of ${demon_npc} the greater demon. Actualy his plan was to capture you and... who knows what's next. Anyway, you have managed to cheat him and escape.
 After spending two years in prison for stealing few coins you gave a promise to yourself to live in accordance to laws. That's the path you have chosen.
-Once you went into the woods and was not able to find your way back. However, you met a man who taught you how to understand the language of trees and forest itself, how to use the power of the wood. That knowledge was of great assistance throughout your life"""
-teachers = """At the age of __age__ you join the faction __Adjective__ __noun__ as a __profession__.
-    When you was __age__ __name__ from __Adjective__ __Noun__ made you his apprentice. After __age__ years you mastered the art of __skill__. Later your teacher was killed under suspicious circumstances, and without having any practice you've lost most of your skills.
-    Seeking for knowledge you finaly came to __name__ an old __profession__ who taught you everything he knew. Seeing that an old man has nothing more to give you you murdered him without a hessitation.
-    After returning to your home-town you came to __name__ and asked him to teach you the art of __skill__. After __age__ years of study you left for __city__ where lives __name__ the __Adjective__ __profession__ in order to ask him to teach you. But you never managed to find him.
-    When you was __age__ a wandering __profession__ came to __city__, where you met him. Twice you asked him to teach you the art of __skill__ and twice he refused. Then you have collected some money to pay for your education, but was not able to find neither __name__ nor any other appropriate teacher.
-    After you was thrown to jail for stealing few gold pieces from a noble __name__ the __Noun__ you met __name__ an adept of __Adjective__ __name__ the diety devoted to __skill__. He taught you everything he knew himself.
-    At the age of__age__ you met __Noun___adjective__ the fallen king of __city__ who claimed that he is a powerfull wizard. He asked you to help him to get his trone back, offering his knowledge in exchange. Old rapscallion stole your cash and you was never able to find him.
-    One day you met __name__ in the pub, who turned out to be well-known __profession__. He invited you to join him on his journey to __city__ and you agreed. During your voyage you have met a lot of people and gained some knowledge of __skill__.
-    One day you was gathering herbs in a forest near __city__ when suddenly a strange mist enveloped you. When the mist gone you found yourself in the elven village of __Adjective____noun__. There you met __name__ who taught you the art of __skill__.
-    At the age of __age__ you visited a town of __name__. You drank a water from legendary __adjective__ fountain and surprissingly the knowledge of __skill__ came to you. Thus you became known as __Adjective____noun__.
-    The city of __city__ is well known for its schools, where everyone can learn __skill__. You entered the school __name__ and after __age__ years you left for __city__ to practice your skills.
-    Sky-city is known among fellow adventurers as a place where leaves __name__ the high master of __skill__. You was the one who managed to persuade him to teach you.
-    Wandering around endless wastes of __Adjective____noun__ one can meet a strange person covered in fur. Once he was a famous __profession__. But now he sell his secrets to anyone in exchange for food. Accidently you met him in your way to __city__ and bought several secrets of his art."""
-adjectives = """glowing
+Once you went into the woods and was not able to find your way back. However, you met a man who taught you how to understand the language of trees and forest itself, how to use the power of the wood. That knowledge was of great assistance throughout your life."""
+teachers = """At the age of $age you joined the faction $Adjective $noun as a ${profession}.
+    When you was $age $name from $Adjective $Noun made you his apprentice. After $age years you mastered the art of ${skill}. Later your teacher was killed under suspicious circumstances, and without having any practice you've lost most of your skills.
+    Seeking for knowledge you finaly came to $name an old $profession who taught you everything he knew. Seeing that an old man has nothing more to give you you murdered him without a hessitation.
+    After returning to your home-town you came to $name and asked him to teach you the art of ${skill}. After $age years of study you left for $depart_city where lives $npc the $Adjective $profession in order to ask him to teach you. But you never managed to find him.
+    When you was $age a wandering $profession came to ${city}, where you met him. Twice you asked him to teach you the art of $skill and twice he refused. Then you have collected some money to pay for your education, but was not able to find neither $npc nor any other appropriate teacher.
+    After you was thrown to jail for stealing few gold pieces from a noble $npc the $Noun you met $name an adept of $Adjective $name the $deity_npc devoted to $skill. He taught you everything he knew himself.
+    At the age of $age you met $bad_npc the fallen king of $city who claimed that he is a powerfull wizard. He asked you to help him to get his trone back, offering his knowledge in exchange. Old rapscallion stole your cash and you was never able to find him.
+    One day you met $good_npc in the pub, who turned out to be well-known $profession. He invited you to join him on his journey to $depart_city and you agreed. During your voyage you have met a lot of people and gained some knowledge of ${skill}.
+    One day you was gathering herbs in a forest near $city when suddenly a strange mist enveloped you. When the mist gone you found yourself in the elven village of $depart_village. There you met $good_npc who taught you the art of ${skill}.
+    At the age of $age you visited a town of $city. You drank a water from legendary $adjective fountain and surprissingly the knowledge of $skill came to you. Thus you became known as ${Adjective}${noun}.
+    The city of $city is well known for its schools, where everyone can learn $skill. You entered the school $name and after $age years you left for $depart_city to practice your skills.
+    Sky-city is known among fellow adventurers as a place where leaves $good_npc the high master of ${skill}. You was the one who managed to persuade him to teach you.
+    Wandering around endless wastes of ${Adjective}${noun} one can meet a strange person covered in fur. Once he was a famous ${profession}. But now he sell his secrets to anyone in exchange for food. Accidently you met him in your way to $depart_village and bought several secrets of his art."""
+adjectives_def = """glowing
     burning
     hellish
     ametyst
@@ -97,7 +104,7 @@ adjectives = """glowing
     bloodstained
     iron"""
 
-nouns = """moon
+nouns_def = """moon
     torment
     sun
     turtle
@@ -124,7 +131,7 @@ nouns = """moon
     supremacy
     benevolence"""
 
-professions = """mason
+professions_def = """mason
 advocat
 metalsmith
 wizard
@@ -138,7 +145,7 @@ hunter
 assassin
 crusader
 """
-skills = """magic
+skills_def = """magic
 thievery
 necromancy
 medicine
@@ -153,72 +160,126 @@ conjuration
 transmutation
 """
 
-def process_string(s = ''):
+
+adjectives = map(lambda x: x.strip() , adjectives_def.splitlines())
+nouns = map(lambda x: x.strip() , nouns_def.splitlines())
+professions = map(lambda x: x.strip() , professions_def.splitlines())
+skills = map(lambda x: x.strip() , skills_def.splitlines())
+random.shuffle(adjectives)
+random.shuffle(nouns)
+random.shuffle(professions)
+random.shuffle(skills)
+
+#here we substitute names into strings.
+#String can refer to following names
+# ${name} - random name not in global npc's names list
+# ${enemy} - one of bad NPCs you have to beat (antagonist)
+# ${adventurer} - just a reference to adventurer
+# ${birth_city} or ${birth_village} - remember that one
+# ${depart_city} or ${depart_village} - remember and use as starting point
+# ${npc} - take name from mnpc list (any)
+# ${good_npc} - take name from npc list (good)
+# ${bad_npc} - take name from mnpc list (bad)
+# ${demon_npc} - take name from mnpc list (demon)
+# ${deity_npc} - take name from mnpc list (deity)
+
+#PLEASE NOTE THAT names that refere to npcs are to neccessarily subsituted
+#from list of npcs (actualy roll a dice)
+# Templates are split in 3 groups. Thus we can assign a name
+#from some predefined list to the 1 group - i.e. you can occasionaly visit your home
+#town and keep the name from the 3rd group - as it will be departure town
+#
+
+def create_enemy():
+    name = util.gen_name()
+    world.antagonist = name
+    return name
+
+
+def create_adventurer():
+    name = util.gen_name(check_unique=world.npc_names)
+    world.adventurer_names.append(name)
+    return name
+
+
+def create_city(birth = False, city=False, depart = False):
+    name = util.gen_name('city', world.cities_names)
+    if birth:
+        world.birth_place = name
+        if city:
+            world.birth_place_rank = util.roll(2, 3, 3)
+        else:
+            world.birth_place_rank = util.roll(1, 3, 1)
+    if depart:
+        world.depart_place = name
+        if city:
+            world.depart_place_rank = util.roll(1, 3, 3)
+        else:
+            world.depart_place_rank = util.roll(1, 3)
+    return name
+
+
+def create_npc(npc_names, demon = False):
+    if not demon:
+        name = util.gen_name(check_unique=world.npc_names)
+    else:
+        name = util.gen_name('demon', check_unique=world.npc_names)
+    world.npc_names.add(name)
+    if npc_names is not None:
+        npc_names.append(name)
+    return name
+
+
+current_age = 13
+def create_age():
+    global current_age
+    current_age += random.randrange(1, 10)
+    return current_age
+
+
+def process_string(s):
+    substs = LambdaMap()
     result = s.strip()
-    rng = ng_names[random.randrange(0, len(ng_names))]
     #first parse name with random one
-    while result.find("__name__") > 0:
-        result = result.replace("__name__", libtcod.namegen_generate(rng), 1)
+    substs['name'] = lambda: util.gen_name()
+    substs['enemy'] = lambda: create_enemy()
+    substs['adventurer'] = lambda: create_adventurer()
+    substs['npc'] = lambda: create_npc(None)
+    substs['good_npc'] = lambda: create_npc(world.good_npc_names)
+    substs['bad_npc'] = lambda: create_npc(world.bad_npc_names)
+    substs['demon_npc'] = lambda: create_npc(world.demon_npc_names, demon=True)
+    substs['deity_npc'] = lambda: create_npc(world.deity_npc_names)
 
-    rng = ng_towns[random.randrange(0, len(ng_towns))]
-    while result.find("__city__") > 0:
-        result = result.replace("__city__", libtcod.namegen_generate(rng), 1)
+    substs['birth_city'] = lambda: create_city(birth=True, city=True)
+    substs['birth_village'] = lambda: create_city(birth=True, city=False)
+    substs['city'] = lambda: create_city(city=True)
+    substs['village'] = lambda: create_city()
+    substs['depart_village'] = lambda: create_city(depart=True, city=False)
+    substs['depart_city'] = lambda: create_city(depart=True, city=True)
 
-    rng = ng_towns[random.randrange(0, len(ng_towns))]
-    while result.find("__village__") > 0:
-        result = result.replace("__village__", libtcod.namegen_generate(rng), 1)
+    substs['noun'] = lambda: random.choice(nouns)
+    substs['Noun'] = lambda: random.choice(nouns).capitalize()
+    substs['Adjective'] = lambda: random.choice(adjectives).capitalize()
+    substs['adjective'] = lambda: random.choice(adjectives)
 
-    rng = ng_demons[random.randrange(0, len(ng_demons))]
-    while result.find("__demon__") > 0:
-        result = result.replace("__demon__", libtcod.namegen_generate(rng), 1)
+    substs['skill'] = lambda: random.choice(skills)
+    substs['Skill'] = lambda: random.choice(skills).capitalize()
 
-    #now parse age, making any next __age__ occurance to be more than previous
-    start_age = 7
-    while result.find("__age__") > 0:
-        rand_age = random.randrange(start_age, start_age + 7)
-        result = result.replace("__age__", str(rand_age), 1)
-        start_age = rand_age
+    substs['profession'] = lambda: random.choice(professions)
+    substs['Profession'] = lambda: random.choice(professions).capitalize()
 
-    while result.find("djective__") > 0:
-        rand1, rand2 = random.randrange(0, len(adjs)), random.randrange(0, len(adjs))
-        result = result.replace("__Adjective__", adjs[rand1].strip().capitalize(), 1)
-        result = result.replace("__adjective__", adjs[rand1].strip(), 1)
+    substs['age'] = lambda: create_age()
 
-    while result.find("oun__") > 0:
-        rand1, rand2 = random.randrange(0, len(nns)), random.randrange(0, len(nns))
-        result = result.replace("__Noun__", nns[rand1].strip().capitalize(), 1)
-        result = result.replace("__noun__", nns[rand2].strip(), 1)
+    res = string.Template(s).safe_substitute(substs)
+    return res
 
-    while result.find("rofession__") > 0:
-        rand1, rand2 = random.randrange(0, len(profs)), random.randrange(0, len(profs))
-        result = result.replace("__Profession__", profs[rand1].strip().capitalize(), 1)
-        result = result.replace("__profession__", profs[rand2].strip(), 1)
-
-    while result.find("__skill__") > 0 or result.find("__Skill__") > 0:
-        rand1, rand2 = random.randrange(0, len(skls)), random.randrange(0, len(skls))
-        result = result.replace("__Skill__", skls[rand1].strip().capitalize(), 1)
-        result = result.replace("__skill__", skls[rand2].strip(), 1)
-    return result
 
 def make_story():
     parts = []
     for part in (born, fillers, teachers):
-        phraselist = map(process_string, part.splitlines())
+        phraselist = map(lambda x: x.strip(), part.splitlines())
         random.shuffle(phraselist)
         parts.append(phraselist)
     output = chain(*islice(izip(*parts), 0, 1))
-    print textwrap.fill(' '.join(output),80)
-
-ng_names = util.init_name_get("names")
-ng_towns = util.init_name_get("town")
-ng_demons = util.init_name_get("demon")
-adjs = adjectives.splitlines()
-nns = nouns.splitlines()
-profs = professions.splitlines()
-skls = skills.splitlines()
-random.shuffle(adjs)
-random.shuffle(nns)
-random.shuffle(profs)
-random.shuffle(skls)
-
-make_story()
+    result = textwrap.fill(' '.join(output),80)
+    return process_string(result)

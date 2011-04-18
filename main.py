@@ -97,10 +97,10 @@ if __name__ == "__main__":
     player.camx2 = VIEWPORT_WIDTH -1
     player.camy2 = VIEWPORT_HEIGHT - 1
 
-    #dg = CaveGenerator(60, 60)
-    dg = CityGenerator('',80, 40, 5, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
+    dg = CaveGenerator(60, 60)
+    #dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
     #dg = CityGenerator('',80, 40, 5, break_road=5, room_placer=CityGenerator.generate_rooms_along_road)
-    dg = CityGenerator('',80, 40, 5, break_road=5)
+    #dg = CityGenerator('',80, 40, 2, break_road=5)
     #map = dg.finish()
     #map = Map(dg.finish())
 
