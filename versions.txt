@@ -73,3 +73,7 @@ Features done
 1. Viewport. 11-04-2011
 2. Room generator 11-04-2011
 3. City generator 12-04-2001
+
+IDEAS
+ 1. spell - elemental plane portal. opens portal to one of selected planes
+damaging or luring creatures passing nearby
