@@ -5,15 +5,15 @@
 Current tasks:
 I Story telling
     0.[+] Finish off uniques generation - just a stub for now
-    0.1[/ until I.3] Rewrite bacground to string.Template
+    0.1[+] Rewrite bacground to string.Template
     1.[+] Global set of names, so that names never repeat inside one random block of text.
     1.1.[+] Predefined names generator (to extend random name generator)
     1.1.1[/] fill predefined name set
     2.[+] Name generation for mNPC and traders
-    2.1[/until we got some general parsing from 0.1] Random description generation
+    2.1 Random description generation
     3. Ability to subsitute mNPCs names to background text, defering them as bad and good ones
     (i.e. if background says that you were robbed by sum1 - that can be a bad NPC you'll meet later)
-    4. Artifact and unique items (basic skeleton)
+    4.[*] Artifact and unique items (basic skeleton)
     5. Add Artifact or unique items reference to backgroun text
     6?. Unique NPCs parser engine
     6. Random shuffle NPCs, define basic quests
@@ -77,3 +77,4 @@ Features done
 IDEAS
  1. spell - elemental plane portal. opens portal to one of selected planes
 damaging or luring creatures passing nearby
+2. Abyss should consist of concentric rooms with a hole of various radius at center. when you reach center, you go down one level. no come back

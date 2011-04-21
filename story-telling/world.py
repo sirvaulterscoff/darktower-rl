@@ -19,11 +19,11 @@ depart_place_rank = 1
 #names already used during background generation and can be used during mnpc gen
 adventurer_names =[]
 #npc's names generated during background-gen stage. just a global set to assure uniqueness
-npc_names = set()
+npc_names = {}
 
 good_npc_names = []
 bad_npc_names = []
 demon_npc_names = []
 deity_npc_names = []
 #to ensure uniqueness
-cities_names = set()
+cities_names = {}

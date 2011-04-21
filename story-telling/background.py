@@ -33,7 +33,7 @@ born = """You was born in ${birth_village}. You spent your childhood laying unde
     Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near ${city}. A ${adjective} amulet ${artifact_amulet} was found near his corpse, but no one wish to touch it.
     You never knew neither your parents nor your home. You was raised by gypsies and was forced to do all the hard work.
     Hidden in dark forest your home ${birth_village} was home to all sort outcasts. Not neccessary to say that your life here was not easy.
-    Blue fires of inferno burn those who dare to come close to ${birt_village} of $adjective fire. This terrible place is your home.
+    Blue fires of inferno burn those who dare to come close to ${birth_village} of $adjective fire. This terrible place is your home.
     Unaware adventurer can occasionaly slip on slick slope and find himself surrounded by strange creatures dwelling in caves of ${village}. Though they don't possess a direct threat, they treat human beings as their own child despite of human's age. That's how your story begins.
     In the deep halls of mountain $birth_city humans and hobbits and dwarves live hand by hand since the world creation. You are realy luky to have born is such a piecfull place.
     From the depth of lake $village comes a dim light which can be seen dark nights. Deep beneath silent waters of lake there is a hidden city of ${birth_city}. City opens it doors to noone but rare guests form ${city}. In a small house ${profession}'s wife gave a birth to a boy: to you.
@@ -224,7 +224,6 @@ def create_npc(npc_names, demon = False):
         name = util.gen_name(check_unique=world.npc_names)
     else:
         name = util.gen_name('demon', check_unique=world.npc_names)
-    world.npc_names.add(name)
     if npc_names is not None:
         npc_names.append(name)
     return name
