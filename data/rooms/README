@@ -22,8 +22,17 @@ SUBST=[char]=>[FEATURE1] [EVAL_CODE] [CALLABLE_FEATURE3:PARAMS]
     declared inside map body)
     NOTE that SUBST are reseted for each new map, unless they're
     marked as global (GLOBAL_SUBST)
+ORIENT keyword is used to tell the parser if map can be fliped
+horizontaly or verticaly or rotate (swaping x and y).
+Currentyl ORIENT supports only RANDOM (any other value does nothing)
+NAME keyword is used to define a name for map (should be unique)
+2. Map definition.
+Map definition is lines of constant lenght, containing predefined
+tiles symbols or those, defined using SUBST.
+3. END.
+End keyword is mandatory and tells parser that map definition ends.
 
-Default chars available:
+Default tile chars available:
 #=FT_ROCK_WALL
 ' ' =FT_FLOOR
 .=FT_FLOOR

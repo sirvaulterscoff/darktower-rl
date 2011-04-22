@@ -118,7 +118,6 @@ def parse_subst(line, map_chars, default_chars):
         else:
             map_chars[subst_def[0]] = eval(subst_def[1])
             if is_global:
-                #todo here we should use lambda instead, to make it recalculate each time
                 default_chars[subst_def[0]] = eval(subst_def[1])
 
 
