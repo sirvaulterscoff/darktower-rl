@@ -10,7 +10,7 @@ def roll(a, b, c=0, *ignore):
     return sum(libtcod.random_get_int(0, 1, b) for i in range(a)) + c
 
 #caps value at max, if value < 0 return 0
-def cap(what, to=100000):
+def cap(what, to=0):
     if what < 0 and to > 0: return 0
     return min(what, to)
 
@@ -133,9 +133,10 @@ def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
 def init_name_gen(postfix):
-    for file in os.listdir('../data/namegen') :
+    path = os.path.dirname(__file__)
+    for file in os.listdir(os.path.join(path, 'data/namegen')) :
         if file.find(postfix + '.cfg') > 0 :
-            libtcod.namegen_parse(os.path.join('..','data','namegen',file))
+            libtcod.namegen_parse(os.path.join(path, 'data','namegen',file))
     return libtcod.namegen_get_sets()
 
 static_names = """Void Vic Mark Pablo Moose_Tachio Taco See_Shall Omen_Ra Betsi
@@ -160,15 +161,16 @@ def create_name_gen(prefix, statics):
 ng_names = {
     'name' : create_name_gen('names', static_names),
     'demon' : create_name_gen('names', None),
-    'city' : create_name_gen('town', static_cities)
+    'city' : create_name_gen('town', static_cities),
+    'potion' : create_name_gen('potion', None),
 }
 
 def gen_name(flavour='name', check_unique=None):
     if check_unique is not None:
         while True:
             name = ng_names[flavour].next()
-            if check_unique.isdisjoint(name):
-                check_unique.add(name)
+            if not check_unique. has_key(name):
+                check_unique[name] = 1
                 return name
             
     return ng_names[flavour].next()
