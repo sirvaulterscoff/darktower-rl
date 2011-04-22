@@ -176,18 +176,19 @@ def gen_name(flavour='name', check_unique=None):
     return ng_names[flavour].next()
 
 def parse_des(file_name, type):
-    file_name = os.path.join(os.path.dirname(__file__), file_name + '.des')
+    file_name = os.path.join(os.path.dirname(__file__), 'data', 'des', file_name + '.des')
     result = []
     file = open(file_name, 'r')
     file_content = file.read()
-    obj = None
+    obj = type()
     cur_line = ''
-    for line in file_content:
+    for line in file_content.splitlines():
         if line.startswith('#'): #comment line
             continue
-        if line.startswith('!'): # new decription
+        if line.startswith('END'): # new decription
             if obj is not None: result.append(obj)
             obj = type()
+            continue
         cur_line += line
         if line.endswith('\\'):
             continue
@@ -196,3 +197,30 @@ def parse_des(file_name, type):
         cur_line = ''
     result.append(obj)
     return result
+
+static_colors = [
+(0,0,0),  (31,31,31), (63,63,63), (128,128,128), (191,191,191),
+(31,31,31),(63,63,63), (128,128,128), (191,191,191),
+(255,255,255), (255,0,0), (255,127,0), (255,255,0), (127,255,0),
+(0,255,0), (0,255,127), (0,255,255), (0,127,255), (0,0,255),
+(127,0,255), (255,0,255), (255,0,127), (127,0,0), (127,63,0),
+(127,127,0), (63,127,0), (0,127,0), (0,127,63), (0,127,127),
+(0,63,127), (0,0,127), (63,0,127), (127,0,127), (127,0,63),
+(63,0,0), (63,31,0), (63,63,0), (31,63,0), (0,63,0),
+(0,63,31), (0,63,63), (0,31,63), (0,0,63), (31,0,63),
+(63,0,63), (63,0,31), (255,127,127),(255,191,127),(255,255,127),
+(191,255,127), (127,255,127), (127,255,191), (127,255,255),
+(127,191,255), (127,127,255), (191,127,255), (255,127,255),
+(255,127,191), (127,63,63), (127,95,63), (127,127,63),
+(95,127,63), (63,127,63), (63,127,95), (63,127,127),(63,95,127),
+(63,63,127), (95,63,127), (127,63,127), (127,63,95),
+(203,203,203), (255,255,102)]
+
+def random_color(check_unique=None):
+    while True:
+        clr = choice(static_colors)
+        if check_unique is not None:
+            if not check_unique.has_key(clr):
+                check_unique[clr] = 1
+                return clr
+        else: return clr

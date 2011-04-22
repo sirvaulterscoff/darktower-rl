@@ -18,7 +18,7 @@ class Item(object):
     def __init__(self):
         pass
 
-class Artefact(Item):
+class ArtefactDes(Item):
     pass
 
 potion_names = {}
@@ -70,7 +70,7 @@ for x in xrange(0, 10):
 
 class Weapon(Item):
     pass
-class Sword(Weapon):
-    pass
 
-
+artefacts = util.parse_des('art', ArtefactDes)
+print artefacts
+print artefacts[0].__dict__
