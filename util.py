@@ -172,3 +172,25 @@ def gen_name(flavour='name', check_unique=None):
                 return name
             
     return ng_names[flavour].next()
+
+def parse_des(file_name, type):
+    file_name = os.path.join(os.path.dirname(__file__), file_name + '.des')
+    result = []
+    file = open(file_name, 'r')
+    file_content = file.read()
+    obj = None
+    cur_line = ''
+    for line in file_content:
+        if line.startswith('#'): #comment line
+            continue
+        if line.startswith('!'): # new decription
+            if obj is not None: result.append(obj)
+            obj = type()
+        cur_line += line
+        if line.endswith('\\'):
+            continue
+        exp = cur_line.split('=', 1)
+        obj.__dict__[exp[0].strip()] = lambda self: eval(exp[1].strip(), globals(), {'self' : self})
+        cur_line = ''
+    result.append(obj)
+    return result

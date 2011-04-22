@@ -1,0 +1,38 @@
+Map files has the following structure:
+1. KEYWORDS
+2. MAP 
+3. END tag
+
+1. Keywords.
+There are several keywords which allow to customize
+map. First of all you can substitute features in map (i.e. replace certain char
+with defined Map feature (see features.py).
+SUBST keyword has following format:
+SUBST=[char]=>[FEATURE1] [EVAL_CODE] [CALLABLE_FEATURE3:PARAMS]
+    char - is the char in map to be replaced
+    FEATURE1 - feature as described in features.py
+    EVAL_CODE - some piece of code that can be evaluated using
+    builtin eval() function. PLEASE NOTE, THAT EVAL_CODE CURRENTLY
+    DISSALOW USAGE of SPACE SYMBOL (as it's used to separate SUBST
+    definitions)
+    if feature name is folowed by : (again, no spaces) then all text
+    between : and next space treated as params to feature method (
+    certainly if it accepts params)
+    SUBST can occur multiple times for single map (it can even be
+    declared inside map body)
+    NOTE that SUBST are reseted for each new map, unless they're
+    marked as global (GLOBAL_SUBST)
+
+Default chars available:
+#=FT_ROCK_WALL
+' ' =FT_FLOOR
+.=FT_FLOOR
+,=FT_GRASS
++=FT_DOOR
+0=FT_WINDOW
+F=FT_RANDOM_FURNITURE
+<=FT_STAIRCASES_UP
+>=FT_STAIRCASES_DOWN
+h=FT_CHAIR
+T=FT_TABLE
+8=FT_BED

@@ -61,7 +61,7 @@ def parse_string(map):
             orient = parse_orient(line)
             continue
         if is_subst(line):
-            parse_subst(line, map_chars)
+            parse_subst(line, map_chars, default_map_chars)
             continue
         if is_name(line):
             name = parse_name(line)
@@ -97,20 +97,33 @@ def parse_string(map):
     return maps
 
 
-def parse_subst(line, map_chars):
-    subst_line = line.replace('SUBST=', '', 1)
+def parse_subst(line, map_chars, default_chars):
+    is_global = False
+    subst_line = ''
+    if line.startswith('GLOBAL_SUBST'):
+        is_global = True
+        subst_line = line.replace('GLOBAL_SUBST=', '', 1)
+    else:
+        subst_line = line.replace('SUBST=', '', 1)
     substs = subst_line.split(' ')
     for subst_item in substs:
         subst_def = subst_item.split('=>', 1)
         if subst_def[1].count(':') > 0:
             func_args = subst_def[1].replace(':', '(', 1)
-            map_chars[subst_def[0]] = lambda : eval(func_args+')')
+            _f = lambda : eval(func_args + ')')
+            map_chars[subst_def[0]] = _f
+            if is_global:
+                default_chars[subst_def[0]] = _f
+
         else:
             map_chars[subst_def[0]] = eval(subst_def[1])
+            if is_global:
+                #todo here we should use lambda instead, to make it recalculate each time
+                default_chars[subst_def[0]] = eval(subst_def[1])
 
 
 def is_subst(line):
-    return line.startswith('SUBST=')
+    return line.startswith('SUBST=') or line.startswith('GLOBAL_SUBST')
 
 
 def parse_orient(line):
