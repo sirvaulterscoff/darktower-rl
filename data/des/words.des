@@ -1,0 +1,94 @@
+adjectives_def = """glowing
+    burning
+    hellish
+    ametyst
+    red
+    bone
+    scorched
+    sorcerous
+    sulphurous
+    demonic
+    ancient
+    primitive
+    chaotic
+    corroded
+    frozen
+    distant
+    dying
+    dull
+    ivory
+    turquoise
+    jade
+    steel
+    amber
+    flickering
+    glittering
+    smoking
+    shimmering
+    warped
+    transparent
+    pitted
+    runed
+    steaming
+    sparkling
+    crystal
+    bloodstained
+    iron"""
+
+nouns_def = """moon
+    torment
+    sun
+    turtle
+    secrets
+    suspicion
+    mistrust
+    jealousy
+    regrets
+    doubts
+    rock
+    stone
+    nightmare
+    realm
+    tree
+    palm
+    hand
+    esteem
+    favour
+    hope
+    approval
+    delight
+    pride
+    generosity
+    supremacy
+    benevolence"""
+
+professions_def = """mason
+advocat
+metalsmith
+wizard
+healer
+mage
+summoner
+bowman
+alchemist
+bard
+hunter
+assassin
+crusader
+"""
+skills_def = """magic
+thievery
+necromancy
+medicine
+alchemy
+chemistry
+charms
+hexes
+translocations
+summoning
+divinations
+conjuration
+transmutation
+"""
+
+

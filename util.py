@@ -132,44 +132,51 @@ EXP_MAP = (0, 10, 30, 70, 140, 270, 520, 1010, 1980, 3910, 7760, 15450, 29000, 4
 def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
-def init_name_gen(postfix):
+name_gens = []
+def init_name_gen():
+    global name_gens
     path = os.path.dirname(__file__)
     for file in os.listdir(os.path.join(path, 'data/namegen')) :
-        if file.find(postfix + '.cfg') > 0 :
+        if file.find('.cfg') > 0 :
             libtcod.namegen_parse(os.path.join(path, 'data','namegen',file))
-    return libtcod.namegen_get_sets()
+    name_gens = libtcod.namegen_get_sets()
 
+init_name_gen()
 static_names = """Void Vic Mark Pablo Moose_Tachio Taco See_Shall Omen_Ra Betsi
 """
 static_cities = """SilverCove
 """
 
-def create_name_gen(prefix, statics):
-    ng_names = init_name_gen(prefix)
+def __create_name_gen(prefix, statics):
+    static_names_gen = []
+    ng_sets = []
+    global name_gens
+    for name_gen  in name_gens:
+	if name_gen.startswith(prefix.strip()):
+	    ng_sets.append(name_gen)
     if statics is not None:
         names_list = map(lambda x: x.strip().replace('_', ' '), statics.strip().split(' '))
         random.shuffle(names_list)
         static_names_gen = itertools.cycle(names_list)
     while True:
-        if roll(1, 3) == 1 and statics is not None:
+        if roll(1, 8) == 8 and statics is not None:
             name = static_names_gen.next()
             yield name
-        name = libtcod.namegen_generate(ng_names[random.randrange(0, len(ng_names))])
+        name = libtcod.namegen_generate(choice(ng_sets))
         yield name
 
 
 ng_names = {
-    'name' : create_name_gen('names', static_names),
-    'demon' : create_name_gen('names', None),
-    'city' : create_name_gen('town', static_cities),
-    'potion' : create_name_gen('potion', None),
+    'name' : __create_name_gen('name', static_names),
+    'demon' : __create_name_gen('demon', None),
+    'city' : __create_name_gen('city', static_cities),
+    'potion' : __create_name_gen('potion', None)
 }
-
 def gen_name(flavour='name', check_unique=None):
     if check_unique is not None:
         while True:
             name = ng_names[flavour].next()
-            if not check_unique. has_key(name):
+            if not check_unique.has_key(name):
                 check_unique[name] = 1
                 return name
             
@@ -182,20 +189,41 @@ def parse_des(file_name, type):
     file_content = file.read()
     obj = type()
     cur_line = ''
+    has_fields = False
+    multi_line = False
     for line in file_content.splitlines():
+        if line.isspace() or len(line) <= 1: continue
         if line.startswith('#'): #comment line
             continue
         if line.startswith('END'): # new decription
-            if obj is not None: result.append(obj)
+            if obj is not None and has_fields: result.append(obj)
             obj = type()
+	    has_fields = False
             continue
-        cur_line += line
-        if line.endswith('\\'):
+	if line.count('\'\'\'') > 0:
+	    if multi_line:
+		line += line.replace('\'\'\'','')
+		multi_line = not multi_line
+	    else:
+		line += line.replace('\'\'\'','')
+		continue
+	else:
+            cur_line += line
+        if line.endswith('\\') or multi_line:
             continue
-        exp = cur_line.split('=', 1)
-        obj.__dict__[exp[0].strip()] = lambda self: eval(exp[1].strip(), globals(), {'self' : self})
+	exp = cur_line.split('=', 1)
+        if exp[1].startswith('script:'):
+            script_body = exp[1].replace('script:', '', 1)
+            #overkill for now. use simple eval
+            #obj.__dict__[exp[0].strip()] = lambda self: eval(script_body.strip(), globals(), {'self' : self})
+            obj.__dict__[exp[0].strip()] = eval(script_body.strip())
+	    has_fields = True
+        else:
+            obj.__dict__[exp[0].strip()] = exp[1].strip()
+	    has_fields = True
         cur_line = ''
-    result.append(obj)
+    if has_fields:
+        result.append(obj)
     return result
 
 static_colors = [
@@ -217,8 +245,11 @@ static_colors = [
 (203,203,203), (255,255,102)]
 
 def random_color(check_unique=None):
+    return random_from_list_unique(static_colors, check_unique)
+
+def random_from_list_unique(col, check_unique=None):
     while True:
-        clr = choice(static_colors)
+        clr = choice(col)
         if check_unique is not None:
             if not check_unique.has_key(clr):
                 check_unique[clr] = 1

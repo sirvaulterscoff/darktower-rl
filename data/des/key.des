@@ -1,0 +1,10 @@
+#access cube
+name=Access cube
+unided_name=Cube
+description_past = A strange cubical item. You can hear  loud clicks from inside the cube.
+description_present = A strange cubical item. You can hear  loud clicks from inside the cube.
+description_future = An access cube. They were used as an access key in ancient labs and scientific stations before Bio-scanner identification was invented.
+price=100000
+common=1
+END
+

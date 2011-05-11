@@ -1,6 +1,6 @@
 import gl
 import util
-from random import randrange
+from random import randrange, choice
 
 class Item(object):
     char = ' '
@@ -20,6 +20,11 @@ class Item(object):
 
 class ArtefactDes(Item):
     pass
+class QuestItemDes(Item):
+    pass
+class KeyItemDes(Item):
+    pass
+
 
 potion_names = {}
 potion_colors = {}
@@ -64,13 +69,28 @@ class ManaPotion(Potion):
         player.hp = util.cap(player.hp + util.roll(2, 10, 1), player.base_hp)
         gl.message('You feel somewhat better')
 
-for x in xrange(0, 10):
-    pot = HealingPotion()
-    print pot.unided_name + ' ' + pot.name
 
 class Weapon(Item):
     pass
 
 artefacts = util.parse_des('art', ArtefactDes)
-print artefacts
-print artefacts[0].__dict__
+quest_items = util.parse_des('quest', QuestItemDes)
+key_items = util.parse_des('key', KeyItemDes)
+#print artefacts
+#print artefacts[0].__dict__
+#print artefacts[1].unided_name
+
+def random_key_item(check_unique=None):
+    """ Finds random key item. Key items are those items,
+    that are required to fullfill certain goals ingame"""
+    return util.random_from_list_unique(key_items)
+
+def random_quest_target(artefact=False, check_unique=None) :
+    result = None
+    if artefact:
+	result = util.random_from_list_unique(artefacts, check_unique)
+    else:
+	result = util.random_from_list_unique(quest_items, check_unique)
+    print 'generated ' + str(artefact) + ' ' + str(result) + str(result.name)
+    return result
+

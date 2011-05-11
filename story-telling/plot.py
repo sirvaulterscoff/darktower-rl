@@ -109,5 +109,3 @@ for k,v in debug_map.items():
 #now we are ready to set off.
 first_quest_giver = choice(world.quest_givers)
 first_quest_giver.doit(world)
-
-

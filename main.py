@@ -11,7 +11,6 @@ try:
 except ImportError:
     print 'Sadly no psyco'
 
-
 def main_loop():
     global map
     while gl.__game_state__ == "playing" and not gui.window_closed():

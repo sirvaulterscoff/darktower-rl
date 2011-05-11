@@ -1,22 +1,28 @@
+cf=choice((FT_CHAIR,FT_FLOOR)
+cw=choice((FT_WINDOW,FT_ROCK_WALL))
 ORIENT=RANDOM
-SUBST=:=>FT_WINDOW /=>choice((FT_WINDOW,FT_ROCK_WALL))
-SUBST=c=>choice((FT_CHAIR,FT_FLOOR))
+SUBST=:=>FT_WINDOW, /=>$cw
+SUBST=c=>$cf
 NAME=small_room1
+MAP="""
 ###/####
 #......#
 :8.hT..+
 #...c..#
 ########
+"""
 END
 
 ORIENT=RANDOM
 SUBST=:=>FT_WINDOW /=>choice((FT_WINDOW,FT_ROCK_WALL))
 NAME=small_room1_1
+MAP="""
 ########
 :8.....#
 #......+
 :8..hT.#
 ########
+"""
 END
 
 ORIENT=RANDOM

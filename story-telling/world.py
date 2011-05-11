@@ -20,6 +20,8 @@ depart_place_rank = 1
 adventurer_names =[]
 #npc's names generated during background-gen stage. just a global set to assure uniqueness
 npc_names = {}
+#used to store current city name to be refered from quests
+current_city = None
 
 good_npc_names = []
 bad_npc_names = []
@@ -27,3 +29,5 @@ demon_npc_names = []
 deity_npc_names = []
 #to ensure uniqueness
 cities_names = {}
+""" Stores already generated quest items (artefact and general items together"""
+generated_quest_items = {}

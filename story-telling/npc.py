@@ -7,6 +7,7 @@ from __init__ import logger
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import critters
 import util
+import items
 
 MAX_HD_DIFF = 4
 class QuestTarget(object):
@@ -74,11 +75,37 @@ class KillDudeTarget(QuestTarget):
                 else: #no-band dude
                     logger.debug('Dude generated alone')
         self.what = choice(('kill ', 'demolish ', 'free the world from ', 'assault ')) + self.dude.name
+	self.background =
 
 
 
 class BringItemTarget(QuestTarget):
-    pass
+    def init(self, world):
+	#here we have following options:
+	#bring general item (like potion or key)
+	#bring artefact
+	#bring overpowered item (actualy you wont be able to obtain it)
+	#bring key item (you will give it to quest-issuer but will eventualy
+	#need it later). Here we have an option of allowing a player to leave
+	#this item. such items will be used in other parts of the game
+	prob = util.roll(1, 75)
+	if prob <= 50: #general item
+	    logger.debug('Using general item as quest target')
+	    self.target_item = items.random_quest_target(False, world.generated_quest_items)
+	elif prob <= 65: #artefact
+	    logger.debug('Using artefact tem as quest target')
+	    self.target_item = items.random_quest_target(True, world.generated_quest_items)
+	elif prob < 70: #dunno what here. maybe just remember that its
+	    logger.debug('Using artefact item as quest target')
+	    self.target_item = items.random_quest_target(True, world.generated_quest_items)
+	else:
+	    logger.debug('Using key item as quest target')
+	    self.target_item = items.random_key_item(world.generated_quest_items)
+	logger.debug('Generate item-quest-target: ' + str(self.target_item))
+	self.what = choice(('obtain' , 'retrieve', 'bring', 'find')) + ' ' + self.target_item.name
+
+
+	
 class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
@@ -178,7 +205,7 @@ class QuestNPC(object):
         if quest_giver:
             QuestNPC.quest_giver_NPC.append(what)
 
-    quest_targets = [KillDudeTarget]
+    quest_targets = [KillDudeTarget, BringItemTarget,BringItemTarget]
     def doit(self, world):
         logger.debug('Starting action on ' + str(self.__class__))
         #choose qu
