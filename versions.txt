@@ -11,7 +11,7 @@ I Story telling
     1.1.1[/] fill predefined name set
     2.[+] Name generation for mNPC and traders
     2.1 Random description generation
-    3. Ability to subsitute mNPCs names to background text, defering them as bad and good ones
+    3.[+] Ability to subsitute mNPCs names to background text, defering them as bad and good ones
     (i.e. if background says that you were robbed by sum1 - that can be a bad NPC you'll meet later)
     4.[*] Artifact and unique items (basic skeleton)
     5. Add Artifact or unique items reference to backgroun text
@@ -46,6 +46,9 @@ II. Dungeon generators.
     11. Next we need dense forest generator
     12. option for map description, to limit number of generations of certain room
     (i.e. some rooms can be generated once per game, or once per level)
+    13. Place-type specification for des-maps - like forest, desert (ie some
+     predefined rooms can be placed only in certain locations)
+    14. multilevel rooms
 
 Future goals
     1. maze generator

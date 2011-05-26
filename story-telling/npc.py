@@ -109,7 +109,14 @@ class BringItemTarget(QuestTarget):
 class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
-    pass
+    def init(self, world):
+        #here we have options:
+        #1. visit predefined location (minimap in map) - ie temple, some house etc
+        #2. visit another city
+        #3. visit random location near starting city
+        #4. some unreachable place - in that case you will get
+        # teleported elsewhere or just return back with empty hands
+        #5. visit a place in starting city. in that case we need something else in the end
 
 ###PART1 - quests
 #the typical layout of the plot
