@@ -1,19 +1,30 @@
-SUBST=:=>FT_WINDOW ,=>FT_GRASS ==>choice((FT_ROCK_WALL,FT_DOOR)) T=>FT_TREE o=>FT_WELL .=>FT_CARPET
+SUBST=:=>FT_WINDOW  
+SUBST=,=>FT_GRASS 
+SUBST= $ =>$choice((FT_ROCK_WALL,FT_DOOR)) 
+SUBST=T=>FT_TREE 
+SUBST=o=>FT_WELL 
+SUBST=.=>FT_CARPET
 ORIENT=RANDOM
 NAME=noble_house_with_garden1
+MAP="""
 ####::###########
 #F.......+,,,T,,#
 :..F.....#,,,,,,,
 :..F.....#,,,,,,,
-#F.......=,,To,,#
+#F.......$,,To,,#
 ####::###########
+"""
 END
 
-SUBST=:=>FT_WINDOW ,=>FT_GRASS /=>choice((FT_WINDOW,FT_DOOR)) ==>choice((FT_ROCK_WALL,FT_WINDOW))
-SUBST=x=>FT_CARPET:(100,100,100),char=chr(32)
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS 
+SUBST=/=>$choice((FT_WINDOW,FT_DOOR)) 
+SUBST= $ =>$choice((FT_ROCK_WALL,FT_WINDOW))
+SUBST=x=>$FT_CARPET((100,100,100),char=chr(32))
 ORIENT=RANDOM
 NAME=star_room1
-,,##==##,,
+MAP="""
+,,##$$##,,
 ,,:.88.:,,
 ,,#....#,,
 ###.xx.###
@@ -23,14 +34,17 @@ NAME=star_room1
 ###.xx.###
 ,,#....#,,
 ,,:.88.:,,
-,,##==##,,
+,,##$$##,,
+"""
 END
 
 
-SUBST=:=>FT_WINDOW ,=>FT_GRASS
-SUBST=x=>FT_CARPET:(100,0,0),char=chr(32)
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS
+SUBST=x=>$FT_CARPET((100,0,0),char=chr(32))
 SUBST=T=>FT_TREE
 NAME=star_room2
+MAP="""
 ,,,##++##,,,
 ,,,:....:,,,
 ,,T#....#T,,
@@ -42,10 +56,15 @@ NAME=star_room2
 ,,T#....#T,,
 ,,,:....:,,,
 ,,,##++##,,,
+"""
 END
-SUBST=:=>FT_WINDOW ,=>FT_GRASS /=>choice((FT_WINDOW,FT_GLASS_WALL))
+
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS 
+SUBST=/=>$choice((FT_WINDOW,FT_GLASS_WALL))
 ORIENT=RANDOM
 NAME=chappel_room1
+MAP="""
 ,,##++##,,
 ,,:....:,,
 ,,#....#,,
@@ -55,39 +74,56 @@ NAME=chappel_room1
 #..F..F..#
 #...FF...#
 ##########
+"""
 END
 
-SUBST=:=>FT_WINDOW ,=>FT_GRASS ==>choice((FT_ROCK_WALL,FT_WINDOW))
-SUBST=*=>FT_CARPET:(140,140,140),char=chr(32)
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS 
+SUBST= $ =>choice$((FT_ROCK_WALL,FT_WINDOW))
+SUBST=*=>FT_CARPET((140,140,140),char=chr(32))
 ORIENT=RANDOM
 NAME=chappel_room2
+MAP="""
 ,,##++##,,
 ,,:....:,,
 ,,#....#,,
 ###....###
 #...**...#
-####==####
+####$$####
+"""
 END
 
 
-SUBST=:=>FT_WINDOW ,=>FT_GRASS ==>choice((FT_ROCK_WALL,FT_DOOR))
-SUBST=b=>FT_BUSH t=>FT_TREE o=>FT_WELL .=>FT_CARPET
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS 
+SUBST= $ => $choice((FT_ROCK_WALL,FT_DOOR))
+SUBST=b=>FT_BUSH 
+SUBST=t=>FT_TREE 
+SUBST=o=>FT_WELL 
+SUBST=.=>FT_CARPET
 ORIENT=RANDOM
 NAME=house_with_garden2
+MAP="""
 ####::###########
 #F.......+,,,,,t#
 :..F.....#,bbb,,t
 :...Th...:,bob,,,
 :..F.....#,bbb,,t
-#F.......=,,,,,t#
+#F.......$,,,,,t#
 ####::###########
+"""
 END
 
-SUBST=:=>FT_WINDOW ,=>FT_GRASS ==>choice((FT_ROCK_WALL,FT_DOOR))
-SUBST=b=>FT_BUSH t=>FT_TREE o=>FT_WELL .=>FT_CARPET
-SUBST=c=>FT_CARPET:(120,0,0)
+SUBST=:=>FT_WINDOW 
+SUBST=,=>FT_GRASS
+SUBST=b=>FT_BUSH 
+SUBST=t=>FT_TREE 
+SUBST=o=>FT_WELL 
+SUBST=.=>FT_CARPET
+SUBST=c=>$FT_CARPET((120,0,0))
 ORIENT=RANDOM
 NAME=house_with_garden3
+MAP="""
 ####::####,,,,,,,
 #..#.....#bbtbbb,
 #F.#.....+,,,,,b,
@@ -97,4 +133,5 @@ NAME=house_with_garden3
 #F.#.....#,hTh,b,
 #..#.....#bbtbbb,
 ####::####,,,,,,,
+"""
 END

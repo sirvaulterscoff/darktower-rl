@@ -9,10 +9,9 @@ FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
 
 class Map(object):
-    map_critters = []
-    critter_xy_cache = {}
-
     def __init__(self, map_src, player):
+	self.map_critters = []
+	self.critter_xy_cache = {}
         self.map = map_src
         self.map_height = len(map_src)
         self.map_width = len(map_src[0])

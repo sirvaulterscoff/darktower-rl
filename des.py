@@ -4,38 +4,44 @@ import string
 viable_chars = '!"#$%&\'()*+,-./:;<?@[\]^_`{|}~'
 equals = Literal('=').suppress()
 #comment = Regex(r'^#[' + alphanums + ']$')
-comma = ZeroOrMore(',').suppress()
+comma = ZeroOrMore(',,').suppress()
 #right-hand-value(rhv) definition
-rhv = Combine(Optional('$') + Word(alphanums + '_-()\',:'))
+rhv = Combine(Optional('$') + Word(alphanums + viable_chars + '\ '))
 #assign to dictionary
 dict_assign = Literal('=>').suppress()
 #multiline syntax
-multi_line = Literal('"""').suppress()
+multi_line = QuotedString(quoteChar='"""', escChar='\\', multiline=True)
 line_end = ZeroOrMore(lineEnd.suppress())
 
 #right hand value for dictionary. parses => value
-dict_rhv = Group(OneOrMore(Word(alphanums + viable_chars)) + dict_assign + rhv) + comma
-any_keyword = Word(alphas, min=1) + ZeroOrMore(Word(alphanums + '_-'))
+dict_rhv = Group( OneOrMore(Word(alphanums + viable_chars )) + dict_assign + rhv) + comma
+any_keyword = Combine(Word(alphas, min=1) + ZeroOrMore(Word(alphanums + '_-')))
 #parses KEYWORD="""
-multiline_keyword = any_keyword + equals + FollowedBy('"""') + multi_line + Optional(line_end)
+multiline_keyword = any_keyword + equals +  multi_line
 #end of block keyword
-end_keyword  = Keyword('END').suppress() 
+end_keyword  = Keyword('END').suppress() + line_end + restOfLine
 
 assignment = any_keyword + equals + (OneOrMore(dict_rhv) | rhv)
-ml_assignment = multiline_keyword + Combine(OneOrMore(NotAny(Literal('"""')) + Word(alphanums+ viable_chars) + lineEnd)) + FollowedBy('"""') +multi_line
+ml_assignment = multiline_keyword
 
 assignment = ml_assignment | assignment
-parser =  OneOrMore(assignment)  + end_keyword + lineEnd 
+parser =  OneOrMore(assignment)  + end_keyword
+
 def parseFile(fname, ttype):
     result = []
     assignment.setParseAction(lambda x: process(result,ttype, x))
     end_keyword.setParseAction(lambda x : end(result))
-    parser.setDebug(True)
     parser.parseFile(fname)
+    if result[-1] is None:
+        tail = result.pop()
     return result
-   
+
 def process(items, ttype, toks):
-    where = items[-1]
+    if len(items) < 1:
+	where = ttype()
+	items.append(where)
+    else:
+	where = items[-1]
     if where is None:
 	items.pop()
 	where = ttype()
@@ -54,35 +60,3 @@ def process(items, ttype, toks):
 def end(result):
     result.append(None)
 
-class Mapp(object):
-    pass
-
-test_str="""
-x=$as
-SUBST= b=>FT ,c=>FT_c
-PARAM=d
-SUBST= #=>FT_WALL, x=>F
-ORIENT=RANDOM
-MAP=\"\"\"
-#####
-#...#
-#,,,#
-#####
-\"\"\"
-END
-
-SUBST=b
-MAP=\"\"\"
-asd
-asd
-asd
-\"\"\"
-END
-"""
-#print test_str
-#res = parser.parseString(test_str)
-#print res
-res = parseFile('./data/rooms/large_tavern.map', Mapp)[0]
-print res
-#print res.subst
-print res.__dict__

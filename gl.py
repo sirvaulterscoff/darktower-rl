@@ -23,7 +23,6 @@ __chapter_text__ = 'Chapter 1. Departure'
 #info - general info on skills level up etc
 message_levels = { 'DEBUG' : 0,  'NONE' : 1, 'WARN' : 2, 'CRITICAL' : 3, 'INFO' : 4, 'DAMAGE': 5}
 prev_message = None
-
 def message(text, level = 1):
     global prev_message
     if isinstance(level, str):

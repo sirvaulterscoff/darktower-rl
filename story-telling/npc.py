@@ -75,7 +75,7 @@ class KillDudeTarget(QuestTarget):
                 else: #no-band dude
                     logger.debug('Dude generated alone')
         self.what = choice(('kill ', 'demolish ', 'free the world from ', 'assault ')) + self.dude.name
-	self.background =
+	#self.background =
 
 
 

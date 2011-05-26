@@ -73,11 +73,11 @@ class ManaPotion(Potion):
 class Weapon(Item):
     pass
 
-artefacts = util.parse_des('art', ArtefactDes)
-quest_items = util.parse_des('quest', QuestItemDes)
-key_items = util.parse_des('key', KeyItemDes)
-#print artefacts
-#print artefacts[0].__dict__
+artefacts = util.parseDes('art', ArtefactDes)
+quest_items = util.parseDes('quest', QuestItemDes)
+key_items = util.parseDes('key', KeyItemDes)
+print artefacts
+print artefacts[0].__dict__
 #print artefacts[1].unided_name
 
 def random_key_item(check_unique=None):

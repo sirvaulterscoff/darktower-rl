@@ -4,6 +4,9 @@ import os
 import random
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
+import des
+
+import logging
 
 # return aDb + c
 def roll(a, b, c=0, *ignore):
@@ -132,7 +135,22 @@ EXP_MAP = (0, 10, 30, 70, 140, 270, 520, 1010, 1980, 3910, 7760, 15450, 29000, 4
 def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
+def create_logger(name=__name__):
+    logger = logging.getLogger("module_logger")
+    logger.setLevel(logging.DEBUG)
+    #create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    #create formatter
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    #add formatter to ch
+    ch.setFormatter(formatter)
+    #add ch to logger
+    logger.addHandler(ch)
+    return logger
+logger = create_logger('util')
 name_gens = []
+
 def init_name_gen():
     global name_gens
     path = os.path.dirname(__file__)
@@ -160,8 +178,8 @@ def __create_name_gen(prefix, statics):
         static_names_gen = itertools.cycle(names_list)
     while True:
         if roll(1, 8) == 8 and statics is not None:
-            name = static_names_gen.next()
-            yield name
+	    name = static_names_gen.next()
+	    yield name
         name = libtcod.namegen_generate(choice(ng_sets))
         yield name
 
@@ -173,58 +191,30 @@ ng_names = {
     'potion' : __create_name_gen('potion', None)
 }
 def gen_name(flavour='name', check_unique=None):
+    ''' generates a name of selected flower. Optionaly checks
+    if such name already exists.
+	flavour - is the key in ng_names dict
+	check_unique is optional dict for checking name's uniqueness
+    returns generated name'''
+    name = None
     if check_unique is not None:
         while True:
             name = ng_names[flavour].next()
             if not check_unique.has_key(name):
                 check_unique[name] = 1
-                return name
-            
-    return ng_names[flavour].next()
+                break
+    else: name = ng_names[flavour].next()
+    logger.debug('Generated name %s for flavour %s' % (name, flavour))
+    return name
 
-def parse_des(file_name, type):
+def parseDes(file_name, type):
+    """parses des file"""
     file_name = os.path.join(os.path.dirname(__file__), 'data', 'des', file_name + '.des')
-    result = []
-    file = open(file_name, 'r')
-    file_content = file.read()
-    obj = type()
-    cur_line = ''
-    has_fields = False
-    multi_line = False
-    for line in file_content.splitlines():
-        if line.isspace() or len(line) <= 1: continue
-        if line.startswith('#'): #comment line
-            continue
-        if line.startswith('END'): # new decription
-            if obj is not None and has_fields: result.append(obj)
-            obj = type()
-	    has_fields = False
-            continue
-	if line.count('\'\'\'') > 0:
-	    if multi_line:
-		line += line.replace('\'\'\'','')
-		multi_line = not multi_line
-	    else:
-		line += line.replace('\'\'\'','')
-		continue
-	else:
-            cur_line += line
-        if line.endswith('\\') or multi_line:
-            continue
-	exp = cur_line.split('=', 1)
-        if exp[1].startswith('script:'):
-            script_body = exp[1].replace('script:', '', 1)
-            #overkill for now. use simple eval
-            #obj.__dict__[exp[0].strip()] = lambda self: eval(script_body.strip(), globals(), {'self' : self})
-            obj.__dict__[exp[0].strip()] = eval(script_body.strip())
-	    has_fields = True
-        else:
-            obj.__dict__[exp[0].strip()] = exp[1].strip()
-	    has_fields = True
-        cur_line = ''
-    if has_fields:
-        result.append(obj)
-    return result
+    return des.parseFile(file_name, type)
+
+def parseFile(file_name, type):
+    """parses file"""
+    return des.parseFile(file_name, type)
 
 static_colors = [
 (0,0,0),  (31,31,31), (63,63,63), (128,128,128), (191,191,191),
@@ -255,3 +245,4 @@ def random_from_list_unique(col, check_unique=None):
                 check_unique[clr] = 1
                 return clr
         else: return clr
+

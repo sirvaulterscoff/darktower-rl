@@ -1,4 +1,3 @@
-#born place defs
 born = """You was born in ${birth_village}. You spent your childhood laying under beautifull trees, watching others fight every day.
 You was left by your parents in a dark cave near ${birth_city}. Fortunatly ${name} found you.
 You was sixth son in a big family. When you was 10 an awfull hurricane destroyed your village, leaving you as the only survivor. You wandered around the country for some time and was later adopted by ${good_npc} - $profession.
@@ -13,7 +12,6 @@ Floating rocks surround the city of $Adjective ${Noun}: ${birth_city}. No one is
 Surrounded by erupppting volcanoes city of $Noun is unassailable fortress ruled by mighty ${name}. Mighty heroes and powerfull mages all around the realm of $Adjective $Noun are all born in ${birth_city}, as well as you.
 High in the mountains hidden in clouds lies the city ${city}. Once a glorious capital of ${Adjective}${noun} it lies in ruins now. Endless civil wars almost destroyed the city. Trying to escape the horrors of war your family moved to a ${birth_village}, where they gave birth to you."""
 
-#fillers defs
 fillers = """At the age of $age you face your first enemy - $demon_npc - minor demon tried to draw your blood. Constant combats with bands of thugs made you unbelievably strong.
 From an early age you find yourself constantly involved in all kind of troubles.
 You was captured by slave-traders, but somehow you managed to escape alive.
@@ -28,7 +26,6 @@ When you was $age you met a powerfull wizard $enemy who was well known for his n
 After spending two years in prison for stealing few coins you gave a promise to yourself to live in accordance to laws. That's the path you have chosen.
 Once you went into the woods and was not able to find your way back. However, you met a man who taught you how to understand the language of trees and forest itself, how to use the power of the wood. That knowledge was of great assistance throughout your life."""
 
-#teacher defs
 teachers = """At the age of $age you joined the faction $Adjective $noun as a ${profession}.
 When you was $age $name from $Adjective $Noun made you his apprentice. After $age years you mastered the art of ${skill}. Later your teacher was killed under suspicious circumstances, and without having any practice you've lost most of your skills.
 Seeking for knowledge you finaly came to $name an old $profession who taught you everything he knew. Seeing that an old man has nothing more to give you you murdered him without a hessitation.

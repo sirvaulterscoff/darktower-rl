@@ -32,6 +32,19 @@ class LambdaMap(dict):
 class Background(object):
     pass
 
+class WordsVocab(object):
+    pass
+v = util.parseDes('words', WordsVocab)[0]
+adjectives = map(lambda x: x.strip() , v.adjectives_def.splitlines())
+nouns = map(lambda x: x.strip() , v.nouns_def.splitlines())
+professions = map(lambda x: x.strip() , v.professions_def.splitlines())
+skills = map(lambda x: x.strip() , v.skills_def.splitlines())
+
+random.shuffle(adjectives)
+random.shuffle(nouns)
+random.shuffle(professions)
+random.shuffle(skills)
+
 #here we substitute names into strings.
 #String can refer to following names
 # ${name} - random name not in global npc's names list
@@ -137,24 +150,14 @@ def process_string(s):
 
 
 def make_story():
-    background = util.parse_des('background', Background).next()
+    background = util.parseDes('background', Background)[0]
     parts = []
-    for part in (backgroun.born, bacgroun.fillers, bacgroun.teachers):
+    for part in (background.born, background.fillers, background.teachers):
         phraselist = map(lambda x: x.strip(), part.splitlines())
         random.shuffle(phraselist)
         parts.append(phraselist)
     output = chain(*islice(izip(*parts), 0, 1))
     result = textwrap.fill(' '.join(output),80)
-    print result
     return process_string(result)
-make_story()
+#result = make_story()
 
-adjectives = map(lambda x: x.strip() , adjectives_def.splitlines())
-nouns = map(lambda x: x.strip() , nouns_def.splitlines())
-professions = map(lambda x: x.strip() , professions_def.splitlines())
-skills = map(lambda x: x.strip() , skills_def.splitlines())
-
-random.shuffle(adjectives)
-random.shuffle(nouns)
-random.shuffle(professions)
-random.shuffle(skills)

@@ -1,8 +1,11 @@
 SUBST= :=>FT_WINDOW 
 SUBST= -=>FT_GRASS 
-SUBST= , => choice((FT_ROCK_WALL,FT_DOOR))
-SUBST=b=>FT_BUSH t=>FT_TREE o=>FT_WELL .=>FT_CARPET
-SUBST=c=>FT_CARPET:(120,0,0)
+SUBST= , => $choice((FT_ROCK_WALL,FT_DOOR))
+SUBST=b=>FT_BUSH 
+SUBST=t=>FT_TREE
+SUBST=o=>FT_WELL
+SUBST=.=>FT_CARPET
+SUBST=c=>$FT_CARPET:(120,0,0)
 ORIENT=RANDOM
 NAME=large_tavern1
 MAP="""
@@ -16,4 +19,4 @@ MAP="""
 #..............#
 ################
 """
-END  
+END

@@ -1,4 +1,3 @@
-#sword of sorrows
 type=sword
 name=Sword of sorrows
 unided_name=script:choice(('Dark grey sword', 'Dull sword'))
@@ -9,7 +8,6 @@ price=1000
 common=1
 END
 
-#bow of velocity
 type=bow
 name=Bow of velocity
 END
