@@ -1,0 +1,18 @@
+pack="""
+Not so long a pack of $who invaded the city of $current_city.
+During years of Great Drought a band of $who came to $current_city. Years passed, band of $who grew and few years after the first rain they began to invade the houses.
+From a dark forest of $village_name a pack of $who came to $current_city. Busy citizens payed no attention to this fact, and $who begun to breed quickly. Now small groups of $who riot here and there.
+"""
+
+band_with_leader="""
+$name is one of the well know criminals of $current_city region.
+Cruel crimes commited long-time ago made $name move from town to town escaping from justice. Though $name is still looks frightening long wanderings wekend both his body and his mind.
+The band of $name is well know for it's brave raids against peasants and traiders.
+"""
+
+single_critter="""
+This tought $who seems to be friendly... If you're cheated by his appearance - you're dead.
+This $who can be seen snatching around, stealing everything it manage to carry.
+
+"""
+END

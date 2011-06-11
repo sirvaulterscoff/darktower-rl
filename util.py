@@ -136,6 +136,7 @@ def xp_for_lvl(next_lvl):
     return EXP_MAP[next_lvl]
 
 def create_logger(name=__name__):
+    print 'creating logger with name ' + name
     logger = logging.getLogger("module_logger")
     logger.setLevel(logging.DEBUG)
     #create console handler and set level to debug
@@ -146,16 +147,17 @@ def create_logger(name=__name__):
     #add formatter to ch
     ch.setFormatter(formatter)
     #add ch to logger
-    logger.addHandler(ch)
+    #logger.addHandler(ch)
     return logger
 logger = create_logger('util')
+
 name_gens = []
 
 def init_name_gen():
     global name_gens
     path = os.path.dirname(__file__)
     for file in os.listdir(os.path.join(path, 'data/namegen')) :
-        if file.find('.cfg') > 0 :
+        if file.endswith('.cfg') > 0 :
             libtcod.namegen_parse(os.path.join(path, 'data','namegen',file))
     name_gens = libtcod.namegen_get_sets()
 
@@ -164,6 +166,10 @@ static_names = """Void Vic Mark Pablo Moose_Tachio Taco See_Shall Omen_Ra Betsi
 """
 static_cities = """SilverCove
 """
+static_guilds = """Brothers in the Arms
+Brotherhood of Steal
+Menacing Monks
+Mercenaries"""
 
 def __create_name_gen(prefix, statics):
     static_names_gen = []
@@ -188,7 +194,8 @@ ng_names = {
     'name' : __create_name_gen('name', static_names),
     'demon' : __create_name_gen('demon', None),
     'city' : __create_name_gen('city', static_cities),
-    'potion' : __create_name_gen('potion', None)
+    'potion' : __create_name_gen('potion', None),
+    'guild' : __create_name_gen('guild', static_guilds)
 }
 def gen_name(flavour='name', check_unique=None):
     ''' generates a name of selected flower. Optionaly checks
@@ -208,12 +215,13 @@ def gen_name(flavour='name', check_unique=None):
     return name
 
 def parseDes(file_name, type):
-    """parses des file"""
+    """parses des file from data/des/ folder.
+    file_name is the name if the file without .des"""
     file_name = os.path.join(os.path.dirname(__file__), 'data', 'des', file_name + '.des')
     return des.parseFile(file_name, type)
 
 def parseFile(file_name, type):
-    """parses file"""
+    """parses file located anywhere"""
     return des.parseFile(file_name, type)
 
 static_colors = [
@@ -246,3 +254,10 @@ def random_from_list_unique(col, check_unique=None):
                 return clr
         else: return clr
 
+class LambdaMap(dict):
+    def __getitem__(self, y):
+	item = super(LambdaMap, self).__getitem__(y)
+        if inspect.isfunction(item):
+            return item()
+        else:
+            return item

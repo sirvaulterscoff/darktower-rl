@@ -22,13 +22,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 
-class LambdaMap(dict):
-    def __getitem__(self, y):
-	item = super(LambdaMap, self).__getitem__(y)
-        if inspect.isfunction(item):
-            return item()
-        else:
-            return item
 class Background(object):
     pass
 
@@ -92,6 +85,10 @@ def create_city(birth = False, city=False, depart = False):
             world.depart_place_rank = util.roll(1, 3, 3)
         else:
             world.depart_place_rank = util.roll(1, 3)
+        if city:
+            world.depart_place_rank = util.roll(1, 3, 3)
+        else:
+            world.depart_place_rank = util.roll(1, 3)
     return name
 
 
@@ -113,7 +110,7 @@ def create_age():
 
 
 def process_string(s):
-    substs = LambdaMap()
+    substs = util.LambdaMap()
     result = s.strip()
     #first parse name with random one
     substs['name'] = lambda: util.gen_name()

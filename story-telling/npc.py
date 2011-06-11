@@ -2,18 +2,33 @@ import os
 from random import random, randint, choice
 import string
 import sys
-from __init__ import logger
+import world
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import critters
 import util
 import items
+import dungeon_generators
 
+logger = util.create_logger('npc')
 MAX_HD_DIFF = 4
 class QuestTarget(object):
     def init(self, world):
         pass
     pass
+parsed_kd_des = None
+
+def current_city(world):
+    if world.current_city is None:
+        #create it then
+        name = util.gen_name('city', world.cities_names)
+        city = util.coinflip()
+        if city:
+            world.depart_place_rank = util.roll(1, 3, 3)
+        else:
+            world.depart_place_rank = util.roll(1, 3)
+        world.current_city = world.depart_place = name
+    return world.current_city
 
 class KillDudeTarget(QuestTarget):
     def _gen_new_killdude(self, world):
@@ -27,8 +42,10 @@ class KillDudeTarget(QuestTarget):
     def init(self, world):
         super(KillDudeTarget, self).init(world)
         #actualy we need some mobs for kill-dude-purpose-only.
-        #kill-dude-npc at 1/3 rate. 2/3 is a plain kill 100 rats quest
-        if util.roll(1, 3) == 1:
+        #kill-dude-npc at 1/4 rate. 3/4 is a plain kill 100 rats quest
+        self.what = choice(('kill ', 'demolish ', 'free the world from ', 'assassinate '))
+        self.description = ''
+        if util.roll(1, 4) == 4:
             if util.coinflip():
                 #lets kill one of already generated NPCs
                 self.dude = choice(get_kill_dudes(world.mNPC))
@@ -38,13 +55,14 @@ class KillDudeTarget(QuestTarget):
                 logger.debug('Selected quest-target-dude ' + self.dude.name +' ' + str(self.dude.__class__))
             else:
                 self.dude = self._gen_new_killdude(world)
+            self.what += self.dude.name
         #plain old - go kill 100500 bats quest
         else:
             self.band = []
             #todo here we should place lambda instead and calc hd later
             player_hd = 1
             target_hd = randint(player_hd, player_hd + MAX_HD_DIFF)
-            logger.debug('Target HD fro kill-dude is '+ str(target_hd))
+            logger.debug('Target HD for kill-dude is '+ str(target_hd))
             #if we rolled same HD just make a huge band
             if target_hd == player_hd:
                 #max roll being 3d6 + 3
@@ -54,11 +72,20 @@ class KillDudeTarget(QuestTarget):
                 logger.debug('We are going to ask player to kill ' + str(band_count) + ' ' + self.dude.name + 's')
                 for x in xrange(0, band_count):
                     self.band.append(self.dude)
+                self.what += choice(('pack of ', 'small group of ', 'band of ', 'few ', 'some ')) + self.dude.name + 's'
+                self.description = self.generate_description('pack', world)
             else: #else we gen a band with a leader
-                # gen dude
-                self.dude = critters.random_for_player_hd(target_hd, inverse=True)
+                # gen dude. Note - only intelligent critters are alowed to form bands
+                self.dude = critters.random_for_player_hd(target_hd, inverse=True, flags=critters.INTELLIGENT)
                 self.band.append(self.dude)
                 logger.debug('We\'re going to kill ' + self.dude.name + ' of HD ' + str(target_hd))
+                #if target creature is intelligent we may optional give a name to it
+                if util.coinflip():
+                    flavour = 'name'
+                    if self.dude.is_demon():
+                        flavour = 'demon'
+                    self.dude.unique_name = util.gen_name(flavour, check_unique = world.npc_names)
+                self.description = self.generate_description('band_with_leader', world)
                 #if maxed target_hd - it's one-target monster, else - it's a band
                 if target_hd - MAX_HD_DIFF < player_hd:
                     #gen band
@@ -67,17 +94,41 @@ class KillDudeTarget(QuestTarget):
                     band_count = util.roll(2, band_hd, 2)
                     logger.debug('Dude generated with a band of ' + str(band_count))
                     for x in xrange(0, band_count):
-                        critter = critters.random_for_player_hd(randint(player_hd, band_hd))
+                        critter = critters.random_for_player_hd(randint(player_hd, band_hd), exact=True, flags=critters.INTELLIGENT)
                         self.band.append(critter)
 
                     band_list = string.join(map(lambda x:x.name + ' HD: ' + str(x.base_hd), self.band), ',')
                     logger.debug('Band list is: ' + band_list)
+                    if self.dude.unique_name is None:
+                        band_members = set(map(lambda x: x.name + 's', self.band))
+                        self.what = ' the band of ' + ', '.join(band_members)
+                    else:
+                        self.what = ' the band of ' + self.dude.unique_name + ' the ' + self.dude.name
                 else: #no-band dude
                     logger.debug('Dude generated alone')
-        self.what = choice(('kill ', 'demolish ', 'free the world from ', 'assault ')) + self.dude.name
-	#self.background =
+                    self.what += self.dude.name
+                    self.description = self.generate_description('single_critter', world)
+        print self.description
+        print self.what
 
+    def generate_description(self, which, world):
+        """Generates a random description for kill-dude background"""
+        global parsed_kd_des
+        if parsed_kd_des is None:
+            parsed_kd_des = util.parseDes('killdude_background', KillDudeBackground)[0]
+        s = choice(parsed_kd_des.__dict__[which].strip().splitlines())
+        substs = util.LambdaMap()
+        #here we parse following options: $depart_village, $who (dude.name) and $name (dude.unique_name)
+        substs['who'] = self.dude.name
+        substs['name'] = self.dude.unique_name
+        substs['current_city'] = lambda : current_city(world)
+        substs['village_name'] = lambda : util.gen_name('city')
 
+        res = string.Template(s).safe_substitute(substs)
+        return res
+
+class KillDudeBackground():
+    pass
 
 class BringItemTarget(QuestTarget):
     def init(self, world):
@@ -110,6 +161,7 @@ class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
     def init(self, world):
+	self.what='wat'
         #here we have options:
         #1. visit predefined location (minimap in map) - ie temple, some house etc
         #2. visit another city
@@ -117,6 +169,22 @@ class VisitPlaceTarget(QuestTarget):
         #4. some unreachable place - in that case you will get
         # teleported elsewhere or just return back with empty hands
         #5. visit a place in starting city. in that case we need something else in the end
+	self.scenario = util.roll(1, 5)
+	if self.scenario == 1:
+	    #predefined location (places of interest)
+	    self.place = StaticRoomGenerator(flavour='pip', type='maps').finish()
+	    #if you need to bring something from map
+	    if self.place.quest_type == 'obtain':
+		self.what = ' bring ' + self.place.quest_item + ' from ' + self.place.name
+	elif self.scenario == 2:
+	    #here we as well have options: visit guild, visit POI, or find person
+	    self.inner_scenario = util.roll(1, 3)
+	    if self.inner_scenario == 1:
+		 #self.city = world.gen_nearby_city(quest={guild})
+		 self.guild = util.gen_name(flavour='guild')
+		 self.what = choice(('visit', 'find')) + ' guild ' + self.guild
+
+	    
 
 ###PART1 - quests
 #the typical layout of the plot
@@ -212,7 +280,7 @@ class QuestNPC(object):
         if quest_giver:
             QuestNPC.quest_giver_NPC.append(what)
 
-    quest_targets = [KillDudeTarget, BringItemTarget,BringItemTarget]
+    quest_targets = [KillDudeTarget]#, BringItemTarget,BringItemTarget, VisitPlaceTarget]
     def doit(self, world):
         logger.debug('Starting action on ' + str(self.__class__))
         #choose qu

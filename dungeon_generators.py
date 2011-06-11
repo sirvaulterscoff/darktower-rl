@@ -21,6 +21,7 @@ default_map_chars = {'#': FT_ROCK_WALL,
 	'+': FT_DOOR,
 	'0': FT_WINDOW,
 	'F' : FT_RANDOM_FURNITURE,
+	'{' : FT_FOUNTAIN,
 	'<' : FT_STAIRCASES_UP,
 	'>' : FT_STAIRCASES_DOWN,
 	'h' : FT_CHAIR,
@@ -288,11 +289,11 @@ _map_files = []
 _parsed_files = {}
 _available_maps = {}
 class StaticRoomGenerator(AbstractGenerator):
-    def __init__(self, flavour=''):
-        for file in os.listdir('./data/rooms'):
+    def __init__(self, flavour='', type='rooms'):
+        for file in os.listdir('./data/' + type):
             if file.find(flavour + '.map') > -1:
 		if not file.endswith('.map'): continue
-                _map_files.append(os.path.join('.', 'data', 'rooms', file))
+                _map_files.append(os.path.join('.', 'data', 'type', file))
 
     def parse_file(self, map_file):
         maps = util.parseFile(map_file, MapDef)
@@ -307,7 +308,8 @@ class StaticRoomGenerator(AbstractGenerator):
             maps = _parsed_files.get(map_file)
         else:
             maps = self.parse_file(map_file)
-        return choice(maps.values()).materialize()
+        map = choice(maps.values()).prepare()
+	return map.materialize()
 
     def random(self):
         map_file = choice(_map_files)

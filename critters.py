@@ -10,9 +10,11 @@ COLD_BLOODED = 1 << 4
 PASS_THRU_WALLS = 1 << 5
 PASS_THRU_DOORS = 1 << 6
 INTELLIGENT = 1 << 7
+DEMON = 1 << 8
 
 class Critter(object):
     name = 'crit'
+    unique_name = None
     ALL = []
     char = '@'
     color = (255, 255, 255)
@@ -146,6 +148,11 @@ class Critter(object):
         dlvl_delta = src.dlvl / self.dlvl
         self.adjust_hd(self.base_hd + (hd_delta + dlvl_delta - 1) * 1 / self.dlvl)
 
+    def is_demon(self):
+        return self.flags & DEMON
+
+    def is_intelligent(self):
+        return self.flags & INTELLIGENT
 
 class Player(Critter):
     x, y = 0, 0
@@ -234,7 +241,7 @@ class Orc(Critter):
     base_dmg = [(1, 3)]
     dlvl = 3
 
-class Orc(Critter):
+class Troll(Critter):
     char = 't'
     name = 'troll'
     flags = WALKING | INTELLIGENT
@@ -248,15 +255,20 @@ class Orc(Critter):
     base_dmg = [(1, 3)]
     dlvl = 3
 
-def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000):
+def filter_critters_by_flags(critter, flags=0):
+    if flags == 0 : return True
+    return critter.flags & flags
+
+def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags=0):
     ff = None
     if exact:
-        ff = lambda x: x.base_hd == hd
+        ff = lambda x: x.base_hd == hd and filter_critters_by_flags(x, flags)
     else:
-        ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd
+        ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd and filter_critters_by_flags(x, flags)
     hd_match = filter(ff, Critter.ALL)
     if len (hd_match) < 1:#if no such NPC, take any and adjust HD
-        anymob = util.random_from_list_weighted(Critter.ALL, inverse)()
+        ff2 = lambda x: filter_critters_by_flags(x , flags)
+        anymob = util.random_from_list_weighted(filter(ff2, Critter.ALL), inverse)()
         new_hd = hd
         if not exact:
             new_hd = max_hd
@@ -264,4 +276,5 @@ def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000):
         return anymob
 
     return util.random_from_list_weighted(hd_match, inverse)()
+
 

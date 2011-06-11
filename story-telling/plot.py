@@ -1,9 +1,9 @@
 from npc import *
 import world
 
-from __init__ import logger
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
+logger = util.create_logger('plot')
 #1d10 + 12 roll for mNPC
 MNPC_ROLL = (1, 10, 12)
 #1d4 + 4 (from 6-10 quests)

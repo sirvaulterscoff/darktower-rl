@@ -31,3 +31,4 @@ deity_npc_names = []
 cities_names = {}
 """ Stores already generated quest items (artefact and general items together"""
 generated_quest_items = {}
+
