@@ -261,3 +261,5 @@ class LambdaMap(dict):
             return item()
         else:
             return item
+class Des():
+    pass

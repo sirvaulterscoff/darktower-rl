@@ -3,6 +3,7 @@ from random import randrange, random, choice, shuffle
 from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
+from copy import deepcopy
 
 logger = util.create_logger('DG')
 NO_FLIP = 0
@@ -55,46 +56,54 @@ class MapDef(object):
 	self.prepared = False
 
     def materialize(self, override_orient = ANY):
-        _map = self.desc[:]
+        copy = deepcopy(self)
+        if not self.prepared:
+            print 'Not prepared yet!!!'
+            return
+        _map = copy.desc
+        logger.debug('Materializing map ' + str(self.width) +'x' + str(self.height))
         for y in xrange(0, self.height):
-            _map[y] = self.desc[y][:]
             for x in xrange(0, self.width):
-                _map[y][x] = _map[y][x]()
-        if self.orient is not None:
-            return self.orient(_map, override_orient)
-        return _map
+                try:
+                    _map[y][x] = _map[y][x]()
+                except IndexError:
+                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.width)
+                    break
+        if copy.orient is not None:
+            copy.orient(_map, override_orient)
+        return copy
 
     def __prepare__subst__(self):
-	calc = {}
-	for k,v in self.subst.iteritems():
-	    if v.startswith('$'):
-		script = v.replace('$', '', 1)
-		#if it starts with $ - it's script
-		calc[k] = lambda : eval (script)
-	    else:
-		calc[k] = globals()[v.strip()]
-	self.map_chars.update(calc)
-	print 'substs:'
-	for k,v in self.map_chars.items():
-	    print '%s => %s ' %(k, v)
+        calc = {}
+        for k,v in self.subst.iteritems():
+            if v.startswith('$'):
+                script = v.replace('$', '', 1)
+                #if it starts with $ - it's script
+                calc[k] = lambda : eval (script)
+            else:
+                calc[k] = globals()[v.strip()]
+        self.map_chars.update(calc)
+        print 'substs:'
+        for k,v in self.map_chars.items():
+            print '%s => %s ' %(k, v)
 
 
     def __prepare_orient__(self):
-	if self.orient == 'RANDOM':
-	    self.orient = lambda x, settings: random_rotate(x, settings)
-	else:
-	    self.orient = None
+        if self.orient == 'RANDOM':
+            self.orient = lambda x, settings: random_rotate(x, settings)
+        else:
+            self.orient = None
 
     def prepare(self):
-	if self.prepared: return
-	self.__prepare__subst__()
-	orient = self.__prepare_orient__()
-	self.desc = parse_string(self.map, self.map_chars)
-	self.height = len(self.desc)
-	self.width = len(self.desc[0])
-	logger.debug('Parsed map content:\n %s \n into desc. Width %d, height %d' % (self.map, self.width, self.height))
-	self.prepared = True
-	return self
+        if self.prepared: return
+        self.__prepare__subst__()
+        orient = self.__prepare_orient__()
+        self.desc = parse_string(self.map, self.map_chars)
+        self.height = len(self.desc)
+        self.width = len(self.desc[0])
+        logger.debug('Parsed map content:\n %s \n into desc. Width %d, height %d' % (self.map, self.width, self.height))
+        self.prepared = True
+        return self
 
 def random_rotate(map, settings = ANY):
     rev_x, rev_y = util.coinflip(), util.coinflip()
@@ -290,16 +299,22 @@ _parsed_files = {}
 _available_maps = {}
 class StaticRoomGenerator(AbstractGenerator):
     def __init__(self, flavour='', type='rooms'):
-        for file in os.listdir('./data/' + type):
+        prefix = '..'
+        for file in os.listdir('.'):
+            if file == 'data':
+                prefix = '.'
+                break
+        for file in os.listdir(prefix + '/data/' + type):
             if file.find(flavour + '.map') > -1:
-		if not file.endswith('.map'): continue
-                _map_files.append(os.path.join('.', 'data', 'type', file))
+                if not file.endswith('.map'): continue
+                logger.debug('Parsing mapfile ' + file)
+                _map_files.append(os.path.join(prefix, 'data', type, file))
 
     def parse_file(self, map_file):
         maps = util.parseFile(map_file, MapDef)
-	_parsed_files[map_file] = maps
-	for map in maps:
-	    _available_maps[map.name] = map
+        _parsed_files[map_file] = maps
+        for map in maps:
+            _available_maps[map.name] = map
         return maps
 
     def finish(self):
@@ -308,7 +323,7 @@ class StaticRoomGenerator(AbstractGenerator):
             maps = _parsed_files.get(map_file)
         else:
             maps = self.parse_file(map_file)
-        map = choice(maps.values()).prepare()
+        map = choice(maps).prepare()
 	return map.materialize()
 
     def random(self):
@@ -317,21 +332,21 @@ class StaticRoomGenerator(AbstractGenerator):
             maps = _parsed_files.get(map_file)
         else:
             maps = self.parse_file(map_file)
-        map = choice(maps.values()).prepare()
+        map = choice(maps).prepare()
 	return map.materialize()
 
 
     def map_by_name(self, name):
-	global file_parsed
-	if _available_maps.get(name):
-	    return _available_maps[name].materialize()
-	elif not file_parsed:
-	    for file in _map_files:
-		print 'parsing file ' + str(file)
-		self.parse_file(file)
-	    file_parsed = True
-	map = _available_maps.get(name).prepare()
-	return map.materialize()
+        global file_parsed
+        if _available_maps.get(name):
+            return _available_maps[name].materialize()
+        elif not file_parsed:
+            for file in _map_files:
+                print 'parsing file ' + str(file)
+                self.parse_file(file)
+            file_parsed = True
+        map = _available_maps.get(name).prepare()
+        return map.materialize()
 
 class CityGenerator(StaticRoomGenerator):
     RANK_CITY = 3

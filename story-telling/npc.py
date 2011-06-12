@@ -17,6 +17,7 @@ class QuestTarget(object):
         pass
     pass
 parsed_kd_des = None
+parsed_vp_des = None
 
 def current_city(world):
     if world.current_city is None:
@@ -161,7 +162,7 @@ class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
     def init(self, world):
-	self.what='wat'
+        self.what='wat'
         #here we have options:
         #1. visit predefined location (minimap in map) - ie temple, some house etc
         #2. visit another city
@@ -169,22 +170,53 @@ class VisitPlaceTarget(QuestTarget):
         #4. some unreachable place - in that case you will get
         # teleported elsewhere or just return back with empty hands
         #5. visit a place in starting city. in that case we need something else in the end
-	self.scenario = util.roll(1, 5)
-	if self.scenario == 1:
-	    #predefined location (places of interest)
-	    self.place = StaticRoomGenerator(flavour='pip', type='maps').finish()
-	    #if you need to bring something from map
-	    if self.place.quest_type == 'obtain':
-		self.what = ' bring ' + self.place.quest_item + ' from ' + self.place.name
-	elif self.scenario == 2:
-	    #here we as well have options: visit guild, visit POI, or find person
-	    self.inner_scenario = util.roll(1, 3)
-	    if self.inner_scenario == 1:
-		 #self.city = world.gen_nearby_city(quest={guild})
-		 self.guild = util.gen_name(flavour='guild')
-		 self.what = choice(('visit', 'find')) + ' guild ' + self.guild
+        self.scenario = util.roll(1, 4)
+        if self.scenario == 1:
+            #predefined location (places of interest)
+            self.place = dungeon_generators.StaticRoomGenerator(flavour='pip', type='maps').finish()
+            #if you need to bring something from map
+            print 'self.place.is' + str(self.place)
+            if self.place.quest_type == 'obtain':
+                self.what = ' bring ' + self.place.quest_item + ' from ' + self.place.name
+            else:
+                self.what = ' visit ' + self.place.name
+        elif self.scenario == 2:
+            #Visit a guild target
+            self.guild = util.gen_name(flavour='guild')
+            self.what = choice(('visit', 'find')) + ' guild ' + self.guild + ' and talk to it\'s leader'
+            world.require_for_nextgen('guild', self.guild)
+        elif self.scenario == 3:
+            #Visit a place near city
+            self.generate_scenario(world)
+            self.visit_type = choice(('forest', 'ruins', 'cave', 'shipwreck'))
+            self.description = self.generate_scenario(world)
+            self.what = ' investigate strange event near ' + self.name
+            print self.description
+        elif self.scenario == 4:
+            #visit another city (maybe we should sqaus it with previous case)
+            self.name = util.gen_name('city', world.cities_names)
+            world.require_for_nextgen('city', self.name)
+            self.what = ' visit city ' + self.name
 
-	    
+    def generate_scenario(self, world):
+        global parsed_vp_des
+        if not parsed_vp_des:
+            parsed_vp_des = util.parseDes('sightseeing', util.Des)[0]
+
+        self.category = choice(parsed_vp_des.__dict__.keys())
+        s = choice(parsed_vp_des.__dict__[self.category].strip().splitlines())
+        substs = util.LambdaMap()
+        self.name = util.gen_name(flavour='city')
+        substs['name'] = self.name
+        substs['current_city'] = lambda : current_city(world)
+        substs['village_name'] = lambda : util.gen_name('city', world.cities_names)
+        if len(world.bad_npc_names) > 0:
+            substs['bad_npc'] = choice(world.bad_npc_names)
+        else:
+            substs['bad_npc'] = util.gen_name()
+        world.require_for_nextgen(self.category, self.name)
+        res = string.Template(s).safe_substitute(substs)
+        return res
 
 ###PART1 - quests
 #the typical layout of the plot
@@ -280,7 +312,8 @@ class QuestNPC(object):
         if quest_giver:
             QuestNPC.quest_giver_NPC.append(what)
 
-    quest_targets = [KillDudeTarget]#, BringItemTarget,BringItemTarget, VisitPlaceTarget]
+    quest_targets = [KillDudeTarget, BringItemTarget,BringItemTarget, VisitPlaceTarget]
+    #quest_targets = [VisitPlaceTarget]
     def doit(self, world):
         logger.debug('Starting action on ' + str(self.__class__))
         #choose qu
@@ -290,7 +323,6 @@ class QuestNPC(object):
         logger.debug('Target of quest is ' + str(target))
         print(self.name + ' asks you to ' + target.what)
 
-        
 
 class GoodNPC(QuestNPC):
     common = 7

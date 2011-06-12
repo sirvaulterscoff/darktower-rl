@@ -31,4 +31,11 @@ deity_npc_names = []
 cities_names = {}
 """ Stores already generated quest items (artefact and general items together"""
 generated_quest_items = {}
+gen_requests = {}
+
+def require_for_nextgen(what, name=None):
+    """ registers a new worldgen request"""
+    if not gen_requests.has_key(what):
+        gen_requests[what] = []
+    gen_requests[what].append(name)
 

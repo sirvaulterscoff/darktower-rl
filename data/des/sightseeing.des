@@ -1,0 +1,21 @@
+forest="""
+Evil sprouts of poison ivy stretch all across the hills of $village_name. The forest $name is usualy evaded by travelers.
+There are couple of picturesque glades under the under the shadows of ancient oaks. Once a popular place for familiy vacations forest $name hars and cruel place now. This happened when $bad_npc visited this forest several years ago.
+This quiet and calm forest $name is ideal place for meditation. There are couple of evil creatures lurking in the shadows.
+"""
+ruins="""
+Ruins of $name is the silent reminder about horrors of Great War. Not much left here - walls, stones and possibly some loot.
+$name was destroyed during the visit of $bad_npc. The rumors say, he was practicing some ultimate spell, but something went wrong and the whole village now lies in ruins.
+$name and $current_city once were areas of larger city. But all of them were destroyed during Blood War.
+"""
+cave="""
+Caves can be found all around $current_city, most notable of them is $name. It's notable for the legend that says about a treasure hidden somewhere inside the cave.
+Dark cave $name was used during Blood War as armory. Still adventurers find rusty weapons, that remember of that time.
+Cave $name is said to be a mointain city more that hundred years ago. But one day a powerfull wizard $bad_npc, who is rumored to be the author of powerful Demi spell, came to city blow up the city, leaving nothing, but caverns. 
+"""
+shipwreck="""
+Debris of a giant ship $name covers the sand beach near $current_city.
+$name was carrying enourmous amount of gold, but he was blasted by someone and now the gold lies at the bootom of the sea.
+$name was heading towards $village_name. One day crew woke up and saw that there is no sea around in miles.
+"""
+END

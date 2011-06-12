@@ -4,7 +4,7 @@ from gui import dim_color
 BLOCK_WALK = 1
 BLOCK_LOS = 2
 NONE = 4
-
+import util
 ft_types = {
     "road" : 5,
     "stairs" : 4,
@@ -12,7 +12,7 @@ ft_types = {
     "door": 2,
     "wall": 1,
     "floor": 0,
-
+    "container": 6,
 }
 
 class DungeonFeature(object):
@@ -72,8 +72,37 @@ class Door (DungeonFeature):
             return False, True, True
         return True, True, True
 
+class HiddenDoor (Door):
+    def __init__(self, skill=5,feature=None, opened=False):
+        self.char = feature.char
+        if opened:self.char = '-'
+        self.hidden = True
+        self.opened = opened
+        self.skill = skill
+        self.feature = feature
+
+    def player_move_by(self, player, x, y):
+        #todo check for traps and doors skill. now just a coinflip
+        if self.hidden and util.coinflip():
+            self.hidden = False
+            self.char = '+'
+
+    def player_move_into(self, player, x, y):
+        if self.hidden: return
+        super(HiddenDoor, self).player_move_into(player, x, y)
+
 class Furniture(DungeonFeature):
     pass
+class TreasureChest(Furniture):
+    """A chest, contatining treasures"""
+    def __init__(self):
+        super(TreasureChest, self).__init__('8', (203,203,203), (203,203,203), type=6, flags=None)
+        self.char  = '8'
+        self.color = (203, 203, 203)
+
+    def player_move_into(self, player, x, y):
+        super(TreasureChest, self).player_move_into(player, x, y)
+        print 'You found treasure chest'
 
 def FT_FIXED_WALL(): return DungeonFeature('#', (130, 110, 50), (0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK)
 def FT_ROCK_WALL(): return DungeonFeature("#", (130, 110, 50), (0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK)
@@ -114,3 +143,6 @@ def FT_BED(): return Furniture('8',(120, 120, 0), (40, 40, 0), ft_types["furnitu
 def FT_RANDOM_FURNITURE(): return choice ((FT_CHAIR, FT_TABLE, FT_BED))()
 def FT_STAIRCASES_UP(): return DungeonFeature("<", (255,255,255), (80,80,80), ft_types["stairs"])
 def FT_STAIRCASES_DOWN(): return DungeonFeature(">", (255,255,255), (80,80,80), ft_types["stairs"])
+def FT_HIDDEN_DOOR(skill=5):
+    return HiddenDoor(skill, feature=FT_ROCK_WALL())
+def FT_TREASURE_CHEST(): return TreasureChest()

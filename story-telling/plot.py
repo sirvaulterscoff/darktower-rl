@@ -1,5 +1,6 @@
 from npc import *
 import world
+from random import choice
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
@@ -27,6 +28,9 @@ def assign_random_name_from_list(instances, names, demon = False):
                 npc.name = name
                 npc.is_demon = demon
                 logger.debug('Creating reference NPC ' +str(npc.__class__) +' for ' + name + ' from background')
+    for npc in world.mNPC:
+        if isinstance(npc, instances) and npc.name is not None:
+            names.append(npc.name)
 
 
 from background import make_story
@@ -78,12 +82,12 @@ for i in xrange(0, traders_npc):
 logger.debug("Rolled for %d main NPCs (Min %d actual %d NPCs are able to issue quests), %d immobile NPCs, %d uniques, %d traders)", mNPC_count, min_quest_givers, actual_quest_givers, immobile_npc, unique_npc, traders_npc)
 logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
 
-#now let's fill names
+#now let's fill names. if we mentioned antagonist - generate apropriate  npc for it
 if world.antagonist is not None:
-    antagonists = filter(lambda x: isinstance(x, BadNPC) or isinstance(x, OverpoweredNPC) or isinstance(x, WereNPC) or isinstance(x, ControlledNPC), world.mNPC)
-    _antagonist = choice(antagonists)
-    if _antagonist is None:
-        _antagonist = random.choice((BadNPC, OverpoweredNPC, ControlledNPC, WereNPC))()
+    #antagonists = filter(lambda x: isinstance(x, BadNPC) or isinstance(x, OverpoweredNPC) or isinstance(x, WereNPC) or isinstance(x, ControlledNPC), world.mNPC)
+    #_antagonist = choice(antagonists)
+    #if _antagonist is None:
+    _antagonist = choice((BadNPC, OverpoweredNPC, ControlledNPC, WereNPC))()
     _antagonist.name = world.antagonist
     world.antagonist = _antagonist
     logger.debug('Generated antagonist ' + str(world.antagonist))
