@@ -3,6 +3,7 @@ from random import random, randint, choice
 import string
 import sys
 import world
+from itertools import chain
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import critters
@@ -15,7 +16,9 @@ MAX_HD_DIFF = 4
 class QuestTarget(object):
     def init(self, world):
         pass
-    pass
+    def finish(self, npc, world):
+        """invoked when quest is finished"""
+        pass
 parsed_kd_des = None
 parsed_vp_des = None
 
@@ -31,6 +34,8 @@ def current_city(world):
         world.current_city = world.depart_place = name
     return world.current_city
 
+DEAD = 1
+ESCAPED = 2
 class KillDudeTarget(QuestTarget):
     def _gen_new_killdude(self, world):
         #generate new NPC here
@@ -102,9 +107,9 @@ class KillDudeTarget(QuestTarget):
                     logger.debug('Band list is: ' + band_list)
                     if self.dude.unique_name is None:
                         band_members = set(map(lambda x: x.name + 's', self.band))
-                        self.what = ' the band of ' + ', '.join(band_members)
+                        self.what += ' the band of ' + ', '.join(band_members)
                     else:
-                        self.what = ' the band of ' + self.dude.unique_name + ' the ' + self.dude.name
+                        self.what += ' the band of ' + self.dude.unique_name + ' the ' + self.dude.name
                 else: #no-band dude
                     logger.debug('Dude generated alone')
                     self.what += self.dude.name
@@ -128,36 +133,47 @@ class KillDudeTarget(QuestTarget):
         res = string.Template(s).safe_substitute(substs)
         return res
 
+    def finish(self, npc, world):
+        self.outcome = ESCAPED
+        #here we have npc killed (or maybe not)
+        if self.outcome == DEAD:
+            npc.target_is_dead(self) #we notify that target critter is dead
+        elif self.outcome == ESCAPED:
+            npc.target_escaped(self) #we notify that our target somehow escaped
+        else:
+            npc.target_is_alive(self) #PC decided not to kill target
+
 class KillDudeBackground():
     pass
 
 class BringItemTarget(QuestTarget):
     def init(self, world):
-	#here we have following options:
-	#bring general item (like potion or key)
-	#bring artefact
-	#bring overpowered item (actualy you wont be able to obtain it)
-	#bring key item (you will give it to quest-issuer but will eventualy
-	#need it later). Here we have an option of allowing a player to leave
-	#this item. such items will be used in other parts of the game
-	prob = util.roll(1, 75)
-	if prob <= 50: #general item
-	    logger.debug('Using general item as quest target')
-	    self.target_item = items.random_quest_target(False, world.generated_quest_items)
-	elif prob <= 65: #artefact
-	    logger.debug('Using artefact tem as quest target')
-	    self.target_item = items.random_quest_target(True, world.generated_quest_items)
-	elif prob < 70: #dunno what here. maybe just remember that its
-	    logger.debug('Using artefact item as quest target')
-	    self.target_item = items.random_quest_target(True, world.generated_quest_items)
-	else:
-	    logger.debug('Using key item as quest target')
-	    self.target_item = items.random_key_item(world.generated_quest_items)
-	logger.debug('Generate item-quest-target: ' + str(self.target_item))
-	self.what = choice(('obtain' , 'retrieve', 'bring', 'find')) + ' ' + self.target_item.name
+        #here we have following options:
+        #bring general item (like potion or key)
+        #bring artefact
+        #bring overpowered item (actualy you wont be able to obtain it)
+        #bring key item (you will give it to quest-issuer but will eventualy
+        #need it later). Here we have an option of allowing a player to leave
+        #this item. such items will be used in other parts of the game
+        prob = util.roll(1, 75)
+        if prob <= 50: #general item
+            logger.debug('Using general item as quest target')
+            self.target_item = items.random_quest_target(False, world.generated_quest_items)
+        elif prob <= 65: #artefact
+            logger.debug('Using artefact tem as quest target')
+            self.target_item = items.random_quest_target(True, world.generated_quest_items)
+        elif prob < 70: #dunno what here. maybe just remember that its
+            logger.debug('Using artefact item as quest target')
+            self.target_item = items.random_quest_target(True, world.generated_quest_items)
+        else:
+            logger.debug('Using key item as quest target')
+            self.target_item = items.random_key_item(world.generated_quest_items)
+        logger.debug('Generate item-quest-target: ' + str(self.target_item))
+        self.what = choice(('obtain' , 'retrieve', 'bring', 'find')) + ' ' + self.target_item.name
 
+    def finish(self, npc, world):
+        npc.target_achieved(self)
 
-	
 class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
@@ -217,6 +233,9 @@ class VisitPlaceTarget(QuestTarget):
         world.require_for_nextgen(self.category, self.name)
         res = string.Template(s).safe_substitute(substs)
         return res
+
+    def finish(self, npc, world):
+        npc.target_achieved(self)
 
 ###PART1 - quests
 #the typical layout of the plot
@@ -300,7 +319,43 @@ class QuestNPC(object):
     def __init__(self):
         self.name = None
         self.is_demon = False
+        self.history = []
+        self.friends = []
+        self.enemies = []
+        self.contact = []
+        self.deity = None
+        self.dead = False
         pass
+
+    def know(self, other):
+        for contact in chain(self.friends, self.enemies, self.contact):
+            if contact.name == other.name:
+                return True
+        return False
+
+    def friend_with(self, other):
+        self.friends.append(other)
+        other.friends.append(self)
+        self.history.append('In year %d %s made friends with %s' % (world.year, self.name, other.name))
+
+    def conflict_with(self, other):
+        self.enemies.append(other)
+        #todo add some logic here. like b stole from a some artefact etc (ie generate artefacts
+        #and owners during worldgen)
+        other.enemies.append(self)
+        self.history.append('In year %d %s became enemy of %s' % (world.year, self.name, other.name))
+
+    def kill(self, other):
+        other.dead = True
+        for friend in other.friends:
+            friend.conflict_with(self)
+        if isinstance(other, BadNPC):
+            if other.master is not None:
+                other.master.minions.remove(other)
+            for minion in  other.minions:
+                minion.master = None
+        other.history.append('In year %d %s was killed by %s' % (world.year, other.name, self.name))
+        self.history.append('In year %d %s killed %s' % (world.year, self.name, other.name))
 
     def __str__(self):
         return self.name
@@ -322,6 +377,16 @@ class QuestNPC(object):
         target.init(world)
         logger.debug('Target of quest is ' + str(target))
         print(self.name + ' asks you to ' + target.what)
+        target.finish(self, world)
+
+    def target_is_dead(self, target):
+        print self.name + ' thanks you for killing ' + target.dude.name
+    def target_escaped(self, target):
+        print self.name + ' is upset by ' + target.dude.name + '\'s escape'
+    def target_is_alive(self, target):
+        print self.name + ' asks: "Why you let " + target.dude.name + " alive?"'
+    def target_achieved(self, target):
+        print self.name + ' thanks you for your service'
 
 
 class GoodNPC(QuestNPC):
@@ -329,18 +394,28 @@ class GoodNPC(QuestNPC):
 
 class BadNPC(QuestNPC):
     common = 7
-    pass
+    def __init__(self):
+        super(BadNPC, self).__init__()
+        """since this is bad npc -it may have relations with other bad guys """
+        self.minions = []
+        self.master = None
+        pass
 
 class BetrayalNPC(BadNPC):
     common = 2
-    pass
 
-class WereNPC(BadNPC):
+
+class WereNPC(BetrayalNPC):
     common = 1
     pass
 
 class DeityNPC(QuestNPC):
-    common = 1
+    common = 2
+
+    def __init__(self):
+        super(DeityNPC, self).__init__()
+        self.folowers = []
+        self.enemies = []
     pass
 
 class ControlledNPC(BetrayalNPC):

@@ -19,6 +19,15 @@ I Story telling
     6. Random shuffle NPCs, define basic quests
     7. Make text from what we have so far
     8. Layout first quest start - background, NPC placement, apropriate map
+actualy story telling based on random text generation is going to be stupidly
+boring. What actualy we need is to define some relationships and etc. so that
+we get something like that
+
+One day you wake up in your room (custom action) and see your friend (relationship) 
+(actualy he's an npc with assigned role) and Dave (your friend's friend) in your
+room. When you ask friend about his visit, he says Dave has something he want
+to ask you about
+
 
 II. Dungeon generators.
     We need more of them.
@@ -26,6 +35,7 @@ II. Dungeon generators.
     1. Finish cave generator (connect the blobs together).
     actualy we may need some other general function like = check_missing_feature
     which will check the room (bubble) if it has some feature like: door or up/down stairs or portal.
+        variant = util.roll(1, 5)
     if it does - that buble is okay. So first - randomly place that features and then
     try to connect bubles. Disallow player placement in a bubble with downstairs only.
     2. Add entrance description and house orientation to static generator

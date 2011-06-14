@@ -1,12 +1,12 @@
 from npc import *
 import world
-from random import choice
-
+from random import choice, shuffle, randrange
+from itertools import combinations
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 logger = util.create_logger('plot')
-#1d10 + 12 roll for mNPC
-MNPC_ROLL = (1, 10, 12)
+#3d10 + 20 roll for mNPC
+MNPC_ROLL = (3, 10, 20)
 #1d4 + 4 (from 6-10 quests)
 QUEST_GIVER_ROLL =  (2, 3, 4)
 #1d4 - 1 roll for immobile NPCs (means 0-3).
@@ -110,6 +110,145 @@ logger.debug("Generated following mNPC's types")
 for k,v in debug_map.items():
     logger.debug(str(k) + '\t\t' + str(v))
 
+#Now we generate NPC circles and their backgrounds
+#each NPC has 2 circles. first - is his friends/enemies. second - is the people he know about (friends' enemies)
+#lets start from some dwarf-fortress like world-gen. 
+#First we gen the world and place mnpc there
+city_map = []
+need_to_place = world.mNPC[:]
+for j in range (1, 15):
+    city = world.City(util.gen_name('city', world.cities_names))
+    city_map.append(city)
+
+while len(need_to_place) > 0:
+    for y in range(1, len(city_map)):
+        if len(need_to_place) == 0: break
+        if util.coinflip():
+            denizen = need_to_place.pop()
+            if isinstance(denizen, ImmobileNPC):
+                continue
+            if isinstance(denizen, DeityNPC):
+                logger.debug('Adding deity %s to city %s deities' % (denizen.name, city_map[y].name))
+                city_map[y].add_deity(denizen)
+                continue
+            logger.debug('Adding %s %s to citizens of %s' % (denizen.name, denizen.__class__, city_map[y].name))
+            city_map[y].add_denizen(denizen)
+logger.debug('Done settling down')
+logger.debug('Launching aquaintance')
+stopyear = randrange(10,20)
+
+def make_relations(city):
+    """ Try to make relations between citizens of current city """
+    #we get all possible variants here, to see if we can make connection
+    suspicion_of_connection = combinations(city.denizens, 2)
+    for pair in suspicion_of_connection:
+        #if they're still not acquainted - make them friends or enemies
+        a, b = pair
+        if a.dead or b.dead: continue
+        if util.roll(1, 3) == 1:
+            if len(city.deities) > 0:
+                if a.deity is None:
+                    a.deity = choice(city.deities)
+                    a.history.append('In year %d %s became worshipper of %s' % (world.year, a.name, a.deity.name))
+                    a.deity.folowers.append(a)
+                elif util.roll(1, 3) == 3: #in 1/3 cases giveup deity
+                    old_deity = a.deity
+                    new_deity = choice(city.deities)
+                    if old_deity != new_deity:
+                        old_deity.enemies.append(a)
+                        old_deity.folowers.remove(a)
+                        a.deity = new_deity
+                        new_deity.folowers.append(a)
+                        try:
+                            new_deity.enemies.remove(a)
+                        except ValueError:
+                            pass
+                        a.history.append('In year %d %s traded deity %s for %s' % (world.year, a.name, old_deity.name, new_deity.name))
+
+        if not a.know(b) and util.roll(1,5) == 1:
+            good = isinstance(a, GoodNPC)
+            if good: #if a is good 
+                if isinstance(b, (BetrayalNPC, GoodNPC)): #and b is either Betrayer or good - friend them
+                    a.friend_with(b)
+                elif isinstance(b, BadNPC): #else - conflict
+                    b.conflict_with(a)
+            else: #if a is bad
+                if isinstance(b, GoodNPC): #and b is good - conflict
+                    if util.roll(1,6) == 2: #kill NPC
+                        a.kill(b)
+                        try:
+                            city.denizens.remove(b)
+                        except ValueError: pass
+                        world.deaders.append(b)
+                    else:
+                        a.conflict_with(b)
+                elif isinstance(b, BadNPC): #if b is bad as well - try to make relations between them
+                    if util.roll(1,5) == 2: #kill NPC
+                        if a.master != b:
+                            a.kill(b)
+                            city.denizens.remove(b)
+                            world.deaders.append(b)
+                    if util.coinflip(): #make a master of b
+                        if b.master is not None and b.master != a and a.master != b: #if b already had master, make a enemy of b.master
+                            a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, b.name))
+                            b.master.conflict_with(a)
+                        else: # replace master of b with a
+                            b.master = a
+                            a.minions.append(b)
+                            a.history.append('In year %d %s became boss over %s' %(world.year, a.name, b.name))
+                    else: #make a minion of b
+                        if a.master is not None :#if a had master, make b enemy of a.master
+                            if a.master == b or b.master == a: continue #a.master already is b
+                            prev_master = a.master
+                            a.conflict_with(prev_master)
+                            a.master.minions.remove(a)
+                            a.history.append('In year %d %s betrayed his master %s for %s' %(world.year, a.name, prev_master.name, b.name))
+                        a.master = b
+                        b.minions.append(a)
+                        a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, b.name))
+while stopyear > 1:
+    for city in city_map:
+        make_relations(city)
+        if util.roll(1,3)==3 and len(city.denizens) > 0: #we need to move one denizen to another city
+           random_denizen = choice(city.denizens)
+           city.denizens.remove(random_denizen)
+           new_city = choice(city_map)
+           new_city.denizens.append(random_denizen)
+           if city != new_city:
+               random_denizen.history.append('In year %d %s moved from city of %s to a %s' % (world.year, random_denizen,city.name,new_city.name))
+    stopyear -= 1
+    world.year += 1
+
+
+for npc in world.mNPC:
+    print 'History for %s ============' % (npc.name)
+    for message in npc.history:
+        print '\t' + message
+
+print 'DEITY INFO======'
+for npc in world.mNPC:
+    if not isinstance(npc, DeityNPC): continue
+    print '%s has %d followers and %d enemies' % (npc.name, len(npc.folowers), len(npc.enemies))
+
+def count_band(npc, visited=None):
+    cnt = 0
+    if visited is not None and visited.__contains__(npc): return 0
+    if visited is None:
+        visited = [npc]
+    cnt += len(npc.minions)
+    for minion in npc.minions:
+        if len(minion.minions) > 0:
+            cnt += count_band(minion, visited)
+    return cnt
+bands = filter(lambda x: isinstance(x, BadNPC) and x.master is None and len(x.minions) > 0, world.mNPC)
+for band in bands:
+    print 'The band of %s consist of %d members ' % (band.name, count_band(band))
+#we do want a nice starting scenario
+##starting_place = choice(('room', 'forest', 'city', 'cave', 'desert', 'pip'))
+#world.require_for_nextgen(starting_place, 'start')
 #now we are ready to set off.
-first_quest_giver = choice(world.quest_givers)
+shuffle(world.quest_givers)
+first_quest_giver = world.quest_givers[0]
+first_quest_giver.doit(world)
+first_quest_giver = world.quest_givers[1]
 first_quest_giver.doit(world)

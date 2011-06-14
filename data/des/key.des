@@ -5,5 +5,15 @@ description_present = A strange cubical item. You can hear  loud clicks from ins
 description_future = An access cube. They were used as an access key in ancient labs and scientific stations before Bio-scanner identification was invented.
 price=100000
 common=1
+type=access_cube
 END
 
+name=Crystal sphere
+unided_name=Crystal sphere
+description_past = This magnificient piece of art is surely very expensive. As you gaze in it, you feel control over yourself, and it seems like you've seen your fate.
+description_present = Strange sphere made of glass which is very clear and murky at the same time. When you take a closer look you see a small cloud that turns into maelstrom and second later changes into the fog. You can swear that you also saw a rainbow there.
+description_future = The sphere of a perfect shape is made of very dense crystal.
+price=100000
+type=crystal_sphere
+common=1
+END

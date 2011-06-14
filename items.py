@@ -70,8 +70,69 @@ class ManaPotion(Potion):
         gl.message('You feel somewhat better')
 
 
+W_BLADE = 1
+W_SHORT_BLADE = 2
+W_SCOURGE = 3
+W_AXE = 4
+W_LARGE_AXE = 5
+W_POLEARM = 6
+W_STAFF = 7
+W_FLAIL = 8
+W_KATANA = 9
+W_BOW = 10
+W_LONGBOW = 11
+W_XBOW = 12
+multilevel_features = ["rF", "rC"]
+innate_features = ["rPois", "rElec"]
+
 class Weapon(Item):
-    pass
+    def __init__(self):
+        self.brand = None
+        self.randart = False
+        self.resists = []
+        self.enchantment = [0, 0]
+        self.unique_name = None
+
+    def debug_print(self):
+        br = ''
+        if self.brand is not None:
+            br = 'of %s' % (self.brand)
+
+        art = ''
+        if self.randart:
+            art = 'artefact '
+        nm = self.name
+        if self.unique_name is not None:
+            nm += ' ' + self.unique_name
+        str = '%s%s +%d,+%d %s {%s} ' % (art, nm, self.enchantment[0], self.enchantment[1], br, ",".join(self.resists))
+        print str
+
+class Blade(Weapon):
+    name = "blade"
+    base_damage = 10
+    base_delay = 10
+    min_delay = 6
+    max_enchantment = (7, 7)
+    skill = "blade"
+    base_cost = 200
+class ShortBlade(Weapon):
+    name = "short blade"
+    base_damage = 4
+    base_delay = 7
+    min_delay = 4
+    max_enchantment = (11, 11)
+    skill = "blade"
+    base_cost = 100
+class Katana(Weapon):
+    name = "katana"
+    base_damage = 12
+    base_delay = 9
+    min_delay = 4
+    max_enchantment = (11, 11)
+    skill = "blade"
+    base_cost = 500
+
+weapons = [Blade, ShortBlade, Katana]
 
 artefacts = util.parseDes('art', ArtefactDes)
 quest_items = util.parseDes('quest', QuestItemDes)

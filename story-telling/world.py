@@ -3,6 +3,7 @@ traders = []
 quest_givers = []
 #unique npcs
 uniques = set()
+deaders = []
 
 ### =============================
 ### VARIABLES BELOW are GENERATED DURING BACKGROUN GEN
@@ -39,3 +40,22 @@ def require_for_nextgen(what, name=None):
         gen_requests[what] = []
     gen_requests[what].append(name)
 
+""" Just what you may think about it - year in the game """
+year = 1000
+
+class City():
+    """City"""
+    def __init__(self, name):
+        self.denizens = []
+        self.deities = []
+        self.name = name
+
+    def add_denizen(self, npc):
+        global year
+        self.denizens.append(npc)
+        npc.history.append('In year %d %s came to city of %s' % (year, npc.name, self.name))
+
+    def add_deity(self, deity):
+        global year
+        self.deities.append(deity)
+        deity.history.append('In year %d %s became deity of the city of %s' % (year, deity.name, self.name))

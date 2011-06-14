@@ -84,6 +84,9 @@ def distance(x1, y1, x2, y2):
 def coinflip():
     return libtcod.random_get_int(0, 0, 1)
 
+def onechancein(wat):
+    return roll(1,wat) == wat
+
 def put_cloud(startx, starty, tile_check_callback, tile_create_callback,
                pattern = [ (0,0), (1, 0), (2, 0),
                             (0,1), (1,1), (2,1),
@@ -170,6 +173,8 @@ static_guilds = """Brothers in the Arms
 Brotherhood of Steal
 Menacing Monks
 Mercenaries"""
+static_artefacts = """Grot
+"""
 
 def __create_name_gen(prefix, statics):
     static_names_gen = []
@@ -195,7 +200,8 @@ ng_names = {
     'demon' : __create_name_gen('demon', None),
     'city' : __create_name_gen('city', static_cities),
     'potion' : __create_name_gen('potion', None),
-    'guild' : __create_name_gen('guild', static_guilds)
+    'guild' : __create_name_gen('guild', static_guilds),
+    'artefact' : __create_name_gen('artefact', static_artefacts),
 }
 def gen_name(flavour='name', check_unique=None):
     ''' generates a name of selected flower. Optionaly checks
