@@ -158,3 +158,15 @@ def make_story():
     return process_string(result)
 #result = make_story()
 
+class StartActionBackground():
+    pass
+class RoomStartBackground(StartActionBackground):
+    def you(self):
+
+        #find your place here.
+        return random.choice(['You woke up in you room. ',
+             'You came to your friend\'s place to see him, but he was out. ',
+             'Passing by you\'ve heard strange noise comming from inside and decided to take a look. ',
+             'You came here to see your old teacher. ',
+             'Someone was knocking on the door loudly an you woke up. ',
+             'When you came back home you noticed someone\'s footprints on the floor. '])

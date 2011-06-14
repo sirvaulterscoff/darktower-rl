@@ -314,6 +314,7 @@ class Inventory(object):
     """inventory for npc"""
     def __init__(self):
         self.items = []
+        self.stolen_items = {}
 
 generated_names = set()
 class QuestNPC(object):
@@ -344,6 +345,8 @@ class QuestNPC(object):
             if contact.name == other.name:
                 return True
         return False
+    def has_enemies(self):
+        return len(self.enemies)> 0
 
     def friend_with(self, other):
         self.friends.append(other)
@@ -356,6 +359,12 @@ class QuestNPC(object):
         #and owners during worldgen)
         other.enemies.append(self)
         self.history.append('In year %d %s became enemy of %s' % (world.year, self.name, other.name))
+
+    def steal_from(self, from_who, what):
+        self.history.append('In year %d %s stole %s from %s' % (world.year, self.name, what.unique_name, from_who.name))
+        from_who.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, self.name))
+        self.became_owner_of(what)
+        from_who.inventory.stolen_items[what] = self
 
     def kill(self, other):
         other.dead = True
@@ -371,7 +380,7 @@ class QuestNPC(object):
             friend = 'a friend '
         enemy = ''
         if self.enemies.__contains__(other):
-            enemy = 'his old enemy'
+            enemy = ' his old enemy'
         other.history.append('In year %d %s was killed by %s%s' % (world.year, other.name, friend, self.name))
         self.history.append('In year %d %s killed %s%s' % (world.year, self.name, other.name, enemy))
         if other.has_items():

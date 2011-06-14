@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 import items
 logger = util.create_logger('plot')
-#5d10 + 20 roll for mNPC
-MNPC_ROLL = (5, 10, 20)
+#3d10 + 20 roll for mNPC
+MNPC_ROLL = (3, 10, 20)
 #1d4 + 4 (from 6-10 quests)
 QUEST_GIVER_ROLL =  (2, 3, 4)
 #1d4 - 1 roll for immobile NPCs (means 0-3).
@@ -18,7 +18,7 @@ UNIQUES_ROLL = (5, 2, 3)
 TRADERS_ROLL = (2, 6,  8)
 #min artefacts count
 ARTEFACTS_COUNT = (4, 3, 4)
-CITIES_COUNT = 15
+CITIES_COUNT = 6
 #the chance of ceratain NPC to become holder of some artefact
 ARTEFACT_OWNER_CHANCE = 4
 
@@ -171,7 +171,7 @@ def make_relations(city):
                     a.deity = choice(city.deities)
                     a.history.append('In year %d %s became worshipper of %s' % (world.year, a.name, a.deity.name))
                     a.deity.folowers.append(a)
-                elif util.roll(1, 3) == 3: #in 1/3 cases giveup deity
+                elif util.onechancein(5): #in 1/5 cases giveup deity
                     old_deity = a.deity
                     new_deity = choice(city.deities)
                     if old_deity != new_deity:
@@ -200,11 +200,10 @@ def make_relations(city):
                             city.denizens.remove(b)
                         except ValueError: pass
                         world.deaders.append(b)
-                    elif util.onechancein(5):
+                    elif util.onechancein(3):
                         if b.has_items(): #steal items instead
                             stolen = b.inventory.items.pop()
-                            a.became_owner_of(stolen)
-                            b.history.append('In year %d %s stole %s from %s' % (world.year, a.name, stolen.unique_name, b.name))
+                            a.steal_from(b, stolen)
                             b.conflict_with(a)
                     else:
                         a.conflict_with(b)
@@ -214,7 +213,11 @@ def make_relations(city):
                             a.kill(b)
                             city.denizens.remove(b)
                             world.deaders.append(b)
-                    if util.coinflip(): #make a master of b
+                    elif util.onechancein(3) and b.has_items():
+                        stolen = b.inventory.items.pop()
+                        a.steal_from(b, stolen)
+                        b.conflict_with(a)
+                    elif util.coinflip(): #make a master of b
                         if b.master is not None and b.master != a and a.master != b: #if b already had master, make a enemy of b.master
                             a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, b.name))
                             b.master.conflict_with(a)
@@ -233,8 +236,44 @@ def make_relations(city):
                         b.minions.append(a)
                         a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, b.name))
         elif a.know(b):
-            #a.kill(b)
-            pass
+            good = isinstance(a, GoodNPC)
+            if len(a.inventory.stolen_items) > 0:
+                killer = choice(city.denizens)
+                if isinstance(killer, BadNPC):
+                    wat = a.inventory.stolen_items.items()[0]
+                    if killer == wat[1]: continue
+                    a.history.append('In year %d %s hired %s to get %s back from %s ' %
+                            (world.year, a.name, killer.name, wat[0].unique_name, wat[1].name))
+                    if util.coinflip(): #if managed to get stolen back
+                        try:
+                            wat[1].inventory.items.remove(wat[0])
+                        except ValueError: pass
+                        a.became_owner_of(wat[0])
+                        if not good and util.coinflip(): #a is bad and b has bad luck
+                            killer.kill(b)
+                            city.denizens.remove(b)
+                            world.deaders.append(b)
+                continue
+            if not good and a.has_enemies() and util.onechancein(3): #let's do revenge
+                if util.coinflip(): #DIY
+                    a.kill(b)
+                    city.denizens.remove(b)
+                    world.deaders.append(b)
+                else: #hire killer
+                    killer = choice(city.denizens)
+                    if isinstance(killer, BadNPC) and not killer.minions.__contains__(b):
+                        if killer == b: continue
+                        if killer != a:
+                            a.history.append('In year %d %s hired %s to get revenge on %s' %
+                                (world.year, a.name, killer.name, b.name))
+                        killer.kill(b)
+                        city.denizens.remove(b)
+                        world.deaders.append(b)
+                    else:
+                        a.kill(b)
+                        city.denizens.remove(b)
+                        world.deaders.append(b)
+
 while stopyear > 1:
     for city in city_map:
         make_relations(city)
@@ -251,7 +290,7 @@ while stopyear > 1:
 
 
 for npc in world.mNPC:
-    print 'History for %s ============' % (npc.name)
+    print 'History for %s ============ %s' % (npc.name, str(npc.__class__))
     for message in npc.history:
         print '\t' + message
 
@@ -264,13 +303,15 @@ def count_band(npc, visited=None):
     cnt = 0
     if visited is not None and visited.__contains__(npc): return 0
     if visited is None:
-        visited = [npc]
+        visited = []
+    visited.append(npc)
     cnt += len(npc.minions)
     for minion in npc.minions:
         if len(minion.minions) > 0:
             cnt += count_band(minion, visited)
     return cnt
 bands = filter(lambda x: isinstance(x, BadNPC) and x.master is None and len(x.minions) > 0, world.mNPC)
+print 'BANDS INF======='
 for band in bands:
     print 'The band of %s consist of %d members ' % (band.name, count_band(band))
 #we do want a nice starting scenario
