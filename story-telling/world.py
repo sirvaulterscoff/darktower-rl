@@ -5,6 +5,12 @@ quest_givers = []
 uniques = set()
 deaders = []
 
+#global artefacts.
+artefacts = []
+#global check for artefact unique-ness
+artefact_names = {}
+#artefacts still available
+free_artefacts = []
 ### =============================
 ### VARIABLES BELOW are GENERATED DURING BACKGROUN GEN
 #The name of the city player was born

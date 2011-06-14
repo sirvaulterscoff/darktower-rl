@@ -1,6 +1,7 @@
 import gl
 import util
-from random import randrange, choice
+from random import randrange, choice, shuffle
+from acquire import acquire
 
 class Item(object):
     char = ' '
@@ -16,6 +17,7 @@ class Item(object):
     #sets quest level for that item. If quest level is none, then item can't be used for quest-targets. otherwise it can be selected fro a quest-target
     quest_level = None
     def __init__(self):
+        self.randart = False
         pass
 
 class ArtefactDes(Item):
@@ -155,3 +157,15 @@ def random_quest_target(artefact=False, check_unique=None) :
     print 'generated ' + str(artefact) + ' ' + str(result) + str(result.name)
     return result
 
+def generate_artefacts(artefacts_count, check=None):
+    """Generates as many artefacts as specified by artefacts_count argument."""
+    result = []
+    arts = artefacts[:]
+    shuffle(arts)
+    while artefacts_count > 0:
+        artefacts_count -= 1
+        if util.onechancein(3) and len(arts) > 0:
+            result.append(arts.pop())
+        else:
+            result.append(acquire(unique=check, artefact=True))
+    return result

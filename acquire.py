@@ -6,41 +6,43 @@ TOP_COST = 1000
 TOP_COST_RANGE = 100
 ONE_PIECE_ENCHANTMENT = 130
 FIXED_ART_UP = 100
-def acquire_weapon(npc):
+def acquire_weapon(npc, unique=None):
     cost = TOP_COST + random.randrange(-1 * TOP_COST_RANGE, TOP_COST_RANGE)
     base_type = random.choice(items.weapons)
     cost -= base_type.base_cost
     wep = base_type()
     if util.coinflip():
-        cost -= make_brand(wep)
+        cost -= _make_brand(wep)
     if util.onechancein(5):
         cost += FIXED_ART_UP
-        cost -= make_randart(wep)
-        cost -= add_misc(wep, cost)
-    add_enchants(wep, cost)
+        cost -= _make_randart(wep, unique)
+        cost -= _add_misc(wep, cost)
+    _add_enchants(wep, cost)
     return wep
 
-def gen_artefact_weapon(base_type, price):
+def gen_artefact_weapon(base_type=None, price=1000, unique=None):
     cost = price
+    if base_type is None:
+        base_type = random.choice(items.weapons)
     wep = base_type()
-    cost -= make_brand(wep)
-    cost -= make_randart(wep)
+    cost -= _make_brand(wep)
+    cost -= _make_randart(wep, unique)
     if util.coinflip():
-        cost -= add_misc(wep, cost)
+        cost -= _add_misc(wep, cost)
     else:
         cost /= 2
-    add_enchants(wep, cost)
+    _add_enchants(wep, cost)
     return wep
 
 
-def make_brand(wep):
+def _make_brand(wep):
     if util.coinflip():
         wep.brand = "fire"
         return 200
     else:
         return 0
 
-def add_enchants(wep, cost):
+def _add_enchants(wep, cost):
     max_wait = 20
     while cost > 0 and wep.enchantment < wep.max_enchantment and max_wait > 0:
         max_wait -= 1
@@ -49,7 +51,7 @@ def add_enchants(wep, cost):
                 wep.enchantment[x] += 1
                 cost -= ONE_PIECE_ENCHANTMENT
 
-def add_misc(wep, cost):
+def _add_misc(wep, cost):
     old_cost = cost
     accumulated_chance = 2
     accumulated_cost = 100
@@ -64,11 +66,13 @@ def add_misc(wep, cost):
             accumulated_chance *= 2
     return old_cost - cost
 
-def make_randart(wep):
+def _make_randart(wep, unique=None):
     wep.randart = True
-    wep.unique_name = util.gen_name('artefact')
+    wep.unique_name = util.gen_name('artefact', unique)
     return 100
 
-acquire_weapon(None).debug_print()
-for i in range(1, 10):
-    gen_artefact_weapon(items.ShortBlade, 1200).debug_print()
+def acquire(cost=1000, unique=None, artefact=False):
+    """Acquires anything """
+    if artefact:
+        return gen_artefact_weapon(price=1000, unique=unique)
+    return acquire_weapon(cost, unique)

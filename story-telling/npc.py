@@ -310,6 +310,11 @@ class VisitPlaceTarget(QuestTarget):
 #to obtain amulet from and wafull demon not neccessarily he should get it. Instead he should be given some important information and be directed to the next quest
 #
 
+class Inventory(object):
+    """inventory for npc"""
+    def __init__(self):
+        self.items = []
+
 generated_names = set()
 class QuestNPC(object):
     mNPC = []
@@ -325,7 +330,14 @@ class QuestNPC(object):
         self.contact = []
         self.deity = None
         self.dead = False
-        pass
+        self.inventory = Inventory()
+
+    def has_items(self):
+        return len(self.inventory.items) > 0
+
+    def became_owner_of(self, item):
+        self.inventory.items.append(item)
+        self.history.append('In year %d %s became owner of %s ' % (world.year, self.name, item.unique_name))
 
     def know(self, other):
         for contact in chain(self.friends, self.enemies, self.contact):
@@ -354,8 +366,19 @@ class QuestNPC(object):
                 other.master.minions.remove(other)
             for minion in  other.minions:
                 minion.master = None
-        other.history.append('In year %d %s was killed by %s' % (world.year, other.name, self.name))
-        self.history.append('In year %d %s killed %s' % (world.year, self.name, other.name))
+        friend = ''
+        if other.friends.__contains__(self):
+            friend = 'a friend '
+        enemy = ''
+        if self.enemies.__contains__(other):
+            enemy = 'his old enemy'
+        other.history.append('In year %d %s was killed by %s%s' % (world.year, other.name, friend, self.name))
+        self.history.append('In year %d %s killed %s%s' % (world.year, self.name, other.name, enemy))
+        if other.has_items():
+            for item in other.inventory.items:
+                if item.randart:
+                    self.became_owner_of(item)
+        other.inventory.items = []
 
     def __str__(self):
         return self.name

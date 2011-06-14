@@ -4,9 +4,10 @@ from random import choice, shuffle, randrange
 from itertools import combinations
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
+import items
 logger = util.create_logger('plot')
-#3d10 + 20 roll for mNPC
-MNPC_ROLL = (3, 10, 20)
+#5d10 + 20 roll for mNPC
+MNPC_ROLL = (5, 10, 20)
 #1d4 + 4 (from 6-10 quests)
 QUEST_GIVER_ROLL =  (2, 3, 4)
 #1d4 - 1 roll for immobile NPCs (means 0-3).
@@ -15,6 +16,11 @@ IMMOBILE_NPC_ROLL = (1, 4, -1)
 UNIQUES_ROLL = (5, 2, 3)
 #traders roll. we want at leat 10 of them, 20 at max.
 TRADERS_ROLL = (2, 6,  8)
+#min artefacts count
+ARTEFACTS_COUNT = (4, 3, 4)
+CITIES_COUNT = 15
+#the chance of ceratain NPC to become holder of some artefact
+ARTEFACT_OWNER_CHANCE = 4
 
 
 def assign_random_name_from_list(instances, names, demon = False):
@@ -32,6 +38,9 @@ def assign_random_name_from_list(instances, names, demon = False):
         if isinstance(npc, instances) and npc.name is not None:
             names.append(npc.name)
 
+artefacts_count = util.roll(*ARTEFACTS_COUNT)
+logger.debug('Rolled for %d artefacts ' % (artefacts_count))
+world.artefacts = items.generate_artefacts(artefacts_count, check=world.artefact_names)
 
 from background import make_story
 story = make_story()
@@ -116,7 +125,7 @@ for k,v in debug_map.items():
 #First we gen the world and place mnpc there
 city_map = []
 need_to_place = world.mNPC[:]
-for j in range (1, 15):
+for j in range (1, CITIES_COUNT):
     city = world.City(util.gen_name('city', world.cities_names))
     city_map.append(city)
 
@@ -133,8 +142,19 @@ while len(need_to_place) > 0:
                 continue
             logger.debug('Adding %s %s to citizens of %s' % (denizen.name, denizen.__class__, city_map[y].name))
             city_map[y].add_denizen(denizen)
+
 logger.debug('Done settling down')
+logger.debug('Distributing  %d artefacts amongst NPCs'% (len(world.artefacts)))
+aarts = world.artefacts[:]
+for npc in  world.mNPC: #generating artefacts
+    if len(aarts) <= 0 : break
+    if isinstance(npc, (ImmobileNPC, TraderNPC)):continue 
+    if util.onechancein(ARTEFACT_OWNER_CHANCE):
+        art = aarts.pop()
+        npc.became_owner_of(art)
+logger.debug('Done distributing artefacts. We have %d artefacts left' % (len(aarts)))
 logger.debug('Launching aquaintance')
+world.free_artefacts = aarts
 stopyear = randrange(10,20)
 
 def make_relations(city):
@@ -165,7 +185,7 @@ def make_relations(city):
                             pass
                         a.history.append('In year %d %s traded deity %s for %s' % (world.year, a.name, old_deity.name, new_deity.name))
 
-        if not a.know(b) and util.roll(1,5) == 1:
+        if not a.know(b) and util.onechancein(5):
             good = isinstance(a, GoodNPC)
             if good: #if a is good 
                 if isinstance(b, (BetrayalNPC, GoodNPC)): #and b is either Betrayer or good - friend them
@@ -174,12 +194,18 @@ def make_relations(city):
                     b.conflict_with(a)
             else: #if a is bad
                 if isinstance(b, GoodNPC): #and b is good - conflict
-                    if util.roll(1,6) == 2: #kill NPC
+                    if util.onechancein(6): #kill NPC
                         a.kill(b)
                         try:
                             city.denizens.remove(b)
                         except ValueError: pass
                         world.deaders.append(b)
+                    elif util.onechancein(5):
+                        if b.has_items(): #steal items instead
+                            stolen = b.inventory.items.pop()
+                            a.became_owner_of(stolen)
+                            b.history.append('In year %d %s stole %s from %s' % (world.year, a.name, stolen.unique_name, b.name))
+                            b.conflict_with(a)
                     else:
                         a.conflict_with(b)
                 elif isinstance(b, BadNPC): #if b is bad as well - try to make relations between them
@@ -206,11 +232,15 @@ def make_relations(city):
                         a.master = b
                         b.minions.append(a)
                         a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, b.name))
+        elif a.know(b):
+            #a.kill(b)
+            pass
 while stopyear > 1:
     for city in city_map:
         make_relations(city)
-        if util.roll(1,3)==3 and len(city.denizens) > 0: #we need to move one denizen to another city
+        if util.onechancein(6) and stopyear > 3 and len(city.denizens) > 0: #we need to move one denizen to another city
            random_denizen = choice(city.denizens)
+           if random_denizen.dead: continue
            city.denizens.remove(random_denizen)
            new_city = choice(city_map)
            new_city.denizens.append(random_denizen)

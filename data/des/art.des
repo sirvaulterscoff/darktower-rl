@@ -1,13 +1,11 @@
-type=sword
+type=blade
 name=Sword of sorrows
-unided_name=script:choice(('Dark grey sword', 'Dull sword'))
+unique_name=Sword of sorrows
+unided_name=$choice(('Dark grey sword', 'Dull sword'))
 description_past = This sword is forged in deep caves of Arjun, where homeless ghosts roam. It is said to encapsulate endless pain and sorrows of those slain by it's creator.
 description_present = This piece of steel used to be a great weapon long time ago. But now it is junk. But as you grab it began to shimmer with a cold harsh light, releasing it's hidden powers.
 description_future = In ancient time weapons called 'swords' was used to bring destruction and death. You've seen several swords, but that one is completly differend. You feel that it has some unknow powers.
-price=1000
+base_cost=1000
 common=1
-END
-
-type=bow
-name=Bow of velocity
+enchantment=$(10, 10)
 END
