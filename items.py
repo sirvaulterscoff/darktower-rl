@@ -18,6 +18,7 @@ class Item(object):
     quest_level = None
     def __init__(self):
         self.randart = False
+        self.unique_name = None
         pass
 
 class ArtefactDes(Item):
@@ -90,10 +91,8 @@ innate_features = ["rPois", "rElec"]
 class Weapon(Item):
     def __init__(self):
         self.brand = None
-        self.randart = False
         self.resists = []
         self.enchantment = [0, 0]
-        self.unique_name = None
 
     def debug_print(self):
         br = ''
@@ -136,12 +135,23 @@ class Katana(Weapon):
 
 weapons = [Blade, ShortBlade, Katana]
 
+class Armor(Item):
+    def __init__(self):
+        super(Armor, self).__init__()
+        self.resist = None
+        self.resists = []
+        self.enchantment = 0
+
+class Crown(Armor):
+    name = "crown"
+    base_ac = 1
+    base_cost = 100
+    max_enchantment = 2
+armor = [Crown]
+
 artefacts = util.parseDes('art', ArtefactDes)
 quest_items = util.parseDes('quest', QuestItemDes)
 key_items = util.parseDes('key', KeyItemDes)
-print artefacts
-print artefacts[0].__dict__
-#print artefacts[1].unided_name
 
 def random_key_item(check_unique=None):
     """ Finds random key item. Key items are those items,

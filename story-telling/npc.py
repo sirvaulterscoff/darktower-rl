@@ -4,6 +4,7 @@ import string
 import sys
 import world
 from itertools import chain
+from quests import *
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import critters
@@ -13,12 +14,6 @@ import dungeon_generators
 
 logger = util.create_logger('npc')
 MAX_HD_DIFF = 4
-class QuestTarget(object):
-    def init(self, world):
-        pass
-    def finish(self, npc, world):
-        """invoked when quest is finished"""
-        pass
 parsed_kd_des = None
 parsed_vp_des = None
 
@@ -36,6 +31,13 @@ def current_city(world):
 
 DEAD = 1
 ESCAPED = 2
+class QuestTarget(object):
+    def init(self, world, issuer):
+        pass
+    def finish(self, npc, world):
+        """invoked when quest is finished"""
+        pass
+
 class KillDudeTarget(QuestTarget):
     def _gen_new_killdude(self, world):
         #generate new NPC here
@@ -45,8 +47,8 @@ class KillDudeTarget(QuestTarget):
         logger.debug('Generated new kill-dude ' + dude.name + ' ' + str(dude.__class__))
         return dude
 
-    def init(self, world):
-        super(KillDudeTarget, self).init(world)
+    def init(self, world, issuer):
+        super(KillDudeTarget, self).init(world, issuer)
         #actualy we need some mobs for kill-dude-purpose-only.
         #kill-dude-npc at 1/4 rate. 3/4 is a plain kill 100 rats quest
         self.what = choice(('kill ', 'demolish ', 'free the world from ', 'assassinate '))
@@ -147,7 +149,7 @@ class KillDudeBackground():
     pass
 
 class BringItemTarget(QuestTarget):
-    def init(self, world):
+    def init(self, world, issuer):
         #here we have following options:
         #bring general item (like potion or key)
         #bring artefact
@@ -177,7 +179,7 @@ class BringItemTarget(QuestTarget):
 class GetInfoTarget(QuestTarget):
     pass
 class VisitPlaceTarget(QuestTarget):
-    def init(self, world):
+    def init(self, world, issuer):
         self.what='wat'
         #here we have options:
         #1. visit predefined location (minimap in map) - ie temple, some house etc
@@ -331,6 +333,7 @@ class QuestNPC(object):
         self.contact = []
         self.deity = None
         self.dead = False
+        self.invincible = False
         self.inventory = Inventory()
 
     def has_items(self):
@@ -339,6 +342,10 @@ class QuestNPC(object):
     def became_owner_of(self, item):
         self.inventory.items.append(item)
         self.history.append('In year %d %s became owner of %s ' % (world.year, self.name, item.unique_name))
+        try:
+            del self.inventory.stolen_items[item]
+        except KeyError:
+            pass
 
     def know(self, other):
         for contact in chain(self.friends, self.enemies, self.contact):
@@ -350,44 +357,110 @@ class QuestNPC(object):
 
     def friend_with(self, other):
         self.friends.append(other)
-        other.friends.append(self)
         self.history.append('In year %d %s made friends with %s' % (world.year, self.name, other.name))
 
     def conflict_with(self, other):
         self.enemies.append(other)
         #todo add some logic here. like b stole from a some artefact etc (ie generate artefacts
         #and owners during worldgen)
-        other.enemies.append(self)
         self.history.append('In year %d %s became enemy of %s' % (world.year, self.name, other.name))
 
-    def steal_from(self, from_who, what):
+    def steal_from(self, from_who, random=True, what=None):
+        if random and from_who.has_items():
+            what = from_who.inventory.items.pop()
         self.history.append('In year %d %s stole %s from %s' % (world.year, self.name, what.unique_name, from_who.name))
         from_who.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, self.name))
         self.became_owner_of(what)
         from_who.inventory.stolen_items[what] = self
 
-    def kill(self, other):
-        other.dead = True
+    def ack(self, other, city):
+        """ This is invoked when people meet each other for the first time.
+        There are couple of options there. Then can make friends, or enemies
+        Concrete realization is up-to sibling class"""
+        pass
+
+    def meet(self, other, city):
+        """ Invoked when to acquainted persons meet each other
+        returns True if the action was taken"""
+    def free_action(self, city):
+        if self.dead:
+            return
+        if len(self.inventory.stolen_items) > 0: #if we have stolen items
+            item = choice(self.inventory.stolen_items.items())
+            res =  self.hire_killer(item[1], city)
+            return res[0]
+
+    def hire_killer(self, other, city):
+        killer = choice(city.denizens)
+        if not isinstance(killer, BadNPC): return False, None
+        wat = self.inventory.stolen_items.items()[0]
+        if killer == wat[1]: return False, None
+        if killer != self:
+            self.history.append('In year %d %s hired %s to get %s back from %s ' %
+                    (world.year, self.name, killer.name, wat[0].unique_name, wat[1].name))
+        if util.coinflip(): #if managed to get stolen back
+            killer.retrieved_stolen_from(wat[1], wat[0], self)
+            return True, killer
+        return False, None
+
+    def retrieved_stolen_from(self, whom, wat, issuer):
+        """ retrieves stolen item from other person. Called from inside of
+        hire_killer."""
+        try:
+            whom.inventory.items.remove(wat)
+            whom.history.append('In year %d %s was stolen from %s' %
+                    (world.year, wat.unique_name, whom.name))
+        except ValueError: pass
+        issuer.became_owner_of(wat)
+
+    def kill(self, other, custom_message_killer = None, cutom_message_vistim = None):
+        if other.invincible:
+            self.history.append('In year %d %s tried to assassinate %s but failed' % (world.year, self.name, other.name))
+            other.conflict_with(self)
+            return False
+        if not other.die(self):
+            return False
         for friend in other.friends:
             friend.conflict_with(self)
         if isinstance(other, BadNPC):
             if other.master is not None:
-                other.master.minions.remove(other)
+                try:
+                    other.master.minions.remove(other)
+                except ValueError: pass
             for minion in  other.minions:
                 minion.master = None
         friend = ''
         if other.friends.__contains__(self):
             friend = 'a friend '
+            other.history.append('In year %d %s was betrayed by his friend %s' % (world.year, other.name, self.name))
         enemy = ''
+        if other == world.king:
+            self.history.append('In year %d %s killed %s and became ruler of the realm' %
+                    (world.year, self.name, other.name))
+            world.king = self
         if self.enemies.__contains__(other):
             enemy = ' his old enemy'
-        other.history.append('In year %d %s was killed by %s%s' % (world.year, other.name, friend, self.name))
-        self.history.append('In year %d %s killed %s%s' % (world.year, self.name, other.name, enemy))
+        if cutom_message_vistim:
+            other.history.append(cutom_message_vistim)
+        else:
+            other.history.append('In year %d %s was killed by %s%s' % (world.year, other.name, friend, self.name))
+        if custom_message_killer:
+            self.history.append(custom_message_killer)
+        else:
+            self.history.append('In year %d %s killed %s%s' % (world.year, self.name, other.name, enemy))
         if other.has_items():
             for item in other.inventory.items:
                 if item.randart:
                     self.became_owner_of(item)
         other.inventory.items = []
+        return True
+
+    def die(self, killer):
+        """invoked whenever NPC is killed"""
+        self.dead = True
+        self.killer = killer
+        return True
+
 
     def __str__(self):
         return self.name
@@ -399,14 +472,14 @@ class QuestNPC(object):
         if quest_giver:
             QuestNPC.quest_giver_NPC.append(what)
 
-    quest_targets = [KillDudeTarget, BringItemTarget,BringItemTarget, VisitPlaceTarget]
+    quest_targets = [KillDudeTarget, BringItemTarget, VisitPlaceTarget]
     #quest_targets = [VisitPlaceTarget]
     def doit(self, world):
         logger.debug('Starting action on ' + str(self.__class__))
         #choose qu
         # est type (a - bring item, b- kill sum1, c - vistin sum1
         target = choice(self.quest_targets)()
-        target.init(world)
+        target.init(world, self)
         logger.debug('Target of quest is ' + str(target))
         print(self.name + ' asks you to ' + target.what)
         target.finish(self, world)
@@ -423,6 +496,89 @@ class QuestNPC(object):
 
 class GoodNPC(QuestNPC):
     common = 7
+    def ack(self, other, city):
+        super(GoodNPC, self).ack(other, city)
+        #good NPC will always try to make friends if he can
+        if isinstance(other, (GoodNPC, BetrayalNPC, WereNPC)):
+            self.friend_with(other)
+            other.friend_with(self)
+        elif isinstance(other, BadNPC):
+            self.conflict_with(other)
+            other.conflict_with(self)
+
+    def meet(self, other, city):
+        super(GoodNPC, self).meet(other, city)
+
+
+#Here follows GoodNPC branches - that just bring some flavour
+class RoyaltyNPC(GoodNPC):
+    common = 1
+    def __init__(self):
+        super(RoyaltyNPC, self).__init__()
+        self.invincible = False
+        self.kidnapped = False
+
+class KingNPC(RoyaltyNPC):
+    common = 1
+    def __init__(self):
+        super(KingNPC, self).__init__()
+        self.guards = []
+        self.invincible = True
+        self.councilor = None
+        self.court_magician = None
+
+    def free_action(self, city):
+        #react on kidpan, or councilor kills
+        self._promote_denizens(city)
+        self._hire_killers(city)
+
+    def _promote_denizens(self, city):
+        if len(city.denizens) < 1: return
+        if self.councilor is None:
+            cand = choice(city.denizens)
+            if isinstance(cand, (GoodNPC, WereNPC, BetrayalNPC)):
+               self.councilor = cand
+               cand.history.append('In year %d %s became a councilor at the court of %s' %
+                       (world.year, cand.name, self.name))
+               self.history.append('In year %d %s promoted %s to the court councilor' %
+                       (world.year, self.name, cand.name))
+               return
+        if self.court_magician is None:
+            cand = choice(city.denizens)
+            if isinstance(cand, (WizardNPC, BadWizardNPC)):
+                self.court_magician = cand
+                cand.history.append('In year %d %s became magician at the court of %s' %
+                        (world.year, cand.name, self.name))
+                self.history.append('In year %d %s promoted %s to the court magician' %
+                       (world.year, self.name, cand.name))
+
+    def _hire_killers(self, city):
+        if world.queen is None:
+            queen = world.queen_ref.items()[0]
+            world.global_quests.append(ResqueQuest(queen, self))
+            self.history.append('In year %d king %s placed bounty for rescuing queen %s' %
+                    (world.year, self.name, queen.name))
+        if len(world.heirs_kidnapped) > 0:
+            for heir in world.heirs_kidnapped:
+                if len(filter_by_target(world.global_quests, ResqueQuest, heir)) == 0:
+                    world.global_quests.append(ResqueQuest(heir, self))
+                    self.history.append('In year %d king %s placed bounty for rescuing princess %s' %
+                            (world.year, self.name, heir.name))
+
+
+
+
+class WizardNPC(GoodNPC):
+    """A wandering wizard that will open a school in town at some point"""
+    common = 2
+    def __init__(self):
+        super(WizardNPC, self).__init__()
+        self.invincible = True
+
+    def meet(self, whom, city):
+        if self.enemies.__contains__(whom) and util.onechancein(4):
+            msg = 'In year %d %s was burnt by %s' % (world.year, whom.name, self.name)
+            self.kill(whom, cutom_message_vistim=msg)
 
 class BadNPC(QuestNPC):
     common = 7
@@ -431,11 +587,158 @@ class BadNPC(QuestNPC):
         """since this is bad npc -it may have relations with other bad guys """
         self.minions = []
         self.master = None
+        self.hostages = []
+
+    def ack(self, other, city):
+        #super(BadNPC, self).ack(other, city)
+        self.contact.append(other)
+
+    def meet(self, other, city):
+        #super(BadNPC, self).meet(other, city)
+        if not self.know(other):
+            self.contact.append(other)
+            return False
+        if util.onechancein(5) and other.has_items():
+            result = self.steal_from(other, True)
+            other.conflict_with(self)
+            return result
+        if isinstance(other, GoodNPC) :
+            if util.onechancein(8):
+                if self.kill(other):
+                    city.was_killed(other)
+        else:
+            a = self
+            if a == other: return
+            if util.onechancein(6): #make a master of b
+                if other.master is not None:
+                    if other.master != a and a.master != other: #if b already had master, make a enemy of b.master
+                        a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, other.name))
+                        other.master.conflict_with(a)
+                else:
+                    if a.master == other: #if we overtook controll
+                        a.master = None
+                        try:
+                            other.minions.remove(a)
+                        except ValueError: pass
+                    try:
+                        other.master.minions.remove(other)
+                    except Exception : pass
+                    a.minions.append(other)
+                    other.master = a
+                    a.history.append('In year %d %s became boss over %s' %(world.year, a.name, other.name))
+            #elif util.onechancein(5): #make a minion of b
+            #    if a.master is not None :#if a had master, make b enemy of a.master
+            #        if a.master == other or other.master == a: return #a.master already is b
+            #        prev_master = a.master
+            #        a.conflict_with(prev_master)
+            #        a.master.minions.remove(a)
+            #        a.history.append('In year %d %s betrayed his master %s for %s' %(world.year, a.name, prev_master.name, other.name))
+            #    boss = other
+            #    if other.master:
+            #        a.master = other.master
+            #        other.master.minions.append(a)
+            #        boss = other.master
+            #    else:
+            #        a.master = other
+            #        other.minions.append(a)
+            #    a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, boss.name))
+            #    boss.history.append('In year %d %s became boss over %s' % (world.year, boss.name, a.name))
+
+    def free_action(self, city):
+        super(BadNPC, self).free_action(city)
+        band_size = count_band(self)
+        if band_size >= 4 and band_leader(self) == self: #band is big enough to capture the king
+            if world.king is not None and world.king != self:
+                if util.onechancein(5):
+                    world.king.dead = True
+                    world.king.history.append('In year %d king %s was killed by %s' %
+                            (world.year, world.king.name, self.name))
+                    self.history.append('In year %d %s killed the king %s and became the ruler of realm' %
+                            (world.year, self.name, world.king.name))
+                    king_items = filter(lambda x: x.randart, world.king.inventory.items)
+                    map(lambda x: self.became_owner_of(x), king_items)
+                    if world.queen:
+                        world.queen.enemies.append(self)
+                    world.king = self
+            if isinstance(world.king, KingNPC) and util.onechancein(4): #kidnap
+                if world.heirs:
+                    self.kidnap_princess()
+                elif world.queen is not None:
+                    self.history.append('In year %d %s kidnapped queen %s' %
+                        (world.year, self.name, world.queen.name))
+                    self.hostages.append(world.queen)
+                    world.queen_ref[world.queen] = self
+                    world.queen = None
+
+    def kidnap_princess(self):
+        kidnap = choice(world.heirs)
+        self.history.append('In year %d %s kidnapped princess %s' %
+                (world.year, self.name, kidnap.name))
+        self.hostages.append(kidnap)
+        world.heirs.remove(kidnap)
+        world.heirs_kidnapped[kidnap] = self
+
+    def hire_killer(self, other, city):
+        result, killer = super(BadNPC, self).hire_killer(other, city)
+        if result and util.coinflip():
+            if killer.kill(other):
+                city.was_killed(other)
+        return result, killer
+
+
+class BadWizardNPC(BadNPC):
+    common = 2
+    def __init__(self):
+        super(BadWizardNPC, self).__init__()
+        self.visited_cities = {}
+        self.stop_moving = False
+
+    def free_action(self, city):
+        if city == world.capital and util.onechancein(3) and len(world.heirs) > 0:
+            self.kidnap_princess()
+            self.stop_moving = True
+        elif city != world.capital and not self.stop_moving:
+            self.visited_cities[city] = True
+            next_city = city
+            if len(self.visited_cities) == len(city.city_map): #nowhere to move
+                return
+            while self.visited_cities.has_key(next_city):
+                next_city = choice(city.city_map)
+            city.denizens.remove(self)
+            next_city.denizens.append(self)
+            self.history.append('In year %d %s moved from city of %s to a %s' %
+                    (world.year, self.name,city.name,next_city.name))
+
+
+    def meet(self, who, city):
+        pass #do nothing
+    def ack(self, other, city):
         pass
 
 class BetrayalNPC(BadNPC):
     common = 2
+    def meet(self, other, city):
+        if self.friends.__contains__(other):
+            if isinstance(other, GoodNPC): #time to betray friends
+                if self.kill(other):
+                    city.was_killed(other)
 
+
+    def retrieved_stolen_from(self, whom, wat, issuer):
+        if util.coinflip():#will leave stolen item for itself
+            try:
+                whom.inventory.items.remove(wat)
+                whom.history.append('In year %d %s was stolen from %s' %
+                        (world.year, wat.unique_name, whom.name))
+            except ValueError: pass
+            issuer.history.append('In year %d %s was arrogated by %s' %
+                    (world.year, wat.unique_name, self.name))
+            self.became_owner_of(wat)
+            self.history.append('In year %d betrayed %s and took %s for himself' %
+                    (world.year, issuer.name, wat.unique_name))
+            issuer.conflict_with(self)
+        else:
+            super(BadNPC, self).retrieved_stolen_from(whom, wat, issuer)
 
 class WereNPC(BetrayalNPC):
     common = 1
@@ -456,7 +759,23 @@ class ControlledNPC(BetrayalNPC):
 
 class OverpoweredNPC(ControlledNPC):
     common = 1
-    pass
+    def __init__(self):
+        super(OverpoweredNPC, self).__init__()
+        self.killer = None
+
+    def die(self, killer):
+        if util.coinflip(): #not die at all
+            self.killer = killer
+            self.history('In year %d %s managed to cheat death' % (world.year, self.name))
+            self.dead = False
+            return False
+        else:
+            return super(OverpoweredNPC, self).die(killer)
+
+    def meet(self, who, city):
+        if self.killer == who:
+            msg = 'In year %d %s got his revenge on %s' % (world.year, self.name, who.name)
+            self.kill(who, custom_message_killer=msg)
 
 class AdventureNPC(GoodNPC):
     common = 6
@@ -480,7 +799,7 @@ class UniqueNPC(BadNPC):
 
 random_artefact_here = '[place here random artefact]'
 #static unique for now
-class Oddyssy(UniqueNPC, AdventureNPC):
+class Oddyssy(UniqueNPC):
     id = 'Oddyssy'
     name = choice(('Odd Yssy', 'Oddyssy'))
     real_name = name
@@ -510,6 +829,9 @@ QuestNPC.register(DeityNPC, True, True)
 QuestNPC.register(ControlledNPC, True, True)
 QuestNPC.register(OverpoweredNPC, True)
 QuestNPC.register(AdventureNPC, True)
+QuestNPC.register(WizardNPC, True, True)
+QuestNPC.register(KingNPC, False, True)
+QuestNPC.register(BadWizardNPC, True, True)
 
 
 def get_npcs_of_type(type, npcs):
@@ -519,3 +841,49 @@ killable_dudes = (
     BadNPC, BetrayalNPC, WereNPC, DeityNPC, ControlledNPC, OverpoweredNPC, BandNPC, UniqueNPC, TraderNPC)
 def get_kill_dudes(npcs):
     return get_npcs_of_type(killable_dudes, npcs)
+
+def count_band(npc, visited=None):
+    """ Count's number of memebers in a band """
+    cnt = 0
+    if visited is not None and visited.__contains__(npc): return 0
+    if visited is None:
+        visited = []
+    visited.append(npc)
+    cnt += len(npc.minions)
+    for minion in npc.minions:
+        if len(minion.minions) > 0:
+            cnt += count_band(minion, visited)
+    return cnt
+
+def band_leader(npc):
+    iter_cnt = 10
+    print 'npc ' + str(npc)
+    print 'npc.master is' + str(npc.master)
+    master = npc
+    while master.master is not None:
+        print 'master.master ' + str(master.master)
+        master = master.master
+        iter_cnt -= 1
+        if iter_cnt <= 0 :
+            print 'master history ' + master.name
+            for message in master.history:
+                print '\t' + message
+            print 'master.master history ' + master.master.name
+            for message in master.master.history:
+                print '\t' + message
+    return master
+
+def is_in_band(npc, band, visited = None):
+    if visited is not None and visited.__contains__(npc): return False
+    if visited is None:
+        visited = []
+    visited.append(npc)
+    if band.master == npc or band == npc:
+        return True
+    for member in band.minions:
+        if member == npc:
+            return True
+        if is_in_band(npc, member, visited):
+            return True
+    if band.master:
+        return is_in_band(npc, band.master, visited)

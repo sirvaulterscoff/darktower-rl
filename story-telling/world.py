@@ -4,6 +4,13 @@ quest_givers = []
 #unique npcs
 uniques = set()
 deaders = []
+king = None
+queen = None
+#reference in case queen is kidnapped
+queen_ref = {}
+heirs = []
+heirs_kidnapped = {}
+global_quests = []
 
 #global artefacts.
 artefacts = []
@@ -29,6 +36,8 @@ adventurer_names =[]
 npc_names = {}
 #used to store current city name to be refered from quests
 current_city = None
+#capital of current region
+capital = None
 
 good_npc_names = []
 bad_npc_names = []
@@ -55,6 +64,9 @@ class City():
         self.denizens = []
         self.deities = []
         self.name = name
+        self.king = None
+        #nearby cities
+        self.city_map = None
 
     def add_denizen(self, npc):
         global year
@@ -65,3 +77,16 @@ class City():
         global year
         self.deities.append(deity)
         deity.history.append('In year %d %s became deity of the city of %s' % (year, deity.name, self.name))
+
+    def set_king(self, king):
+        global year
+        self.king = king
+        king.history.append('In year %d the ruler of the realm %s settled in %s' %(year, king.name, self.name))
+
+    def was_killed(self, who):
+        global deaders
+        try:
+            self.denizens.remove(who)
+            deaders.append(who)
+        except ValueError:
+            pass

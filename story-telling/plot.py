@@ -5,6 +5,7 @@ from itertools import combinations
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 import items
+import acquire
 logger = util.create_logger('plot')
 #3d10 + 20 roll for mNPC
 MNPC_ROLL = (3, 10, 20)
@@ -78,6 +79,27 @@ for i in xrange(0, immobile_npc):
     world.mNPC.append(ImmobileNPC())
 unique_npc = util.roll(*UNIQUES_ROLL)
 
+#now let's generate a king - why not?
+king = KingNPC()
+world.king = king
+king.name = util.gen_name(check_unique=world.npc_names)
+logger.debug('Generated king %s' % (king.name))
+for x in range(2, util.roll(2, 3, 1)):
+    guard = GoodNPC()
+    guard.name = util.gen_name(check_unique=world.npc_names)
+    king.guards.append(guard)
+crown = acquire.acquire_armor(king, world.artefact_names, items.Crown, True)
+king.became_owner_of(crown)
+queen = RoyaltyNPC()
+queen.name = util.gen_name(check_unique=world.npc_names)
+world.queen = queen
+heir_count = randrange(0, 3)
+logger.debug('King will have %d heir/s'% (heir_count))
+for x in range(0, heir_count):
+    heir = RoyaltyNPC()
+    heir.name = util.gen_name(check_unique=world.npc_names)
+    world.heirs.append(heir)
+
 uniques = {}
 for i in xrange(0, unique_npc):
     unique = util.random_from_list_weighted(UniqueNPC._uniques.values())
@@ -124,10 +146,15 @@ for k,v in debug_map.items():
 #lets start from some dwarf-fortress like world-gen. 
 #First we gen the world and place mnpc there
 city_map = []
+world.city_map = city_map
 need_to_place = world.mNPC[:]
 for j in range (1, CITIES_COUNT):
     city = world.City(util.gen_name('city', world.cities_names))
     city_map.append(city)
+    city.city_map = city_map
+capital = choice(city_map)
+capital.set_king(world.king)
+world.capital = capital
 
 while len(need_to_place) > 0:
     for y in range(1, len(city_map)):
@@ -165,7 +192,7 @@ def make_relations(city):
         #if they're still not acquainted - make them friends or enemies
         a, b = pair
         if a.dead or b.dead: continue
-        if util.roll(1, 3) == 1:
+        if util.onechancein(3):
             if len(city.deities) > 0:
                 if a.deity is None:
                     a.deity = choice(city.deities)
@@ -185,106 +212,29 @@ def make_relations(city):
                             pass
                         a.history.append('In year %d %s traded deity %s for %s' % (world.year, a.name, old_deity.name, new_deity.name))
 
-        if not a.know(b) and util.onechancein(5):
-            good = isinstance(a, GoodNPC)
-            if good: #if a is good 
-                if isinstance(b, (BetrayalNPC, GoodNPC)): #and b is either Betrayer or good - friend them
-                    a.friend_with(b)
-                elif isinstance(b, BadNPC): #else - conflict
-                    b.conflict_with(a)
-            else: #if a is bad
-                if isinstance(b, GoodNPC): #and b is good - conflict
-                    if util.onechancein(6): #kill NPC
-                        a.kill(b)
-                        try:
-                            city.denizens.remove(b)
-                        except ValueError: pass
-                        world.deaders.append(b)
-                    elif util.onechancein(3):
-                        if b.has_items(): #steal items instead
-                            stolen = b.inventory.items.pop()
-                            a.steal_from(b, stolen)
-                            b.conflict_with(a)
-                    else:
-                        a.conflict_with(b)
-                elif isinstance(b, BadNPC): #if b is bad as well - try to make relations between them
-                    if util.roll(1,5) == 2: #kill NPC
-                        if a.master != b:
-                            a.kill(b)
-                            city.denizens.remove(b)
-                            world.deaders.append(b)
-                    elif util.onechancein(3) and b.has_items():
-                        stolen = b.inventory.items.pop()
-                        a.steal_from(b, stolen)
-                        b.conflict_with(a)
-                    elif util.coinflip(): #make a master of b
-                        if b.master is not None and b.master != a and a.master != b: #if b already had master, make a enemy of b.master
-                            a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, b.name))
-                            b.master.conflict_with(a)
-                        else: # replace master of b with a
-                            b.master = a
-                            a.minions.append(b)
-                            a.history.append('In year %d %s became boss over %s' %(world.year, a.name, b.name))
-                    else: #make a minion of b
-                        if a.master is not None :#if a had master, make b enemy of a.master
-                            if a.master == b or b.master == a: continue #a.master already is b
-                            prev_master = a.master
-                            a.conflict_with(prev_master)
-                            a.master.minions.remove(a)
-                            a.history.append('In year %d %s betrayed his master %s for %s' %(world.year, a.name, prev_master.name, b.name))
-                        a.master = b
-                        b.minions.append(a)
-                        a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, b.name))
+        if not a.know(b) and util.onechancein(3):
+            a.ack(b, city)
         elif a.know(b):
-            good = isinstance(a, GoodNPC)
-            if len(a.inventory.stolen_items) > 0:
-                killer = choice(city.denizens)
-                if isinstance(killer, BadNPC):
-                    wat = a.inventory.stolen_items.items()[0]
-                    if killer == wat[1]: continue
-                    a.history.append('In year %d %s hired %s to get %s back from %s ' %
-                            (world.year, a.name, killer.name, wat[0].unique_name, wat[1].name))
-                    if util.coinflip(): #if managed to get stolen back
-                        try:
-                            wat[1].inventory.items.remove(wat[0])
-                        except ValueError: pass
-                        a.became_owner_of(wat[0])
-                        if not good and util.coinflip(): #a is bad and b has bad luck
-                            killer.kill(b)
-                            city.denizens.remove(b)
-                            world.deaders.append(b)
-                continue
-            if not good and a.has_enemies() and util.onechancein(3): #let's do revenge
-                if util.coinflip(): #DIY
-                    a.kill(b)
-                    city.denizens.remove(b)
-                    world.deaders.append(b)
-                else: #hire killer
-                    killer = choice(city.denizens)
-                    if isinstance(killer, BadNPC) and not killer.minions.__contains__(b):
-                        if killer == b: continue
-                        if killer != a:
-                            a.history.append('In year %d %s hired %s to get revenge on %s' %
-                                (world.year, a.name, killer.name, b.name))
-                        killer.kill(b)
-                        city.denizens.remove(b)
-                        world.deaders.append(b)
-                    else:
-                        a.kill(b)
-                        city.denizens.remove(b)
-                        world.deaders.append(b)
+            a.meet(b, city)
+    for denizen in city.denizens:
+        denizen.free_action(city)
+    if isinstance(world.king, KingNPC):
+        world.king.free_action(city)
+
+def move_to_city(city):
+   random_denizen = choice(city.denizens)
+   if random_denizen.dead: return
+   city.denizens.remove(random_denizen)
+   new_city = choice(city_map)
+   new_city.denizens.append(random_denizen)
+   if city != new_city:
+       random_denizen.history.append('In year %d %s moved from city of %s to a %s' % (world.year, random_denizen,city.name,new_city.name))
 
 while stopyear > 1:
     for city in city_map:
         make_relations(city)
         if util.onechancein(6) and stopyear > 3 and len(city.denizens) > 0: #we need to move one denizen to another city
-           random_denizen = choice(city.denizens)
-           if random_denizen.dead: continue
-           city.denizens.remove(random_denizen)
-           new_city = choice(city_map)
-           new_city.denizens.append(random_denizen)
-           if city != new_city:
-               random_denizen.history.append('In year %d %s moved from city of %s to a %s' % (world.year, random_denizen,city.name,new_city.name))
+            move_to_city(city)
     stopyear -= 1
     world.year += 1
 
@@ -294,24 +244,16 @@ for npc in world.mNPC:
     for message in npc.history:
         print '\t' + message
 
+print 'History for king %s ' % (world.king.name)
+for message in world.king.history:
+    print '\t' + message
 print 'DEITY INFO======'
 for npc in world.mNPC:
     if not isinstance(npc, DeityNPC): continue
     print '%s has %d followers and %d enemies' % (npc.name, len(npc.folowers), len(npc.enemies))
 
-def count_band(npc, visited=None):
-    cnt = 0
-    if visited is not None and visited.__contains__(npc): return 0
-    if visited is None:
-        visited = []
-    visited.append(npc)
-    cnt += len(npc.minions)
-    for minion in npc.minions:
-        if len(minion.minions) > 0:
-            cnt += count_band(minion, visited)
-    return cnt
 bands = filter(lambda x: isinstance(x, BadNPC) and x.master is None and len(x.minions) > 0, world.mNPC)
-print 'BANDS INF======='
+print 'BANDS INFO======='
 for band in bands:
     print 'The band of %s consist of %d members ' % (band.name, count_band(band))
 #we do want a nice starting scenario

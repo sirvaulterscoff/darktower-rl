@@ -1,7 +1,7 @@
 born = """You was born in ${birth_village}. You spent your childhood laying under beautifull trees, watching others fight every day.
 You was left by your parents in a dark cave near ${birth_city}. Fortunatly ${name} found you.
 You was sixth son in a big family. When you was 10 an awfull hurricane destroyed your village, leaving you as the only survivor. You wandered around the country for some time and was later adopted by ${good_npc} - $profession.
-Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near ${city}. A ${adjective} amulet ${artifact_amulet} was found near his corpse, but no one wish to touch it.
+Your father left home seeking for some mystic treasure soon after your birth. Later he was foun dead in deep caverns near ${city}. A ${adjective} amulet ${artefact_amulet} was found near his corpse, but no one wish to touch it.
 You never knew neither your parents nor your home. You was raised by gypsies and was forced to do all the hard work.
 Hidden in dark forest your home ${birth_village} was home to all sort outcasts. Not neccessary to say that your life here was not easy.
 Blue fires of inferno burn those who dare to come close to ${birth_village} of $adjective fire. This terrible place is your home.

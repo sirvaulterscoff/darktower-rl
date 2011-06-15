@@ -136,7 +136,6 @@ class Critter(object):
         if isinstance(killer, Critter):
             killer.earn_exp(self)
         self.map.remove_critter(self)
-        #todo let's introduce an item class righ here and make mobs leave corpses=items
 
     def earn_exp(self, src):
         #method written beforehand, when we will have alies or whatever
