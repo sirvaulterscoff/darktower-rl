@@ -554,10 +554,11 @@ class KingNPC(RoyaltyNPC):
 
     def _hire_killers(self, city):
         if world.queen is None:
-            queen = world.queen_ref.items()[0]
-            world.global_quests.append(ResqueQuest(queen, self))
-            self.history.append('In year %d king %s placed bounty for rescuing queen %s' %
-                    (world.year, self.name, queen.name))
+            queen = world.queen_ref.keys()[0]
+            if len(filter_by_target(world.global_quests, ResqueQuest, queen)) == 0:
+                world.global_quests.append(ResqueQuest(queen, self))
+                self.history.append('In year %d king %s placed bounty for rescuing queen %s' %
+                        (world.year, self.name, queen.name))
         if len(world.heirs_kidnapped) > 0:
             for heir in world.heirs_kidnapped:
                 if len(filter_by_target(world.global_quests, ResqueQuest, heir)) == 0:
