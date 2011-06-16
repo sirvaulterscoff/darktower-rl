@@ -149,7 +149,7 @@ for were in weres:
                 wered_npc[world.king] = were
                 logger.debug('King will be WereNPC  '+ were.name)
             else:
-                royalty = choice(world.roylties)
+                royalty = choice(world.royalties)
                 if wered_npc.has_key(royalty): continue
                 were.target = royalty
                 wered_npc[royalty] = were
@@ -223,7 +223,7 @@ stopyear = randrange(10,20)
 def make_relations(city):
     """ Try to make relations between citizens of current city """
     #we get all possible variants here, to see if we can make connection
-    suspicion_of_connection = combinations(city.denizens, 2)
+    suspicion_of_connection = combinations(filter(lambda x: not x.dead, city.denizens), 2)
     for pair in suspicion_of_connection:
         #if they're still not acquainted - make them friends or enemies
         a, b = pair
@@ -288,6 +288,10 @@ for royalty in chain(world.royalties, world.royalties_kidnapped) :
     for message in royalty.history:
         print '\t' + message
 
+if king != world.king and world.king:
+    print 'History for last living king ' + world.king.name
+    for message in world.king.history:
+        print '\t' + message
 print 'DEITY INFO======'
 for npc in world.mNPC:
     if  not isinstance(npc, DeityNPC): continue

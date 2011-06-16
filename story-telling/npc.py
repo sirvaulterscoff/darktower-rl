@@ -379,9 +379,14 @@ class QuestNPC(object):
         if random and from_who.has_items():
             what = from_who.inventory.items.pop()
         self.history.append('In year %d %s stole %s from %s' % (world.year, self.name, what.unique_name, from_who.name))
-        from_who.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, self.name))
         self.became_owner_of(what)
-        from_who.inventory.stolen_items[what] = self
+        from_who.item_was_stolen(what, self)
+
+    def item_was_stolen(self, what, who):
+        """ Called when item was stolen from self """
+        self.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, self.name))
+        self.inventory.stolen_items[what] = who
+
 
     def ack(self, other, city):
         """ This is invoked when people meet each other for the first time.
@@ -413,13 +418,15 @@ class QuestNPC(object):
             return True, killer
         return False, None
 
-    def retrieved_stolen_from(self, whom, wat, issuer):
+    def retrieved_stolen_from(self, whom, wat, issuer, stolen=True):
         """ retrieves stolen item from other person. Called from inside of
         hire_killer."""
         try:
-            whom.inventory.items.remove(wat)
-            whom.history.append('In year %d %s was stolen from %s' %
-                    (world.year, wat.unique_name, whom.name))
+            if whom:
+                whom.inventory.items.remove(wat)
+                if stolen:
+                    whom.history.append('In year %d %s was stolen from %s' %
+                            (world.year, wat.unique_name, whom.name))
         except ValueError: pass
         issuer.became_owner_of(wat)
 
@@ -534,6 +541,24 @@ class GoodNPC(QuestNPC):
     def meet(self, other, city):
         super(GoodNPC, self).meet(other, city)
 
+    def item_was_stolen(self, what, who):
+        super(GoodNPC, self).item_was_stolen(what, who)
+        if util.onechancein(3):
+            world.global_quests.append(RetrieveQuest(self, what, None))
+            self.history.append('In year %d %s setted up bounty for anyone who can find %s' %
+                    (world.year, self.name, what.unique_name))
+
+    def free_action(self, city):
+        if self.dead: return
+        for what in self.inventory.stolen_items.items():
+            wat = what[0]
+            who = what[1]
+            if len(filter_by_target(world.global_quests, RetrieveQuest, wat)) == 0:
+                world.global_quests.append(RetrieveQuest(self, wat, who))
+                self.history.append('In year %d %s setted up bounty for anyone who can find %s' %
+                        (world.year, self.name, wat.unique_name))
+
+
 
 #Here follows GoodNPC branches - that just bring some flavour
 class RoyaltyNPC(GoodNPC):
@@ -573,7 +598,7 @@ class KingNPC(RoyaltyNPC):
             if councilor is None:
                 councilor = choice(city.denizens)
             if is_good_npc(councilor):
-                if not isinstance(councilor, AdventureNPC):
+                if not isinstance(councilor, AdventureNPC) and not self.enemies.__contains__(councilor):
                    self.councilor = councilor
                    councilor.history.append('In year %d %s became a councilor at the court of %s' %
                            (world.year, councilor.name, self.name))
@@ -583,6 +608,7 @@ class KingNPC(RoyaltyNPC):
         if self.court_magician is None:
             if city is None and magician is None: return
             cand = choice(city.denizens)
+            if self.enemies.__contains__(cand): return
             if isinstance(cand, (WizardNPC, BadWizardNPC)):
                 self.court_magician = cand
                 cand.history.append('In year %d %s became magician at the court of %s' %
@@ -617,7 +643,7 @@ class KingNPC(RoyaltyNPC):
 
 class WizardNPC(GoodNPC):
     """A wandering wizard that will open a school in town at some point"""
-    common = 2
+    common = 1
     def __init__(self):
         super(WizardNPC, self).__init__()
         self.invincible = True
@@ -641,6 +667,7 @@ class BadNPC(QuestNPC):
         self.contact.append(other)
 
     def meet(self, other, city):
+        if other == self: return
         #super(BadNPC, self).meet(other, city)
         if not self.know(other):
             self.contact.append(other)
@@ -673,23 +700,6 @@ class BadNPC(QuestNPC):
                     a.minions.append(other)
                     other.master = a
                     a.history.append('In year %d %s became boss over %s' %(world.year, a.name, other.name))
-            #elif util.onechancein(5): #make a minion of b
-            #    if a.master is not None :#if a had master, make b enemy of a.master
-            #        if a.master == other or other.master == a: return #a.master already is b
-            #        prev_master = a.master
-            #        a.conflict_with(prev_master)
-            #        a.master.minions.remove(a)
-            #        a.history.append('In year %d %s betrayed his master %s for %s' %(world.year, a.name, prev_master.name, other.name))
-            #    boss = other
-            #    if other.master:
-            #        a.master = other.master
-            #        other.master.minions.append(a)
-            #        boss = other.master
-            #    else:
-            #        a.master = other
-            #        other.minions.append(a)
-            #    a.history.append('In year %d %s became minnion of %s' %(world.year, a.name, boss.name))
-            #    boss.history.append('In year %d %s became boss over %s' % (world.year, boss.name, a.name))
 
     def free_action(self, city):
         super(BadNPC, self).free_action(city)
@@ -700,15 +710,19 @@ class BadNPC(QuestNPC):
                     world.king.dead = True
                     world.king.history.append('In year %d king %s was killed by %s' %
                             (world.year, world.king.name, self.name))
-                    self.history.append('In year %d %s killed the king %s and became the ruler of realm' %
-                            (world.year, self.name, world.king.name))
                     king_items = filter(lambda x: x.randart, world.king.inventory.items)
                     map(lambda x: self.became_owner_of(x), king_items)
                     if len(world.royalties):
                         map(lambda x: x.conflict_with(self), world.royalties)
                     if util.coinflip():#not neccessarily we take after the king
+                        self.history.append('In year %d %s killed the king %s and became the ruler of realm' %
+                                (world.year, self.name, world.king.name))
                         world.king = self
-            if isinstance(world.king, KingNPC) and util.onechancein(10): #do not kidnap, if the king was already assasinated
+                    else:
+                        self.history.append('In year %d %s killed the king %s' %
+                                (world.year, self.name, world.king.name))
+                        world.king = None
+            if world.king and isinstance(world.king, KingNPC) and util.onechancein(10): #do not kidnap, if the king was already assasinated
                 self.kidnap_royalty()
 
     def kidnap_royalty(self, type=None):
@@ -751,6 +765,7 @@ class BadWizardNPC(BadNPC):
         self.stop_moving = False
 
     def free_action(self, city):
+        if self.dead: return
         if city == world.capital and util.onechancein(3) and len(world.royalties) > 0:
             self.kidnap_royalty("princess")
             self.stop_moving = True
@@ -779,6 +794,7 @@ class BadWizardNPC(BadNPC):
 class BetrayalNPC(BadNPC):
     common = 2
     def meet(self, other, city):
+        if self.dead: return
         if self.friends.__contains__(other):
             if isinstance(other, GoodNPC): #time to betray friends
                 if self.kill(other):
@@ -802,12 +818,32 @@ class BetrayalNPC(BadNPC):
             super(BadNPC, self).retrieved_stolen_from(whom, wat, issuer)
 
     def free_action(self, city):
+        if self.dead: return
+        if isinstance(world.king, KingNPC):
+                #if there are some quests from king - we can take them on
+                #complete and become councilor to do our filthy deeds
+            quests_from_king = filter_by_issuer(world.global_quests, world.king)
+            if len(quests_from_king):
+                choice(quests_from_king).fulfil(self,chance=6)
         if len(self.hostages) and util.onechancein(4):
             quests = filter_by_target(world.global_quests, ResqueQuest, self.hostages[0])
             if len(quests):
                 choice(quests).fulfil(self, 5)
-        if util.onechancein(20):
-            self.kidnap_royalty()
+        if isinstance(world.king, KingNPC): #if we live under good-old king
+            king = world.king
+            if self == king.councilor or king.knights.has_key(self):
+                if util.onechancein(15):
+                    self.history.append('In year %d %s betrayed his king' %
+                            (world.year, self.name))
+                    self.kidnap_royalty()
+                    king.conflict_with(self)
+                    king.councilor = None
+                    king.knights.pop(self, None)
+                    return
+                if util.onechancein(22):
+                    self.history.append('In year %d %s betrayed his king and killed him' %
+                            (world.year, self.name))
+                    self.kill(king)
 
 
 class WereNPC(BetrayalNPC):
@@ -824,20 +860,39 @@ class WereNPC(BetrayalNPC):
         self.iproxy = None
 
     def ack(self, whom, city):
-        self.init()
+        self._init()
         if not self.revealed:
             self.iproxy.ack(whom, city)
         else:
             self.target.ack(whom, city)
 
     def meet(self, whom, city):
-        self.init()
+        self._init()
         if not self.revealed:
             self.iproxy.ack(whom, city)
         else:
             self.target.ack(whom, city)
 
-    def init(self):
+    def die(self, killer):
+        self.revealed = True
+        self.history.append('In year %d %s was assaulted by %s and turned out to be %s' %
+                (world.year, self.name, killer.name, self.target.name))
+
+    def retrieved_stolen_from(self, whom, wat, issuer):
+        self.revealed = True
+        self.history.append('In year %d %s revealed that %s is %s' %
+                (world.year, whom.name, self.name, self.target.name))
+        super(WereNPC, self).retrieved_stolen_from(whom, wat, issuer)
+
+    def free_action(self, city):
+        if self.dead: return
+        if world.king is None: #take his place
+            self.proxy = KingNPC
+            self.iproxy = None
+            self.history.append('In year %d %s came to king\'s palace claiming to be a king' %
+                    (world.year, self.name))
+
+    def _init(self):
         if self.iproxy is None:
             self.iproxy = self.proxy()
             self.iproxy.name = self.name
@@ -866,7 +921,7 @@ class OverpoweredNPC(ControlledNPC):
         self.killer = None
 
     def die(self, killer):
-        if util.coinflip(): #not die at all
+        if not util.onechancein(3): #not die at all
             self.killer = killer
             self.history.append('In year %d %s managed to cheat death' % (world.year, self.name))
             self.dead = False
@@ -878,6 +933,15 @@ class OverpoweredNPC(ControlledNPC):
         if self.killer == who:
             msg = 'In year %d %s got his revenge on %s' % (world.year, self.name, who.name)
             self.kill(who, custom_message_killer=msg)
+
+    def free_action(self, city):
+        if self.dead: return
+        if city == world.capital and world.king is None:
+            if util.onechancein(3):
+                world.king = self
+                self.history.append('In year %d %s proclaimed himself a king ' %
+                        (world.year, self.name))
+                #todo hire adventurer to kill impersonator
 
 class AdventureNPC(GoodNPC):
     common = 6
