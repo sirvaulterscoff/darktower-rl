@@ -175,6 +175,9 @@ Menacing Monks
 Mercenaries"""
 static_artefacts = """Grot
 """
+static_female_names = """
+Venera
+"""
 
 def __create_name_gen(prefix, statics):
     static_names_gen = []
@@ -202,6 +205,7 @@ ng_names = {
     'potion' : __create_name_gen('potion', None),
     'guild' : __create_name_gen('guild', static_guilds),
     'artefact' : __create_name_gen('artefact', static_artefacts),
+    'female' : __create_name_gen('female', static_female_names),
 }
 def gen_name(flavour='name', check_unique=None):
     ''' generates a name of selected flower. Optionaly checks

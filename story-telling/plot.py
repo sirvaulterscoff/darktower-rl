@@ -1,7 +1,7 @@
 from npc import *
 import world
 from random import choice, shuffle, randrange
-from itertools import combinations
+from itertools import combinations, chain
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 import items
@@ -23,7 +23,7 @@ CITIES_COUNT = 6
 #the chance of ceratain NPC to become holder of some artefact
 ARTEFACT_OWNER_CHANCE = 4
 
-
+debug_names = True
 def assign_random_name_from_list(instances, names, demon = False):
     for npc in world.mNPC:
         if npc.name is not None:
@@ -32,7 +32,8 @@ def assign_random_name_from_list(instances, names, demon = False):
             if util.coinflip():
                 name = choice(names)
                 names.remove(name)
-                npc.name = name
+                if debug_names:
+                    npc.name = name + str(npc.__class__)
                 npc.is_demon = demon
                 logger.debug('Creating reference NPC ' +str(npc.__class__) +' for ' + name + ' from background')
     for npc in world.mNPC:
@@ -90,15 +91,15 @@ for x in range(2, util.roll(2, 3, 1)):
     king.guards.append(guard)
 crown = acquire.acquire_armor(king, world.artefact_names, items.Crown, True)
 king.became_owner_of(crown)
-queen = RoyaltyNPC()
-queen.name = util.gen_name(check_unique=world.npc_names)
-world.queen = queen
+queen = RoyaltyNPC("queen")
+queen.name = util.gen_name('female', check_unique=world.npc_names)
+world.royalties.append(queen)
 heir_count = randrange(0, 3)
 logger.debug('King will have %d heir/s'% (heir_count))
 for x in range(0, heir_count):
-    heir = RoyaltyNPC()
-    heir.name = util.gen_name(check_unique=world.npc_names)
-    world.heirs.append(heir)
+    heir = RoyaltyNPC("princess")
+    heir.name = util.gen_name('female', check_unique=world.npc_names)
+    world.royalties.append(heir)
 
 uniques = {}
 for i in xrange(0, unique_npc):
@@ -131,7 +132,10 @@ assign_random_name_from_list(DeityNPC, world.deity_npc_names)
 #all that left without names gets brand new name
 for npc in world.mNPC:
     if npc.name is None:
-        npc.name = util.gen_name(check_unique=world.npc_names)
+        name = util.gen_name(check_unique=world.npc_names)
+        if debug_names:
+            name += ' ' + str(npc.__class__)
+        npc.name = name
 debug_map = {}
 for item in world.mNPC:
     cnt = debug_map.get(item.__class__, 0)
@@ -244,12 +248,17 @@ for npc in world.mNPC:
     for message in npc.history:
         print '\t' + message
 
-print 'History for king %s ' % (world.king.name)
-for message in world.king.history:
+print 'History for king %s and family' % (king.name)
+for message in king.history:
     print '\t' + message
+for royalty in chain(world.royalties, world.royalties_kidnapped) :
+    print 'History for %s %s' % (royalty.type, royalty.name)
+    for message in royalty.history:
+        print '\t' + message
+
 print 'DEITY INFO======'
 for npc in world.mNPC:
-    if not isinstance(npc, DeityNPC): continue
+    if  not isinstance(npc, DeityNPC): continue
     print '%s has %d followers and %d enemies' % (npc.name, len(npc.folowers), len(npc.enemies))
 
 bands = filter(lambda x: isinstance(x, BadNPC) and x.master is None and len(x.minions) > 0, world.mNPC)

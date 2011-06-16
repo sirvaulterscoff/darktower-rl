@@ -11,11 +11,8 @@ quest_givers = []
 uniques = set()
 deaders = []
 king = None
-queen = None
-#reference in case queen is kidnapped
-queen_ref = {}
-heirs = []
-heirs_kidnapped = {}
+royalties = []
+royalties_kidnapped = {}
 global_quests = []
 
 #global artefacts.

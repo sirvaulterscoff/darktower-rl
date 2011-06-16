@@ -471,6 +471,15 @@ class QuestNPC(object):
         self.killer = killer
         return True
 
+    def take_quest(self, qfilter=None):
+        if len(world.global_quests) > 0:
+            #let's part on a quest. maybe we got upgraded to knights 8)
+            quests = world.global_quests
+            if qfilter:
+                quests = filter(lambda x: isinstance(x, qfilter), quests)
+            quest = choice(quests)
+            quest.fulfil(self)
+
 
     def __str__(self):
         return self.name
@@ -523,37 +532,50 @@ class GoodNPC(QuestNPC):
 #Here follows GoodNPC branches - that just bring some flavour
 class RoyaltyNPC(GoodNPC):
     common = 1
-    def __init__(self):
+    def __init__(self, type):
         super(RoyaltyNPC, self).__init__()
         self.invincible = False
         self.kidnapped = False
+        self.type = type
+
+    def rescued_by(self, who):
+        world.royalties_kidnapped[self].hostage_rescued(self, who)
+        world.royalties_kidnapped.pop(self)
+        world.royalties.append(self)
+        self.history.append('In year %d %s %s was rescued by by %s' %
+                (world.year, self.type, self.name, who.name))
 
 class KingNPC(RoyaltyNPC):
     common = 1
     def __init__(self):
-        super(KingNPC, self).__init__()
+        super(KingNPC, self).__init__("king")
         self.guards = []
         self.invincible = True
         self.councilor = None
         self.court_magician = None
+        self.knights = {}
 
     def free_action(self, city):
         #react on kidpan, or councilor kills
-        self._promote_denizens(city)
+        if util.onechancein(6):
+            self._promote_denizens(city)
         self._hire_killers(city)
 
-    def _promote_denizens(self, city):
-        if len(city.denizens) < 1: return
+    def _promote_denizens(self, city=None, councilor=None, magician=None):
+        if city and len(city.denizens) < 1: return
         if self.councilor is None:
-            cand = choice(city.denizens)
-            if isinstance(cand, (GoodNPC, WereNPC, BetrayalNPC)):
-               self.councilor = cand
-               cand.history.append('In year %d %s became a councilor at the court of %s' %
-                       (world.year, cand.name, self.name))
-               self.history.append('In year %d %s promoted %s to the court councilor' %
-                       (world.year, self.name, cand.name))
-               return
+            if councilor is None:
+                councilor = choice(city.denizens)
+            if isinstance(councilor, (GoodNPC, WereNPC, BetrayalNPC)):
+                if not isinstance(councilor, AdventureNPC):
+                   self.councilor = councilor
+                   councilor.history.append('In year %d %s became a councilor at the court of %s' %
+                           (world.year, councilor.name, self.name))
+                   self.history.append('In year %d %s promoted %s to the court councilor' %
+                           (world.year, self.name, councilor.name))
+                   return
         if self.court_magician is None:
+            if city is None and magician is None: return
             cand = choice(city.denizens)
             if isinstance(cand, (WizardNPC, BadWizardNPC)):
                 self.court_magician = cand
@@ -563,20 +585,28 @@ class KingNPC(RoyaltyNPC):
                        (world.year, self.name, cand.name))
 
     def _hire_killers(self, city):
-        if world.queen is None:
-            queen = world.queen_ref.keys()[0]
-            if len(filter_by_target(world.global_quests, ResqueQuest, queen)) == 0:
-                world.global_quests.append(ResqueQuest(queen, self))
-                self.history.append('In year %d king %s placed bounty for rescuing queen %s' %
-                        (world.year, self.name, queen.name))
-        if len(world.heirs_kidnapped) > 0:
-            for heir in world.heirs_kidnapped:
-                if len(filter_by_target(world.global_quests, ResqueQuest, heir)) == 0:
-                    world.global_quests.append(ResqueQuest(heir, self))
-                    self.history.append('In year %d king %s placed bounty for rescuing princess %s' %
-                            (world.year, self.name, heir.name))
+        if len(world.royalties_kidnapped) > 0:
+            for royalty in world.royalties_kidnapped:
+                if len(filter_by_target(world.global_quests, ResqueQuest, royalty)) == 0:
+                    world.global_quests.append(ResqueQuest(royalty, self))
+                    self.history.append('In year %d king %s placed bounty for rescuing %s %s' %
+                            (world.year, self.name, royalty.type, royalty.name))
 
 
+    def award_for_quest(self, hero, quest):
+        if isinstance(world.king, KingNPC): #if we're still ruled by true king
+            if isinstance(quest, ResqueQuest):
+                self.history.append('In year %d %s fulfiled the quest to rescue %s %s' %
+                        (world.year, hero.name, quest.who.type, quest.who.name))
+            if util.coinflip():
+                if not self.knights.has_key(hero):
+                    hero.history.append('In year %d %s was promoted to knights by king %s' %
+                            (world.year, hero.name, self.name))
+                    self.history.append('In year %d king %s promoted %s to knights' %
+                            (world.year, self.name, hero.name))
+                    self.knights[hero] = True
+            else:
+                self._promote_denizens(city=None, councilor=hero) #try to promote hero to councilor
 
 
 class WizardNPC(GoodNPC):
@@ -668,26 +698,36 @@ class BadNPC(QuestNPC):
                             (world.year, self.name, world.king.name))
                     king_items = filter(lambda x: x.randart, world.king.inventory.items)
                     map(lambda x: self.became_owner_of(x), king_items)
-                    if world.queen:
-                        world.queen.enemies.append(self)
-                    world.king = self
-            if isinstance(world.king, KingNPC) and util.onechancein(4): #kidnap
-                if world.heirs:
-                    self.kidnap_princess()
-                elif world.queen is not None:
-                    self.history.append('In year %d %s kidnapped queen %s' %
-                        (world.year, self.name, world.queen.name))
-                    self.hostages.append(world.queen)
-                    world.queen_ref[world.queen] = self
-                    world.queen = None
+                    if len(world.royalties):
+                        map(lambda x: x.conflict_with(self), world.royalties)
+                    if util.coinflip():#not neccessarily we take after the king
+                        world.king = self
+            if isinstance(world.king, KingNPC) and util.onechancein(10): #do not kidnap, if the king was already assasinated
+                self.kidnap_royalty()
 
-    def kidnap_princess(self):
-        kidnap = choice(world.heirs)
-        self.history.append('In year %d %s kidnapped princess %s' %
-                (world.year, self.name, kidnap.name))
+    def kidnap_royalty(self, type=None):
+        victims = world.royalties
+        if type:
+            victims = filter(lambda x: x.type == type, victims)
+        if len(victims) <= 0: return
+        kidnap = choice(victims)
+        self.history.append('In year %d %s kidnapped %s %s' %
+                (world.year, self.name, kidnap.type, kidnap.name))
+        kidnap.history.append('In year %d %s %s was kidnapped by %s' %
+                (world.year, kidnap.type, kidnap.name, self.name))
         self.hostages.append(kidnap)
-        world.heirs.remove(kidnap)
-        world.heirs_kidnapped[kidnap] = self
+        world.royalties.remove(kidnap)
+        world.royalties_kidnapped[kidnap] = self
+
+    def hostage_rescued(self, hostage, rescuer):
+        self.hostages.remove(hostage)
+        if util.onechancein(4) and not self.dead: #let's be gentelmans and die once we have hostages freed
+            rescuer.kill(self)
+            for hostage in self.hostages:
+                quest = filter_by_target(world.global_quests, ResqueQuest, hostage)
+                if quest:
+                    quest.fulfil(rescuer)
+
 
     def hire_killer(self, other, city):
         result, killer = super(BadNPC, self).hire_killer(other, city)
@@ -705,8 +745,8 @@ class BadWizardNPC(BadNPC):
         self.stop_moving = False
 
     def free_action(self, city):
-        if city == world.capital and util.onechancein(3) and len(world.heirs) > 0:
-            self.kidnap_princess()
+        if city == world.capital and util.onechancein(3) and len(world.royalties) > 0:
+            self.kidnap_royalty("princess")
             self.stop_moving = True
         elif city != world.capital and not self.stop_moving:
             self.visited_cities[city] = True
@@ -720,6 +760,10 @@ class BadWizardNPC(BadNPC):
             self.history.append('In year %d %s moved from city of %s to a %s' %
                     (world.year, self.name,city.name,next_city.name))
 
+    def hostage_rescued(self, hostage, hero):
+        #super(BadWizardNPC, self).hostage_rescued(hostage, hero)
+        if util.onechancein(3):
+            hero.kill(self)
 
     def meet(self, who, city):
         pass #do nothing
@@ -751,9 +795,25 @@ class BetrayalNPC(BadNPC):
         else:
             super(BadNPC, self).retrieved_stolen_from(whom, wat, issuer)
 
+    def free_action(self, city):
+        if len(self.hostages) and util.onechancein(4):
+            quests = filter_by_target(world.global_quests, ResqueQuest, self.hostages[0])
+            if len(quests):
+                choice(quests).fulfil(self, 5)
+        if util.onechancein(20):
+            self.kidnap_royalty()
+
+
 class WereNPC(BetrayalNPC):
     common = 1
-    pass
+    def __init__(self):
+        super(WereNPC,self).__init__()
+        #werenpc mimics behaviour of proxy-type
+        self.proxy = None
+        #but actualy target is behind hist actions.
+        #for exmple if target is king and proxy is BadNPC, WereNPC
+        #will behave like bad NPC until he's revealed
+        self.target = None
 
 class DeityNPC(QuestNPC):
     common = 2
@@ -777,7 +837,7 @@ class OverpoweredNPC(ControlledNPC):
     def die(self, killer):
         if util.coinflip(): #not die at all
             self.killer = killer
-            self.history('In year %d %s managed to cheat death' % (world.year, self.name))
+            self.history.append('In year %d %s managed to cheat death' % (world.year, self.name))
             self.dead = False
             return False
         else:
@@ -790,9 +850,11 @@ class OverpoweredNPC(ControlledNPC):
 
 class AdventureNPC(GoodNPC):
     common = 6
-    pass
 
-class ImmobileNPC(GoodNPC):
+    def free_action(self, city):
+        self.take_quest()
+
+class ImmobileNPC(QuestNPC):
     pass
 
 class BandNPC(BadNPC):
