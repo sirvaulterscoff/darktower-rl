@@ -136,6 +136,38 @@ for npc in world.mNPC:
         if debug_names:
             name += ' ' + str(npc.__class__)
         npc.name = name
+#now we handle WereNPC, so that each get his own proxy and target
+weres = filter(lambda x: isinstance(x, WereNPC), world.mNPC)
+wered_npc = {}
+for were in weres:
+    while True:
+        #first find target
+        if util.onechancein(20): #mimic royalty
+            if util.coinflip():
+                if wered_npc.has_key(world.king): continue
+                were.target = world.king
+                wered_npc[world.king] = were
+                logger.debug('King will be WereNPC  '+ were.name)
+            else:
+                royalty = choice(world.roylties)
+                if wered_npc.has_key(royalty): continue
+                were.target = royalty
+                wered_npc[royalty] = were
+                logger.debug('%s %s will be WereNPC %s' % (royalty.type, royalty.name, were.name))
+            break
+        else:
+            target = choice(world.mNPC)
+            if isinstance(target, WereNPC): continue
+            if wered_npc.has_key(target): continue
+            were.target = target
+            wered_npc[target] = were
+            break
+    #now we define proxy type
+    if is_good_npc(were.target):
+        proxy = choice((BadNPC, BadWizardNPC, OverpoweredNPC))
+        were.proxy = proxy
+    else:
+        were.proxy = BetrayalNPC
 debug_map = {}
 for item in world.mNPC:
     cnt = debug_map.get(item.__class__, 0)

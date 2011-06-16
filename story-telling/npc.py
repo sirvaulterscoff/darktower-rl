@@ -463,6 +463,12 @@ class QuestNPC(object):
                 if item.randart:
                     self.became_owner_of(item)
         other.inventory.items = []
+        if isinstance(other, BadNPC) and len(other.hostages):
+            for hostage in other.hostages:
+                quests = filter_by_target(world.global_quests, ResqueQuest, hostage)
+                if quests:
+                    for quest in quests:
+                        quest.fulfil(self, chance=1)
         return True
 
     def die(self, killer):
@@ -518,7 +524,7 @@ class GoodNPC(QuestNPC):
     def ack(self, other, city):
         super(GoodNPC, self).ack(other, city)
         #good NPC will always try to make friends if he can
-        if isinstance(other, (GoodNPC, BetrayalNPC, WereNPC)):
+        if is_good_npc(other):
             self.friend_with(other)
             other.friend_with(self)
         elif isinstance(other, BadNPC):
@@ -566,7 +572,7 @@ class KingNPC(RoyaltyNPC):
         if self.councilor is None:
             if councilor is None:
                 councilor = choice(city.denizens)
-            if isinstance(councilor, (GoodNPC, WereNPC, BetrayalNPC)):
+            if is_good_npc(councilor):
                 if not isinstance(councilor, AdventureNPC):
                    self.councilor = councilor
                    councilor.history.append('In year %d %s became a councilor at the court of %s' %
@@ -726,7 +732,7 @@ class BadNPC(QuestNPC):
             for hostage in self.hostages:
                 quest = filter_by_target(world.global_quests, ResqueQuest, hostage)
                 if quest:
-                    quest.fulfil(rescuer)
+                    quest.fulfil(rescuer,chance=1)
 
 
     def hire_killer(self, other, city):
@@ -738,7 +744,7 @@ class BadNPC(QuestNPC):
 
 
 class BadWizardNPC(BadNPC):
-    common = 2
+    common = 1
     def __init__(self):
         super(BadWizardNPC, self).__init__()
         self.visited_cities = {}
@@ -814,6 +820,31 @@ class WereNPC(BetrayalNPC):
         #for exmple if target is king and proxy is BadNPC, WereNPC
         #will behave like bad NPC until he's revealed
         self.target = None
+        self.revealed = False
+        self.iproxy = None
+
+    def ack(self, whom, city):
+        self.init()
+        if not self.revealed:
+            self.iproxy.ack(whom, city)
+        else:
+            self.target.ack(whom, city)
+
+    def meet(self, whom, city):
+        self.init()
+        if not self.revealed:
+            self.iproxy.ack(whom, city)
+        else:
+            self.target.ack(whom, city)
+
+    def init(self):
+        if self.iproxy is None:
+            self.iproxy = self.proxy()
+            self.iproxy.name = self.name
+            self.iproxy.friends = self.friends
+            self.iproxy.enemies = self.enemies
+            self.iproxy.history = self.history
+            self.iproxy.hostages = self.hostages
 
 class DeityNPC(QuestNPC):
     common = 2
@@ -824,7 +855,7 @@ class DeityNPC(QuestNPC):
         self.enemies = []
     pass
 
-class ControlledNPC(BetrayalNPC):
+class ControlledNPC(BadNPC):
     common = 1
     pass
 
@@ -907,6 +938,10 @@ QuestNPC.register(KingNPC, False, True)
 QuestNPC.register(BadWizardNPC, True, True)
 
 
+def is_good_npc(npc):
+    if isinstance(npc, WereNPC):
+        return isinstance(npc.proxy, (GoodNPC, BetrayalNPC))
+    return isinstance(npc, (GoodNPC, BetrayalNPC))
 def get_npcs_of_type(type, npcs):
     return filter(lambda x: isinstance(x, type), npcs)
 
