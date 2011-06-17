@@ -168,6 +168,12 @@ for were in weres:
         were.proxy = proxy
     else:
         were.proxy = BetrayalNPC
+controlled_npcs = filter(lambda x: isinstance(x, ControlledNPC), world.mNPC)
+bad_npc = filter(lambda x: x.__class__==BadNPC, world.mNPC)
+for controlled in controlled_npcs:
+    #we need to define master of ControlledNPC
+    controlled.master = choice(bad_npc)
+    controlled.history.append('%s is controlled by %s' % (controlled.name, controlled.master.name))
 debug_map = {}
 for item in world.mNPC:
     cnt = debug_map.get(item.__class__, 0)
@@ -305,8 +311,45 @@ for band in bands:
 ##starting_place = choice(('room', 'forest', 'city', 'cave', 'desert', 'pip'))
 #world.require_for_nextgen(starting_place, 'start')
 #now we are ready to set off.
-shuffle(world.quest_givers)
-first_quest_giver = world.quest_givers[0]
-first_quest_giver.doit(world)
-first_quest_giver = world.quest_givers[1]
-first_quest_giver.doit(world)
+#shuffle(world.quest_givers)
+#first_quest_giver = world.quest_givers[0]
+#first_quest_giver.doit(world)
+#first_quest_giver = world.quest_givers[1]
+#first_quest_giver.doit(world)
+
+#let's see what quests we have: they're prioretized 0 - minor, 2 major
+available_quests = { 0 : [], 1: [], 2: [] }
+for npc in world.mNPC:
+    for item in npc.inventory.stolen_items.keys():
+        available_quests[1].append('%s want\'s you to find item %s' % (npc.name, item.unique_name))
+    for enemy in npc.enemies:
+        available_quests[0].append('%s want\'s you to kill %s' %(npc.name, enemy.name))
+if isinstance(king, KingNPC):
+    for item in npc.inventory.stolen_items.keys():
+        available_quests[2].append('King %s want\'s you to find item %s' % (npc.name, item.unique_name))
+    for enemy in npc.enemies:
+        available_quests[1].append('King %s want\'s you to kill %s' %(npc.name, enemy.name))
+for quest in world.global_quests:
+    available_quests[2].append('%s want\'s you to %s %s' % (quest.issuer.name, quest.verb, quest.what.name))
+print 'Available quests============='
+for quest_group in available_quests.items():
+    print str(quest_group[0]) + ':'
+    for quest in quest_group[1]:
+        print quest
+print 'Potential quests==========='
+bad_wiz = filter(lambda x: isinstance(x, BadWizardNPC), world.capital.denizens)
+for wiz in bad_wiz:
+    print 'Bad wizard %s lives in capital' % (wiz.name)
+if world.king is None or not isinstance(world.king, KingNPC):
+    print 'King was killed by someone'
+if isinstance(world.king, KingNPC):
+    if isinstance(world.king.councilor, BadNPC):
+        print 'King\'s councilor %s is betrayer' % (world.king.councilor.name)
+    for knight in world.king.knights:
+        if isinstance(knight, BadNPC):
+            print 'King\'s knight %s is betrayer' % (knight.name)
+
+crime_armies = filter(lambda x: count_band(x) > 6, bands)
+for armie in crime_armies:
+    print 'There is criminal army of %d members' % (count_band(armie))
+

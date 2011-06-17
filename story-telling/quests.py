@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import util
 
 class ResqueQuest(object):
+    verb = "rescue"
     """Quest to resque someone"""
     def __init__(self, who, issuer):
         super(ResqueQuest, self).__init__()
@@ -20,6 +21,7 @@ class ResqueQuest(object):
             self.issuer.award_for_quest(hero, self)
 
 class RetrieveQuest(object):
+    verb = "retrieve"
     """Quest to retrieve certain item"""
     def __init__(self, who, what, thief):
         super(RetrieveQuest, self).__init__()

@@ -378,6 +378,7 @@ class QuestNPC(object):
     def steal_from(self, from_who, random=True, what=None):
         if random and from_who.has_items():
             what = from_who.inventory.items.pop()
+        if what is None: return
         self.history.append('In year %d %s stole %s from %s' % (world.year, self.name, what.unique_name, from_who.name))
         self.became_owner_of(what)
         from_who.item_was_stolen(what, self)
@@ -414,7 +415,7 @@ class QuestNPC(object):
             self.history.append('In year %d %s hired %s to get %s back from %s ' %
                     (world.year, self.name, killer.name, wat[0].unique_name, wat[1].name))
         if util.coinflip(): #if managed to get stolen back
-            killer.retrieved_stolen_from(wat[1], wat[0], self)
+            killer.retrieved_stolen_from(wat[1], wat[0], self, False)
             return True, killer
         return False, None
 
@@ -702,6 +703,7 @@ class BadNPC(QuestNPC):
                     a.history.append('In year %d %s became boss over %s' %(world.year, a.name, other.name))
 
     def free_action(self, city):
+        if self.dead: return
         super(BadNPC, self).free_action(city)
         band_size = count_band(self)
         if band_size >= 4 and band_leader(self) == self: #band is big enough to capture the king
@@ -801,9 +803,10 @@ class BetrayalNPC(BadNPC):
                     city.was_killed(other)
 
 
-    def retrieved_stolen_from(self, whom, wat, issuer):
+    def retrieved_stolen_from(self, whom, wat, issuer, stolen=True):
         if util.coinflip():#will leave stolen item for itself
             try:
+                if whom is None: return
                 whom.inventory.items.remove(wat)
                 whom.history.append('In year %d %s was stolen from %s' %
                         (world.year, wat.unique_name, whom.name))
@@ -815,7 +818,7 @@ class BetrayalNPC(BadNPC):
                     (world.year, issuer.name, wat.unique_name))
             issuer.conflict_with(self)
         else:
-            super(BadNPC, self).retrieved_stolen_from(whom, wat, issuer)
+            super(BadNPC, self).retrieved_stolen_from(whom, wat, issuer, stolen)
 
     def free_action(self, city):
         if self.dead: return
@@ -878,11 +881,11 @@ class WereNPC(BetrayalNPC):
         self.history.append('In year %d %s was assaulted by %s and turned out to be %s' %
                 (world.year, self.name, killer.name, self.target.name))
 
-    def retrieved_stolen_from(self, whom, wat, issuer):
+    def retrieved_stolen_from(self, whom, wat, issuer, stolen=True):
         self.revealed = True
         self.history.append('In year %d %s revealed that %s is %s' %
                 (world.year, whom.name, self.name, self.target.name))
-        super(WereNPC, self).retrieved_stolen_from(whom, wat, issuer)
+        super(WereNPC, self).retrieved_stolen_from(whom, wat, issuer, stolen)
 
     def free_action(self, city):
         if self.dead: return
@@ -912,7 +915,14 @@ class DeityNPC(QuestNPC):
 
 class ControlledNPC(BadNPC):
     common = 1
-    pass
+    
+    def meet(self, who, city):
+        pass
+
+    def free_action(self, city):
+        if self.master.dead: return #master is dead - do nothing
+        if util.onechancein(9) and world.king and isinstance(world.king, KingNPC):
+            self.steal_from(world.king)
 
 class OverpoweredNPC(ControlledNPC):
     common = 1
