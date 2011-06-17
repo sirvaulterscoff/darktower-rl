@@ -37,6 +37,18 @@ class RetrieveQuest(object):
                     (world.year, hero.name, self.what.unique_name, thief))
             hero.retrieved_stolen_from(self.thief, self.what, self.issuer, stolen=False)
 
+class FindItemQuest(object):
+    """ Quest to find lost item """
+    verb = "find"
+    def __init__(self, issuer, what):
+        super(FindItemQuest, self).__init__()
+        self.issuer, self.what = issuer, what
+
+    def fulfil(self, hero, chance=15):
+        if util.onechancein(chance):
+            hero.retrieve_lost(self.issuer, self.what)
+            world.global_quests.remove(self)
+
 def filter_by_target(collection, type, what):
     filtered = filter(lambda x: isinstance(x, type), collection)
     return filter(lambda x: x.what == what, filtered)

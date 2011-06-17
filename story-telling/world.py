@@ -1,7 +1,6 @@
-import des
 import sys, os
-from __init__ import logger
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import des
 import util
 
 mNPC = []
@@ -83,6 +82,8 @@ class City():
         self.king = None
         #nearby cities
         self.city_map = None
+        """ if set to NPC - then that NPC unleashed a plague in the city"""
+        self.plague_src = None
 
     def add_denizen(self, npc):
         global year

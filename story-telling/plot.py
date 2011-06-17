@@ -262,6 +262,15 @@ def make_relations(city):
         denizen.free_action(city)
     if isinstance(world.king, KingNPC):
         world.king.free_action(city)
+    if city.plague_src : #if there is a plague in the city
+        if util.onechancein(15) and city==world.capital and len(world.royalties): 
+            #infect royalty
+            victim = choice(world.royalties)
+            victim.plague = True
+        elif util.onechancein(7) and len(city.denizens):
+            victim = choice(city.denizens)
+            victim.plague = True
+
 
 def move_to_city(city):
    random_denizen = choice(city.denizens)
@@ -349,7 +358,15 @@ if isinstance(world.king, KingNPC):
         if isinstance(knight, BadNPC):
             print 'King\'s knight %s is betrayer' % (knight.name)
 
+for royalty in world.royalties:
+    if royalty.plague:
+        print 'Someone infected %s %s ' % (royalty.type, royalty.name)
 crime_armies = filter(lambda x: count_band(x) > 6, bands)
 for armie in crime_armies:
     print 'There is criminal army of %d members' % (count_band(armie))
+
+infected_cities = filter(lambda x: city.plague_src, city_map)
+for city in infected_cities:
+    print 'There is a plague in city %s' % (city.name)
+
 

@@ -327,6 +327,7 @@ class Inventory(object):
     def __init__(self):
         self.items = []
         self.stolen_items = {}
+        self.lost_items = []
 
 generated_names = set()
 class QuestNPC(object):
@@ -345,6 +346,7 @@ class QuestNPC(object):
         self.dead = False
         self.invincible = False
         self.inventory = Inventory()
+        self.plague = False
 
     def has_items(self):
         return len(self.inventory.items) > 0
@@ -385,7 +387,7 @@ class QuestNPC(object):
 
     def item_was_stolen(self, what, who):
         """ Called when item was stolen from self """
-        self.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, self.name))
+        self.history.append('In year %d %s was stolen by %s' % (world.year, what.unique_name, who.name))
         self.inventory.stolen_items[what] = who
 
 
@@ -405,6 +407,11 @@ class QuestNPC(object):
             item = choice(self.inventory.stolen_items.items())
             res =  self.hire_killer(item[1], city)
             return res[0]
+        if self.plague and util.onechancein(15) and not self.invincible:
+            self.die(None)
+            city.was_killed(self)
+            self.history.append('In year %d %s died from plague' %
+                    (world.year, self.name))
 
     def hire_killer(self, other, city):
         killer = choice(city.denizens)
@@ -430,6 +437,14 @@ class QuestNPC(object):
                             (world.year, wat.unique_name, whom.name))
         except ValueError: pass
         issuer.became_owner_of(wat)
+
+    def retrieve_lost(self, issuer, what):
+        """ retrieves lost item. issuer is the person who lost item, 
+        what - the item itself"""
+        self.history.append('In year %d %s found %s lost by %s' %
+                (world.year, self.name, what.unique_name, issuer.name))
+        issuer.inventory.lost_items.remove(what)
+        issuer.became_owner_of(what)
 
     def kill(self, other, custom_message_killer = None, cutom_message_vistim = None):
         if other.invincible:
@@ -551,6 +566,19 @@ class GoodNPC(QuestNPC):
 
     def free_action(self, city):
         if self.dead: return
+        if self.has_items() and util.onechancein(10): #will lost their item
+            print 'AWWWWWWWWWW LOST+++++++++++++++++++++' + self.name
+            lost_item = choice(self.inventory.items)
+            self.inventory.items.remove(lost_item)
+            self.inventory.lost_items.append(lost_item)
+            self.history.append('In year %d %s lost his %s' %
+                    (world.year, self.name, lost_item.unique_name))
+        if len(self.inventory.lost_items) and util.coinflip():
+            for lost_item in self.inventory.lost_items:
+                if len(filter_by_target(world.global_quests, FindItemQuest, lost_item)) == 0:
+                    self.history.append('In year %d %s placed a bounty for finding lost %s' %
+                            (world.year, self.name, lost_item.unique_name))
+                    world.global_quests.append(FindItemQuest(self, lost_item))
         for what in self.inventory.stolen_items.items():
             wat = what[0]
             who = what[1]
@@ -768,6 +796,10 @@ class BadWizardNPC(BadNPC):
 
     def free_action(self, city):
         if self.dead: return
+        if util.onechancein(12): #make plague
+            self.history.append('In year %d %s unleashed a plague in city of %s' %
+                    (world.year, self.name, city.name))
+            city.plague_src = self
         if city == world.capital and util.onechancein(3) and len(world.royalties) > 0:
             self.kidnap_royalty("princess")
             self.stop_moving = True
