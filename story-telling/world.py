@@ -73,6 +73,8 @@ def require_for_next_mapgen(what):
 """ Just what you may think about it - year in the game """
 year = 1000
 
+BUILT = 1
+DESTROYED = 2
 class City():
     """City"""
     def __init__(self, name):
@@ -84,6 +86,7 @@ class City():
         self.city_map = None
         """ if set to NPC - then that NPC unleashed a plague in the city"""
         self.plague_src = None
+        self.temples = {}
 
     def add_denizen(self, npc):
         global year
@@ -99,6 +102,12 @@ class City():
         global year
         self.king = king
         king.history.append('In year %d the ruler of the realm %s settled in %s' %(year, king.name, self.name))
+
+    def create_temple(self, deity):
+        global BUILT
+        self.temples[deity] = BUILT
+        #todo actualy build temple from real .des file
+        return BUILT
 
     def was_killed(self, who):
         global deaders

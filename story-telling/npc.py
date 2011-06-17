@@ -412,6 +412,28 @@ class QuestNPC(object):
             city.was_killed(self)
             self.history.append('In year %d %s died from plague' %
                     (world.year, self.name))
+        if util.onechancein(3):
+            self.deity_relations(city)
+
+    def deity_relations(self, city):
+        if len(city.deities) > 0:
+            if self.deity is None:
+                self.deity = choice(city.deities)
+                self.history.append('In year %d %s became worshipper of %s' % (world.year, self.name, self.deity.name))
+                self.deity.folowers.append(self)
+            elif util.onechancein(5): #in 1/5 cases giveup deity
+                old_deity = self.deity
+                new_deity = choice(city.deities)
+                if old_deity != new_deity:
+                    old_deity.betrayers.append(self)
+                    old_deity.folowers.remove(self)
+                    self.deity = new_deity
+                    new_deity.folowers.append(self)
+                    try:
+                        new_deity.betrayers.remove(self)
+                    except ValueError:
+                        pass
+                    self.history.append('In year %d %s traded deity %s for %s' % (world.year, self.name, old_deity.name, new_deity.name))
 
     def hire_killer(self, other, city):
         killer = choice(city.denizens)
@@ -566,8 +588,9 @@ class GoodNPC(QuestNPC):
 
     def free_action(self, city):
         if self.dead: return
+        if util.onechancein(3):
+            self.deity_relations(city)
         if self.has_items() and util.onechancein(10): #will lost their item
-            print 'AWWWWWWWWWW LOST+++++++++++++++++++++' + self.name
             lost_item = choice(self.inventory.items)
             self.inventory.items.remove(lost_item)
             self.inventory.lost_items.append(lost_item)
@@ -690,6 +713,7 @@ class BadNPC(QuestNPC):
         self.minions = []
         self.master = None
         self.hostages = []
+        self.false_king = False
 
     def ack(self, other, city):
         #super(BadNPC, self).ack(other, city)
@@ -748,6 +772,7 @@ class BadNPC(QuestNPC):
                         self.history.append('In year %d %s killed the king %s and became the ruler of realm' %
                                 (world.year, self.name, world.king.name))
                         world.king = self
+                        self.false_king = True
                     else:
                         self.history.append('In year %d %s killed the king %s' %
                                 (world.year, self.name, world.king.name))
@@ -825,6 +850,11 @@ class BadWizardNPC(BadNPC):
     def ack(self, other, city):
         pass
 
+class HereticNPC(BadNPC):
+    """ The only goal of this class is to became direct
+    enemies of DeityNPC by a) stealing something from temple
+    b) destroying temple """
+    common = 1
 class BetrayalNPC(BadNPC):
     common = 2
     def meet(self, other, city):
@@ -943,11 +973,19 @@ class DeityNPC(QuestNPC):
         super(DeityNPC, self).__init__()
         self.folowers = []
         self.enemies = []
-    pass
+        self.betrayers = []
+        self.temple = None
+
+    def free_action(self, city):
+        if len(self.folowers) >= 4 and self.temple is None: #build temple
+            if util.coinflip():
+                self.temple = city.create_temple(self)
+                self.history.append('In year %d citizens of %s  built temple for deity %s' %
+                        (world.year, city.name, self.name))
 
 class ControlledNPC(BadNPC):
     common = 1
-    
+
     def meet(self, who, city):
         pass
 
@@ -956,7 +994,7 @@ class ControlledNPC(BadNPC):
         if util.onechancein(9) and world.king and isinstance(world.king, KingNPC):
             self.steal_from(world.king)
 
-class OverpoweredNPC(ControlledNPC):
+class OverpoweredNPC(BadNPC):
     common = 1
     def __init__(self):
         super(OverpoweredNPC, self).__init__()
@@ -975,6 +1013,7 @@ class OverpoweredNPC(ControlledNPC):
         if self.killer == who:
             msg = 'In year %d %s got his revenge on %s' % (world.year, self.name, who.name)
             self.kill(who, custom_message_killer=msg)
+        super(OverpoweredNPC, self).meet(who ,city)
 
     def free_action(self, city):
         if self.dead: return
@@ -984,6 +1023,12 @@ class OverpoweredNPC(ControlledNPC):
                 self.history.append('In year %d %s proclaimed himself a king ' %
                         (world.year, self.name))
                 #todo hire adventurer to kill impersonator
+        elif city != world.capital and count_band(self) > 3 and band_leader(self) == self:
+            #if we're powerfull enough - we can declare overselfs a king
+            if util.coinflip() and not self.false_king:
+                self.false_king = True
+                self.history.append('In year %d %s declared himself a king' %
+                        (world.year, self.name))
 
 class AdventureNPC(GoodNPC):
     common = 6
@@ -1035,7 +1080,7 @@ QuestNPC.register(GoodNPC, True, True)
 QuestNPC.register(BadNPC, True, False)
 QuestNPC.register(BetrayalNPC, True, True)
 QuestNPC.register(WereNPC, True, True)
-QuestNPC.register(DeityNPC, True, True)
+QuestNPC.register(DeityNPC, False, True)
 QuestNPC.register(ControlledNPC, True, True)
 QuestNPC.register(OverpoweredNPC, True)
 QuestNPC.register(AdventureNPC, True)

@@ -9,6 +9,7 @@ import acquire
 logger = util.create_logger('plot')
 #3d10 + 20 roll for mNPC
 MNPC_ROLL = (3, 10, 20)
+DEITY_ROLL = (2, 3, 2)
 #1d4 + 4 (from 6-10 quests)
 QUEST_GIVER_ROLL =  (2, 3, 4)
 #1d4 - 1 roll for immobile NPCs (means 0-3).
@@ -68,6 +69,14 @@ while actual_quest_givers < min_quest_givers:
         if not QuestNPC.quest_giver_NPC.__contains__(rnd):
             actual_quest_givers += 1
 world.mNPC.extend(result)
+#now let's generate deities
+deity_coun= util.roll(*DEITY_ROLL)
+deities = []
+for x in xrange(0, deity_coun):
+    deity = DeityNPC()
+    deities.append(deity)
+world.mNPC.extend(deities)
+
 world.quest_givers = filter(lambda x: QuestNPC.quest_giver_NPC.__contains__(x.__class__), result)
 #now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
 immobile_npc = 0
@@ -168,7 +177,7 @@ for were in weres:
         were.proxy = proxy
     else:
         were.proxy = BetrayalNPC
-controlled_npcs = filter(lambda x: isinstance(x, ControlledNPC), world.mNPC)
+controlled_npcs = filter(lambda x: x.__class__== ControlledNPC, world.mNPC)
 bad_npc = filter(lambda x: x.__class__==BadNPC, world.mNPC)
 for controlled in controlled_npcs:
     #we need to define master of ControlledNPC
@@ -217,7 +226,7 @@ logger.debug('Distributing  %d artefacts amongst NPCs'% (len(world.artefacts)))
 aarts = world.artefacts[:]
 for npc in  world.mNPC: #generating artefacts
     if len(aarts) <= 0 : break
-    if isinstance(npc, (ImmobileNPC, TraderNPC)):continue 
+    if isinstance(npc, (ImmobileNPC, TraderNPC, DeityNPC)):continue
     if util.onechancein(ARTEFACT_OWNER_CHANCE):
         art = aarts.pop()
         npc.became_owner_of(art)
@@ -234,25 +243,6 @@ def make_relations(city):
         #if they're still not acquainted - make them friends or enemies
         a, b = pair
         if a.dead or b.dead: continue
-        if util.onechancein(3):
-            if len(city.deities) > 0:
-                if a.deity is None:
-                    a.deity = choice(city.deities)
-                    a.history.append('In year %d %s became worshipper of %s' % (world.year, a.name, a.deity.name))
-                    a.deity.folowers.append(a)
-                elif util.onechancein(5): #in 1/5 cases giveup deity
-                    old_deity = a.deity
-                    new_deity = choice(city.deities)
-                    if old_deity != new_deity:
-                        old_deity.enemies.append(a)
-                        old_deity.folowers.remove(a)
-                        a.deity = new_deity
-                        new_deity.folowers.append(a)
-                        try:
-                            new_deity.enemies.remove(a)
-                        except ValueError:
-                            pass
-                        a.history.append('In year %d %s traded deity %s for %s' % (world.year, a.name, old_deity.name, new_deity.name))
 
         if not a.know(b) and util.onechancein(3):
             a.ack(b, city)
@@ -260,6 +250,8 @@ def make_relations(city):
             a.meet(b, city)
     for denizen in city.denizens:
         denizen.free_action(city)
+    for deity in city.deities:
+        deity.free_action(city)
     if isinstance(world.king, KingNPC):
         world.king.free_action(city)
     if city.plague_src : #if there is a plague in the city
@@ -369,4 +361,10 @@ infected_cities = filter(lambda x: city.plague_src, city_map)
 for city in infected_cities:
     print 'There is a plague in city %s' % (city.name)
 
+def find_city(denizen):
+    return filter(lambda x: x.denizens.__contains__(denizen), city_map)[0]
 
+false_kings = filter(lambda x: isinstance(x, BadNPC) and x.false_king, world.mNPC)
+for false_king in false_kings:
+    if false_king.dead: continue
+    print 'There is a false king %s in city %s' % (false_king.name, find_city(false_king).name)
