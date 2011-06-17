@@ -4,5 +4,7 @@ description_past = A piece of somewhat old paper with strange writings on it.
 description_present = A piece of somewhat old paper with strange writings on it. 
 description_future = A piece of somewhat old paper with strange writings on it. 
 common=1
+where_type=house
+standalone=True
 END
 

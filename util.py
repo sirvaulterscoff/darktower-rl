@@ -181,16 +181,16 @@ def __create_name_gen(prefix, statics):
     ng_sets = []
     global name_gens
     for name_gen  in name_gens:
-	if name_gen.startswith(prefix.strip()):
-	    ng_sets.append(name_gen)
+        if name_gen.startswith(prefix.strip()):
+            ng_sets.append(name_gen)
     if statics is not None:
         names_list = map(lambda x: x.strip().replace('_', ' '), statics.strip().split(' '))
         random.shuffle(names_list)
         static_names_gen = itertools.cycle(names_list)
     while True:
         if roll(1, 8) == 8 and statics is not None:
-	    name = static_names_gen.next()
-	    yield name
+            name = static_names_gen.next()
+            yield name
         name = libtcod.namegen_generate(choice(ng_sets))
         yield name
 
@@ -206,8 +206,8 @@ ng_names = {
 def gen_name(flavour='name', check_unique=None):
     ''' generates a name of selected flower. Optionaly checks
     if such name already exists.
-	flavour - is the key in ng_names dict
-	check_unique is optional dict for checking name's uniqueness
+    flavour - is the key in ng_names dict
+    check_unique is optional dict for checking name's uniqueness
     returns generated name'''
     name = None
     if check_unique is not None:
@@ -226,9 +226,14 @@ def parseDes(file_name, type):
     file_name = os.path.join(os.path.dirname(__file__), 'data', 'des', file_name + '.des')
     return des.parseFile(file_name, type)
 
+parsed_des_files = { }
 def parseFile(file_name, type):
-    """parses file located anywhere"""
-    return des.parseFile(file_name, type)
+    """parses file"""
+    if parsed_des_files.has_key(file_name):
+        return parsed_des_files[file_name]
+    des = des.parseFile(file_name, type)
+    parsed_des_files[file_name] = des
+
 
 static_colors = [
 (0,0,0),  (31,31,31), (63,63,63), (128,128,128), (191,191,191),

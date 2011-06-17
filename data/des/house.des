@@ -1,0 +1,11 @@
+name=Small hut
+common=10
+orient=RANDOM
+MAP="""
+..####..
+..#..#..
+..#..#..
+..##+#..
+........
+"""
+END

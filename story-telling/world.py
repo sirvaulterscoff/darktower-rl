@@ -1,3 +1,9 @@
+import des
+import sys, os
+from __init__ import logger
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import util
+
 mNPC = []
 traders = []
 quest_givers = []
@@ -54,6 +60,19 @@ def require_for_nextgen(what, name=None):
     if not gen_requests.has_key(what):
         gen_requests[what] = []
     gen_requests[what].append(name)
+
+def require_for_next_mapgen(what):
+    """ this method is used to issue requests for map_gen for certain features.
+    For example a quest needs forest to be generated nearby - it should ask world to generate
+    a forest for next map_gen.
+    what - denotes a type of feature to be generated
+    function returns the holder for requested feature.
+    """
+    if what == 'house':
+        houses = util.parseFile('houses', des.HouseDes)
+        house = util.random_from_list_weighted(houses)
+        required_for_mapgen.append(house)
+    return house
 
 """ Just what you may think about it - year in the game """
 year = 1000

@@ -38,25 +38,27 @@ def parseFile(fname, ttype):
 
 def process(items, ttype, toks):
     if len(items) < 1:
-	where = ttype()
-	items.append(where)
+        where = ttype()
+        items.append(where)
     else:
-	where = items[-1]
+        where = items[-1]
     if where is None:
-	items.pop()
-	where = ttype()
-	items.append(where)
+        items.pop()
+        where = ttype()
+        items.append(where)
     key = toks[0]
     key = str(key).lower()
     value = toks[1]
     if isinstance(value, str):
-	where.__dict__[key] = value
+        where.__dict__[key] = value
     else:
-	if where.__dict__.get(key) is None:
-	    where.__dict__[key] = {}
-	for k, v in zip(value[::2], value[1::2]):
-	    where.__dict__[key][k] = v
+        if where.__dict__.get(key) is None:
+            where.__dict__[key] = {}
+        for k, v in zip(value[::2], value[1::2]):
+            where.__dict__[key][k] = v
 
 def end(result):
     result.append(None)
 
+class HouseDes():
+    pass

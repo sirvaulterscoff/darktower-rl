@@ -149,7 +149,7 @@ class KillDudeBackground():
     pass
 
 class BringItemTarget(QuestTarget):
-    def init(self, world, issuer):
+    def init(self, world):
         #here we have following options:
         #bring general item (like potion or key)
         #bring artefact
@@ -172,12 +172,22 @@ class BringItemTarget(QuestTarget):
             self.target_item = items.random_key_item(world.generated_quest_items)
         logger.debug('Generate item-quest-target: ' + str(self.target_item))
         self.what = choice(('obtain' , 'retrieve', 'bring', 'find')) + ' ' + self.target_item.name
+        #item can lay down
+        if self.target_item.standalone:
+            #if it's just lay somewhere around - it can be a house, a dungeo, forest etc.
+            #we tell the world that we need exact feature for next map_gen
+            self.where = world.require_for_next_mapgen(self.target_item.where_type)
+            self.what += ' from ' + self.where.name
+        #if self.target_item.owned:
 
     def finish(self, npc, world):
         npc.target_achieved(self)
 
 class GetInfoTarget(QuestTarget):
-    pass
+    def init(self, world):
+        #here we ask PC to get some info from:
+        # 1. some static source (book in library, talking statue, )
+        pass
 class VisitPlaceTarget(QuestTarget):
     def init(self, world, issuer):
         self.what='wat'
