@@ -50,6 +50,7 @@ def parse_string(map, map_chars):
         x = 0
     return new_map
 
+#todo move entire class to des.py
 class MapDef(object):
     def __init__(self):
 	self.map_chars = default_map_chars.copy()

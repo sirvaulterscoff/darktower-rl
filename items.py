@@ -22,7 +22,9 @@ class Item(object):
         pass
 
 class ArtefactDes(Item):
-    pass
+    def __init__(self):
+        self.type = None
+        self.randart = False
 class QuestItemDes(Item):
     pass
 class KeyItemDes(Item):
@@ -149,7 +151,10 @@ class Crown(Armor):
     max_enchantment = 2
 armor = [Crown]
 
+print 'Parsing arts'
 artefacts = util.parseDes('art', ArtefactDes)
+for art in artefacts:
+    print art.type
 quest_items = util.parseDes('quest', QuestItemDes)
 key_items = util.parseDes('key', KeyItemDes)
 

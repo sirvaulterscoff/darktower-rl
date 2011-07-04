@@ -1,5 +1,8 @@
+""" Module dealing with all kind of des files - like maps, rooms, bacgrounds etc"""
 from pyparsing import *
 import string
+import random
+import util
 #chars allowed for right-hand-value
 viable_chars = '!"#$%&\'()*+,-./:;<?@[\]^_`{|}~'
 equals = Literal('=').suppress()
@@ -19,29 +22,26 @@ any_keyword = Combine(Word(alphas, min=1) + ZeroOrMore(Word(alphanums + '_-')))
 #parses KEYWORD="""
 multiline_keyword = any_keyword + equals +  multi_line
 #end of block keyword
-end_keyword  = Keyword('END').suppress() + line_end + restOfLine
+end_keyword  = Keyword('END').suppress() + line_end
 
 assignment = any_keyword + equals + (OneOrMore(dict_rhv) | rhv)
 ml_assignment = multiline_keyword
 
 assignment = ml_assignment | assignment
-parser =  OneOrMore(assignment)  + end_keyword
+parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
 def parseFile(fname, ttype):
-    result = []
+    result = [None]#None indicates that a new item should be created
     assignment.setParseAction(lambda x: process(result,ttype, x))
     end_keyword.setParseAction(lambda x : end(result))
-    parser.parseFile(fname)
+    cont = open(fname).read()
+    parser.parseString(cont)
     if result[-1] is None:
-        tail = result.pop()
+        result.pop()
     return result
 
 def process(items, ttype, toks):
-    if len(items) < 1:
-        where = ttype()
-        items.append(where)
-    else:
-        where = items[-1]
+    where = items[-1]
     if where is None:
         items.pop()
         where = ttype()
@@ -50,7 +50,30 @@ def process(items, ttype, toks):
     key = str(key).lower()
     value = toks[1]
     if isinstance(value, str):
-        where.__dict__[key] = value
+        val = value
+        val = string.Template(val).safe_substitute(where.__dict__)
+        if val.startswith('$') and not val.startswith('${'):
+            val = val[1:]
+            #here we address simple value evaluation via eval
+            try:
+                where.__dict__[key] = eval(val)
+            except Exception ,e:
+                print 'Error parsing code :\n' + val + '\n' + str(e)
+                import sys
+                sys.exit(-1)
+        elif val.startswith('%'): #more complex - via compile and exec
+            val = val[1:]
+            try:
+                code = compile(val, '', 'exec')
+                exec(code)
+                #actualy any executed code should set 'out' variable. we take it and set to target class
+                setattr(where,key,out)
+            except Exception ,e:
+                print 'Error parsing code :\n' + value[1:] + '\n' + str(e)
+                import sys
+                sys.exit(-1)
+        else: #simple assignment case
+            setattr(where,key,val)
     else:
         if where.__dict__.get(key) is None:
             where.__dict__[key] = {}
@@ -60,5 +83,16 @@ def process(items, ttype, toks):
 def end(result):
     result.append(None)
 
-class HouseDes():
+class HouseDes(object):
     pass
+
+class Temple(object):
+    """Temple description """
+    def __init__(self, map_src):
+        super(Temple, self).__init__(map_src)
+
+
+a= 'import util;\ndef free_action(self, city):\n    print "YEEEEEEEEEEEEEEEEEEESSSSSSSSSSSSSS"\n\ndef action(who, world):\n    if isinstance(who, BadWizardNPC):\n        who.__dict__[free_action] = free_action'
+print a
+exec(a)
+free_action(None, None)

@@ -1,11 +1,60 @@
 type=blade
 name=Sword of sorrows
 unique_name=Sword of sorrows
-unided_name=$choice(('Dark grey sword', 'Dull sword'))
+unided_name=$random.choice(('Dark grey sword', 'Dull sword'))
 description_past = This sword is forged in deep caves of Arjun, where homeless ghosts roam. It is said to encapsulate endless pain and sorrows of those slain by it's creator.
 description_present = This piece of steel used to be a great weapon long time ago. But now it is junk. But as you grab it began to shimmer with a cold harsh light, releasing it's hidden powers.
-description_future = In ancient time weapons called 'swords' was used to bring destruction and death. You've seen several swords, but that one is completly differend. You feel that it has some unknow powers.
+description_future = In ancient time weapons called 'swords' was used to bring destruction and death. You''ve seen several swords, but that one is completly differend. You feel that it has some unknow powers.
 base_cost=1000
 common=1
 enchantment=$(10, 10)
 END
+
+owner = ${bad_wizard}
+name=${owner} experiments on necromancy
+id=experiments_on_necromancy
+type=book
+unique_name=${name}
+unided_name=$util.gen_name('book')
+description_past = This book contains description of different experiments concerning death itself.
+description_present = This book seems to contain some sort of scientific-horror storries about zombies and liches.
+description_future = This ancient p-book contains strange writings and images, that seems to describe some very complex process.
+base_cost=100000
+common=1
+action_worldgen_freeaction="""%
+def ${id}_free_turn(self, who, city):
+    import util
+    import world
+    import npc
+    if not isinstance(who, npc.BadWizardNPC):
+        return
+    for deader in world.deaders:
+        if util.onechancein(10): #let's revive someone
+            deader.zombie = True
+            deader.house = who.house
+            deader.master = who
+            deader.history.append('In year %d %s was raised by %s as a zombie to serve his dark intentions' % (world.year, deader.name, who.name))
+            deader.name += "'s zombie"
+            who.minions.append(deader)
+            world.deaders.remove(deader)
+    if getattr(who, 'lich', False):
+        if util.onechancein(12) and not getattr(who, 'has_tower', False):
+            if len(who.minions) >= 4: #build necropolis
+                who.home = world.require_for_nextgen('necropolis', "%s\'s necropolis" %(who.name))
+                who.history.append('In year %d %s settled in dark castle near %s to carry out his dark experiments' % (world.year, who.name, who.city.name))
+            else:
+                who.home = world.require_for_nextgen('dark_tower', "%s\'s dark tower" % (who.name))
+                who.history.append('In year %d %s settled in dark tower near %s to carry out his dark experiments' % (world.year, who.name, who.city.name))
+            who.has_tower = True
+            for deader in who.minions:
+                deader.home = who.home
+
+    elif util.onechancein(10) and not getattr(who, 'lich', False) :#became a lich
+        who.history.append('In year %d %s became a powerfull lich' % (world.year, who.name))
+        who.lich = True
+
+
+out = ${id}_free_turn
+"""
+END
+

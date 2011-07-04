@@ -1,3 +1,6 @@
+""" This module represents critters-map-player interaction.
+Map in that case if the game's field where actual actions
+take place """
 import critters
 import features
 import gl
@@ -9,19 +12,21 @@ FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
 
 class Map(object):
-    def __init__(self, map_src, player):
+    def __init__(self, map_src):
 	self.map_critters = []
 	self.critter_xy_cache = {}
         self.map = map_src
         self.map_height = len(map_src)
         self.map_width = len(map_src[0])
-        self.player = player
         self.square = self.map_height * self.map_width
-        player.map = self
         self.fov_map = None
 
     def __getitem__(self, item):
         return self.map[item]
+
+    def place_player(self, player):
+        self.player = player
+        player.map = self
 
     def init_fov(self):
         self.fov_map = libtcod.map_new(self.map_width, self.map_height)
@@ -108,3 +113,4 @@ class Map(object):
 
     def coords_okay(self, x, y):
         return not (x < 0 or y< 0 or x >= self.map_width or y >= self.map_height)
+

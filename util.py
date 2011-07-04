@@ -206,6 +206,7 @@ ng_names = {
     'guild' : __create_name_gen('guild', static_guilds),
     'artefact' : __create_name_gen('artefact', static_artefacts),
     'female' : __create_name_gen('female', static_female_names),
+    'book' : __create_name_gen('book', None),
 }
 def gen_name(flavour='name', check_unique=None):
     ''' generates a name of selected flower. Optionaly checks
@@ -224,19 +225,24 @@ def gen_name(flavour='name', check_unique=None):
     logger.debug('Generated name %s for flavour %s' % (name, flavour))
     return name
 
-def parseDes(file_name, type):
+parsed_des_files = { }
+def parseDes(file_name, type, sub_type='des'):
     """parses des file from data/des/ folder.
     file_name is the name if the file without .des"""
-    file_name = os.path.join(os.path.dirname(__file__), 'data', 'des', file_name + '.des')
-    return des.parseFile(file_name, type)
+    file_name = os.path.join(os.path.dirname(__file__), 'data', sub_type, file_name + '.des')
+    if parsed_des_files.has_key(file_name):
+        return parsed_des_files[file_name]
+    _des = des.parseFile(file_name, type)
+    parsed_des_files[file_name] = _des
+    return _des
 
-parsed_des_files = { }
 def parseFile(file_name, type):
     """parses file"""
     if parsed_des_files.has_key(file_name):
         return parsed_des_files[file_name]
-    des = des.parseFile(file_name, type)
-    parsed_des_files[file_name] = des
+    _des = des.parseFile(file_name, type)
+    parsed_des_files[file_name] = _des
+    return _des
 
 
 static_colors = [

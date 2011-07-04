@@ -346,7 +346,10 @@ class QuestNPC(object):
         self.dead = False
         self.invincible = False
         self.inventory = Inventory()
+        #shows that NPC is plague infected 
         self.plague = False
+        self.zombie = False
+        self.house = None
 
     def has_items(self):
         return len(self.inventory.items) > 0
@@ -358,6 +361,8 @@ class QuestNPC(object):
             del self.inventory.stolen_items[item]
         except KeyError:
             pass
+        if hasattr(item, 'action_worldgen_onacquire'):
+            item.action_worldgen_onacquire(self, world)
 
     def know(self, other):
         for contact in chain(self.friends, self.enemies, self.contact):
@@ -403,18 +408,21 @@ class QuestNPC(object):
     def free_action(self, city):
         if self.dead:
             return
+        self.item_action(action = 'action_worldgen_freeaction', args = (self, city))
         if len(self.inventory.stolen_items) > 0: #if we have stolen items
             item = choice(self.inventory.stolen_items.items())
             res =  self.hire_killer(item[1], city)
             return res[0]
+        self._handle_desease(city)
+        if util.onechancein(3):
+            self.deity_relations(city)
+
+    def _handle_desease(self, city):
         if self.plague and util.onechancein(15) and not self.invincible:
             self.die(None)
             city.was_killed(self)
             self.history.append('In year %d %s died from plague' %
                     (world.year, self.name))
-        if util.onechancein(3):
-            self.deity_relations(city)
-
     def deity_relations(self, city):
         if len(city.deities) > 0:
             if self.deity is None:
@@ -531,6 +539,14 @@ class QuestNPC(object):
             quest = choice(quests)
             quest.fulfil(self)
 
+    def item_action(self, items=None, action = None, args= ()):
+        if not items:
+            items = self.inventory.items
+        for item in items:
+            actual_args = list(args)
+            actual_args.insert(0, item)
+            if hasattr(item, action):
+                getattr(item, action)(*actual_args)
 
     def __str__(self):
         return self.name
@@ -628,6 +644,19 @@ class RoyaltyNPC(GoodNPC):
         self.history.append('In year %d %s %s was rescued by by %s' %
                 (world.year, self.type, self.name, who.name))
 
+    def die(self, killer):
+        super(RoyaltyNPC, self).die(killer)
+        if util.onechancein(5): #build a tomb or crypt
+            print 'building tomb %d' % len(self.inventory.items)
+            import sys
+            sys.exit(-1)
+            if util.coinflip():
+                self.tomb = world.require_for_nextgen('crypt', '%s\'s crypt' % self.name, corpse=self)
+                self.history.append('In year %d %s %s was burried in a crypt' % (world.year, self.type, self.name))
+            else:
+                self.tomb = world.require_for_nextgen('royal_tomb', 'Royal tomb')
+                self.history.append('In year %d %s %s was burried in a tomb' % (world.year, self.type, self.name))
+
 class KingNPC(RoyaltyNPC):
     common = 1
     def __init__(self):
@@ -692,7 +721,6 @@ class KingNPC(RoyaltyNPC):
             else:
                 self._promote_denizens(city=None, councilor=hero) #try to promote hero to councilor
 
-
 class WizardNPC(GoodNPC):
     """A wandering wizard that will open a school in town at some point"""
     common = 1
@@ -704,6 +732,12 @@ class WizardNPC(GoodNPC):
         if whom in self.enemies and util.onechancein(4):
             msg = 'In year %d %s was burnt by %s' % (world.year, whom.name, self.name)
             self.kill(whom, cutom_message_vistim=msg)
+
+    def free_action(self, city):
+        super(WizardNPC, self).free_action(city)
+        if util.onechancein(7) and not self.house:
+            self.house = world.require_for_nextgen('guild', '%s\'s wizards guild' % (self.name))
+            self.history.append('In year %d %s settled wizards guild in city %s' % (world.year, self.name, self.city.name))
 
 class BadNPC(QuestNPC):
     common = 7
@@ -733,41 +767,52 @@ class BadNPC(QuestNPC):
             if util.onechancein(8):
                 if self.kill(other):
                     city.was_killed(other)
-        else:
-            a = self
-            if a == other: return
-            if util.onechancein(6): #make a master of b
-                if other.master is not None:
-                    if other.master != a and a.master != other: #if b already had master, make a enemy of b.master
-                        a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, other.name))
-                        other.master.conflict_with(a)
-                else:
-                    if a.master == other: #if we overtook controll
-                        a.master = None
-                        try:
-                            other.minions.remove(a)
-                        except ValueError: pass
+        elif isinstance(other, BadNPC):
+            self.take_control_over(other)
+
+    def take_control_over(self, other):
+        """ tries to take control over another NPC if fails may become minion of other npc"""
+        a = self
+        if a == other: return
+        if util.onechancein(6): #make a master of b
+            if other.master is not None:
+                if other.master != a and a.master != other: #if b already had master, make a enemy of b.master
+                    a.history.append('In year %d %s tried to overtake the control over %s, but failed' % (world.year, a.name, other.name))
+                    other.master.conflict_with(a)
+            else:
+                if a.master == other: #if we overtook controll
+                    a.master = None
                     try:
-                        other.master.minions.remove(other)
-                    except Exception : pass
-                    a.minions.append(other)
-                    other.master = a
-                    a.history.append('In year %d %s became boss over %s' %(world.year, a.name, other.name))
+                        other.minions.remove(a)
+                    except ValueError: pass
+                try:
+                    other.master.minions.remove(other)
+                except Exception : pass
+                a.minions.append(other)
+                other.master = a
+                a.history.append('In year %d %s became boss over %s' %(world.year, a.name, other.name))
 
     def free_action(self, city):
         if self.dead: return
         super(BadNPC, self).free_action(city)
         band_size = count_band(self)
-        if band_size >= 4 and band_leader(self) == self: #band is big enough to capture the king
-            if world.king is not None and world.king != self:
+        if band_size >= 4 and band_leader(self) == self:
+            if self.house is None and util.onechancein(5):
+                # create hideout
+                self.house = world.require_for_nextgen('hideout', '%s\'s hideout' % (self.name))
+                self.history.append('In year %d %s created hideout in city %s' % (world.year, self.name, self.city.name))
+            if world.king is not None and world.king != self:#band is big enough to capture the king
                 if util.onechancein(5):
                     world.king.dead = True
                     world.king.history.append('In year %d king %s was killed by %s' %
                             (world.year, world.king.name, self.name))
                     king_items = filter(lambda x: x.randart, world.king.inventory.items)
-                    map(lambda x: self.became_owner_of(x), king_items)
+                    if util.onechancein(4):
+                        map(lambda x: self.became_owner_of(x), king_items)
                     if len(world.royalties):
                         map(lambda x: x.conflict_with(self), world.royalties)
+                    world.king.die(self)
+                    city.was_killed(world.king)
                     if util.coinflip():#not neccessarily we take after the king
                         self.history.append('In year %d %s killed the king %s and became the ruler of realm' %
                                 (world.year, self.name, world.king.name))
@@ -818,10 +863,12 @@ class BadWizardNPC(BadNPC):
         super(BadWizardNPC, self).__init__()
         self.visited_cities = {}
         self.stop_moving = False
+        self.home = None
 
     def free_action(self, city):
         if self.dead: return
-        if util.onechancein(12): #make plague
+        self.item_action(action = 'action_worldgen_freeaction', args = (self, city))
+        if util.onechancein(13): #make plague
             self.history.append('In year %d %s unleashed a plague in city of %s' %
                     (world.year, self.name, city.name))
             city.plague_src = self
@@ -837,6 +884,7 @@ class BadWizardNPC(BadNPC):
                 next_city = choice(city.city_map)
             city.denizens.remove(self)
             next_city.denizens.append(self)
+            self.city = next_city
             self.history.append('In year %d %s moved from city of %s to a %s' %
                     (world.year, self.name,city.name,next_city.name))
 
@@ -1043,7 +1091,7 @@ class BandNPC(BadNPC):
     common = 3
     pass
 
-class UniqueNPC(BadNPC):
+class UniqueNPC(QuestNPC):
     id = None
     _uniques = {}
 
@@ -1068,7 +1116,29 @@ class TraderNPC(GoodNPC):
     pass
 
 class ThiefNPC(BetrayalNPC):
-    pass
+    #todo thieves guild
+    def meet(self, other, city):
+        if other == self: return
+        if not self.know(other):
+            self.contact.append(other)
+            return False
+        if util.onechancein(5) and other.has_items():
+            result = self.steal_from(other, True)
+            other.conflict_with(self)
+            return result
+        if isinstance(other, ThiefNPC) :
+            self.take_control_over(other)
+
+    def free_action(self, city):
+        if self.dead:
+            return
+        self.item_action(action = 'action_worldgen_freeaction', args = (self, city))
+        self._handle_desease(city)
+        if count_band(self) > 4 and band_leader(self) == self:
+            #establish thieves guild
+            if util.onechancein(7):
+                self.house = world.require_for_nextgen(guild, '%s\'s thieves guild' % (self.name))
+                self.history.append('In year %d %s established thieves guild in city %s' % (world.year, self.name, self.city.name))
 
 class SummonedNPC(GoodNPC):
     pass
@@ -1079,6 +1149,7 @@ class  ShadowOfThePastNPC(QuestNPC):
 QuestNPC.register(GoodNPC, True, True)
 QuestNPC.register(BadNPC, True, False)
 QuestNPC.register(BetrayalNPC, True, True)
+QuestNPC.register(ThiefNPC, True, True)
 QuestNPC.register(WereNPC, True, True)
 QuestNPC.register(DeityNPC, False, True)
 QuestNPC.register(ControlledNPC, True, True)
@@ -1110,6 +1181,11 @@ def count_band(npc, visited=None):
     visited.append(npc)
     cnt += len(npc.minions)
     for minion in npc.minions:
+        if isinstance(minion, GoodNPC):
+            for item in minion.history:
+                print item
+            import sys
+            sys.exit(-1)
         if len(minion.minions) > 0:
             cnt += count_band(minion, visited)
     return cnt

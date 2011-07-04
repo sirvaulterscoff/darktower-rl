@@ -50,12 +50,15 @@ cities_names = {}
 """ Stores already generated quest items (artefact and general items together"""
 generated_quest_items = {}
 gen_requests = {}
+#Stores already generate book names
+book_names = {}
 
-def require_for_nextgen(what, name=None):
+def require_for_nextgen(what, name=None, mapgenparm={}):
     """ registers a new worldgen request"""
     if not gen_requests.has_key(what):
         gen_requests[what] = []
     gen_requests[what].append(name)
+    return True
 
 def require_for_next_mapgen(what):
     """ this method is used to issue requests for map_gen for certain features.
@@ -105,6 +108,7 @@ class City():
 
     def create_temple(self, deity):
         global BUILT
+        #util.parseFile("temple", 
         self.temples[deity] = BUILT
         #todo actualy build temple from real .des file
         return BUILT
@@ -116,3 +120,34 @@ class City():
             deaders.append(who)
         except ValueError:
             pass
+def reset():
+    mNPC = []
+    traders = []
+    quest_givers = []
+    uniques = set()
+    deaders = []
+    king = None
+    royalties = []
+    royalties_kidnapped = {}
+    global_quests = []
+    artefacts = []
+    artefact_names = {}
+    free_artefacts = []
+    birth_place = None
+    birth_place_rank = 1
+    antagonist = None
+    depart_place = None
+    depart_place_rank = 1
+    adventurer_names =[]
+    npc_names = {}
+    current_city = None
+    capital = None
+
+    good_npc_names = []
+    bad_npc_names = []
+    demon_npc_names = []
+    deity_npc_names = []
+    cities_names = {}
+    generated_quest_items = {}
+    gen_requests = {}
+    book_names = {}

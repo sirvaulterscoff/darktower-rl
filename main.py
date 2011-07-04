@@ -70,7 +70,8 @@ def handle_toggle_map():
         gl.message('No such map', 'CRITICAL')
         gui.render_messages()
         return
-    map = Map(_map, player)
+    map = Map(_map)
+    map.place_player(player)
     map.place_monsters()
     map.init_fov()
     player.x, player.y = find_passable_square(map.map)
