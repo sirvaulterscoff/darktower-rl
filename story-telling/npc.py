@@ -485,7 +485,7 @@ class QuestNPC(object):
             for minion in  other.minions:
                 minion.master = None
         friend = ''
-        if other.friends.__contains__(self):
+        if self in other.friends:
             friend = 'a friend '
             other.history.append('In year %d %s was betrayed by his friend %s' % (world.year, other.name, self.name))
         enemy = ''
@@ -493,7 +493,7 @@ class QuestNPC(object):
             self.history.append('In year %d %s killed %s and became ruler of the realm' %
                     (world.year, self.name, other.name))
             world.king = self
-        if self.enemies.__contains__(other):
+        if other in self.enemies:
             enemy = ' his old enemy'
         if cutom_message_vistim:
             other.history.append(cutom_message_vistim)
@@ -650,7 +650,7 @@ class KingNPC(RoyaltyNPC):
             if councilor is None:
                 councilor = choice(city.denizens)
             if is_good_npc(councilor):
-                if not isinstance(councilor, AdventureNPC) and not self.enemies.__contains__(councilor):
+                if not isinstance(councilor, AdventureNPC) and not councilor in self.enemies:
                    self.councilor = councilor
                    councilor.history.append('In year %d %s became a councilor at the court of %s' %
                            (world.year, councilor.name, self.name))
@@ -660,7 +660,7 @@ class KingNPC(RoyaltyNPC):
         if self.court_magician is None:
             if city is None and magician is None: return
             cand = choice(city.denizens)
-            if self.enemies.__contains__(cand): return
+            if cand in self.enemies: return
             if isinstance(cand, (WizardNPC, BadWizardNPC)):
                 self.court_magician = cand
                 cand.history.append('In year %d %s became magician at the court of %s' %
@@ -701,7 +701,7 @@ class WizardNPC(GoodNPC):
         self.invincible = True
 
     def meet(self, whom, city):
-        if self.enemies.__contains__(whom) and util.onechancein(4):
+        if whom in self.enemies and util.onechancein(4):
             msg = 'In year %d %s was burnt by %s' % (world.year, whom.name, self.name)
             self.kill(whom, cutom_message_vistim=msg)
 
@@ -859,7 +859,7 @@ class BetrayalNPC(BadNPC):
     common = 2
     def meet(self, other, city):
         if self.dead: return
-        if self.friends.__contains__(other):
+        if other in self.friends:
             if isinstance(other, GoodNPC): #time to betray friends
                 if self.kill(other):
                     city.was_killed(other)
@@ -1104,7 +1104,7 @@ def get_kill_dudes(npcs):
 def count_band(npc, visited=None):
     """ Count's number of memebers in a band """
     cnt = 0
-    if visited is not None and visited.__contains__(npc): return 0
+    if visited is not None and npc in visited: return 0
     if visited is None:
         visited = []
     visited.append(npc)
@@ -1133,7 +1133,7 @@ def band_leader(npc):
     return master
 
 def is_in_band(npc, band, visited = None):
-    if visited is not None and visited.__contains__(npc): return False
+    if visited is not None and npc in visited: return False
     if visited is None:
         visited = []
     visited.append(npc)

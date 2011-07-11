@@ -80,7 +80,7 @@ class Map(object):
             self.place_critter(crit_level, crit_hd, x, y)
 
     def has_critter_at(self, coords):
-        return self.critter_xy_cache.__contains__(coords)
+        return coords in self.critter_xy_cache
 
     def get_critter_at(self, x, y):
         return self.critter_xy_cache[(x, y)]

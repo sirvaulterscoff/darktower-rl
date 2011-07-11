@@ -122,7 +122,7 @@ def flood_fill(startx, starty, tile_check_callback, tile_create_callback,
         prevx, prevy = None, None
         newx = startx + coord[0]
         newy = starty + coord[1]
-        if not passed.__contains__( (newx, newy) ):
+        if not (newx, newy) in passed:
             if tile_check_callback(newx, newy):
                 tile_create_callback(newx, newy)
                 passed.append( (newx, newy))

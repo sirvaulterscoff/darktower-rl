@@ -56,17 +56,17 @@ print story
 min_quest_givers = util.roll(*QUEST_GIVER_ROLL)
 actual_quest_givers = 0
 while actual_quest_givers < min_quest_givers:
-    if actual_quest_givers > 0:
-        logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
-    #let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
-    mNPC_count = util.roll(*MNPC_ROLL)
-    #now toss
-    result = []
-    actual_quest_givers = 0
-    for x in xrange(0, mNPC_count):
+if actual_quest_givers > 0:
+    logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
+#let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
+mNPC_count = util.roll(*MNPC_ROLL)
+#now toss
+result = []
+actual_quest_givers = 0
+for x in xrange(0, mNPC_count):
         rnd = util.random_from_list_weighted(QuestNPC.mNPC)
         result.append(rnd())
-        if not QuestNPC.quest_giver_NPC.__contains__(rnd):
+        if not npc in QuestNPC.quest_giver_NPC:
             actual_quest_givers += 1
 world.mNPC.extend(result)
 #now let's generate deities
@@ -77,7 +77,7 @@ for x in xrange(0, deity_coun):
     deities.append(deity)
 world.mNPC.extend(deities)
 
-world.quest_givers = filter(lambda x: QuestNPC.quest_giver_NPC.__contains__(x.__class__), result)
+world.quest_givers = filter(lambda x: x.__class__ in QuestNPC.quest_giver_NPC, result)
 #now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
 immobile_npc = 0
 if util.coinflip():
@@ -362,7 +362,7 @@ for city in infected_cities:
     print 'There is a plague in city %s' % (city.name)
 
 def find_city(denizen):
-    return filter(lambda x: x.denizens.__contains__(denizen), city_map)[0]
+    return filter(lambda x: denizen in x.denizens, city_map)[0]
 
 false_kings = filter(lambda x: isinstance(x, BadNPC) and x.false_king, world.mNPC)
 for false_king in false_kings:
