@@ -54,43 +54,42 @@ while True:
     #first let's define our world's population: this will include
     # all the NPC's of all types we have, except those which can be placed inside quesuts only
 
-#now let's roll for number of quest-givers. we do want them to exist
-min_quest_givers = util.roll(*QUEST_GIVER_ROLL)
-actual_quest_givers = 0
-while actual_quest_givers < min_quest_givers:
-if actual_quest_givers > 0:
-    logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
-#let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
-mNPC_count = util.roll(*MNPC_ROLL)
-#now toss
-result = []
-actual_quest_givers = 0
-for x in xrange(0, mNPC_count):
-        rnd = util.random_from_list_weighted(QuestNPC.mNPC)
-        result.append(rnd())
-        if not npc in QuestNPC.quest_giver_NPC:
-            actual_quest_givers += 1
-world.mNPC.extend(result)
-#now let's generate deities
-deity_coun= util.roll(*DEITY_ROLL)
-deities = []
-for x in xrange(0, deity_coun):
-    deity = DeityNPC()
-    deities.append(deity)
-world.mNPC.extend(deities)
+    #now let's roll for number of quest-givers. we do want them to exist
+    min_quest_givers = util.roll(*QUEST_GIVER_ROLL)
+    actual_quest_givers = 0
+    while actual_quest_givers < min_quest_givers:
+        if actual_quest_givers > 0:
+            logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
+        #let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
+        mNPC_count = util.roll(*MNPC_ROLL)
+    #now toss
+    result = []
+    actual_quest_givers = 0
+    for x in xrange(0, mNPC_count):
+            rnd = util.random_from_list_weighted(QuestNPC.mNPC)
+            result.append(rnd())
+            if not npc in QuestNPC.quest_giver_NPC:
+                actual_quest_givers += 1
+    world.mNPC.extend(result)
+    #now let's generate deities
+    deity_coun= util.roll(*DEITY_ROLL)
+    deities = []
+    for x in xrange(0, deity_coun):
+        deity = DeityNPC()
+        deities.append(deity)
+    world.mNPC.extend(deities)
 
-world.quest_givers = filter(lambda x: x.__class__ in QuestNPC.quest_giver_NPC, result)
-#now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
-immobile_npc = 0
-if util.coinflip():
-    to_roll = util.roll(*IMMOBILE_NPC_ROLL)
-    for i in range(0, to_roll):
-        immobile_npc += util.coinflip()
-#for now let's place immobile NPCs together with main NPCs
-for i in xrange(0, immobile_npc):
-    world.mNPC.append(ImmobileNPC())
-unique_npc = util.roll(*UNIQUES_ROLL)
-
+    world.quest_givers = filter(lambda x: x.__class__ in QuestNPC.quest_giver_NPC, result)
+    #now let's roll for immobile NPCs. we don't want many of them. let em be 0-3 at 50% chance for now
+    immobile_npc = 0
+    if util.coinflip():
+        to_roll = util.roll(*IMMOBILE_NPC_ROLL)
+        for i in range(0, to_roll):
+            immobile_npc += util.coinflip()
+    #for now let's place immobile NPCs together with main NPCs
+    for i in xrange(0, immobile_npc):
+        world.mNPC.append(ImmobileNPC())
+    unique_npc = util.roll(*UNIQUES_ROLL)
     #now let's generate a king - why not?
     king = KingNPC()
     world.king = king
