@@ -646,16 +646,13 @@ class RoyaltyNPC(GoodNPC):
 
     def die(self, killer):
         super(RoyaltyNPC, self).die(killer)
-        if util.onechancein(5): #build a tomb or crypt
-            print 'building tomb %d' % len(self.inventory.items)
-            import sys
-            sys.exit(-1)
+        if util.onechancein(3): #build a tomb or crypt
             if util.coinflip():
-                self.tomb = world.require_for_nextgen('crypt', '%s\'s crypt' % self.name, corpse=self)
                 self.history.append('In year %d %s %s was burried in a crypt' % (world.year, self.type, self.name))
+                self.tomb = world.require_for_nextgen('crypt', '%s\'s crypt' % self.name, {'corpse' : self})
             else:
-                self.tomb = world.require_for_nextgen('royal_tomb', 'Royal tomb')
                 self.history.append('In year %d %s %s was burried in a tomb' % (world.year, self.type, self.name))
+                self.tomb = world.require_for_nextgen('royal_tomb', 'Royal tomb')
 
 class KingNPC(RoyaltyNPC):
     common = 1
@@ -666,6 +663,7 @@ class KingNPC(RoyaltyNPC):
         self.councilor = None
         self.court_magician = None
         self.knights = {}
+        self.tomb = None
 
     def free_action(self, city):
         #react on kidpan, or councilor kills
@@ -802,7 +800,7 @@ class BadNPC(QuestNPC):
                 self.house = world.require_for_nextgen('hideout', '%s\'s hideout' % (self.name))
                 self.history.append('In year %d %s created hideout in city %s' % (world.year, self.name, self.city.name))
             if world.king is not None and world.king != self:#band is big enough to capture the king
-                if util.onechancein(5):
+                if util.onechancein(8):
                     world.king.dead = True
                     world.king.history.append('In year %d king %s was killed by %s' %
                             (world.year, world.king.name, self.name))
@@ -957,6 +955,8 @@ class BetrayalNPC(BadNPC):
                     self.history.append('In year %d %s betrayed his king and killed him' %
                             (world.year, self.name))
                     self.kill(king)
+                    king.die(self)
+                    city.was_killed(king)
 
 
 class WereNPC(BetrayalNPC):

@@ -115,11 +115,9 @@ class City():
 
     def was_killed(self, who):
         global deaders
-        try:
+        if who in self.denizens:
             self.denizens.remove(who)
-            deaders.append(who)
-        except ValueError:
-            pass
+        deaders.append(who)
 def reset():
     mNPC = []
     traders = []

@@ -126,7 +126,7 @@ unique_npc = util.roll(*UNIQUES_ROLL)
     logger.debug("Total of %d NPCs (%d with traders)", mNPC_count + immobile_npc + unique_npc, mNPC_count + immobile_npc + unique_npc + traders_npc)
 
     #now let's fill names. if we mentioned antagonist - generate apropriate  npc for it
-    if world.antagonist is not None:
+    if world.antagonist is not None and isinstance(world.antagonist, str):
         #antagonists = filter(lambda x: isinstance(x, BadNPC) or isinstance(x, OverpoweredNPC) or isinstance(x, WereNPC) or isinstance(x, ControlledNPC), world.mNPC)
         #_antagonist = choice(antagonists)
         #if _antagonist is None:
@@ -327,8 +327,8 @@ unique_npc = util.roll(*UNIQUES_ROLL)
     for npc in world.mNPC:
         for item in npc.inventory.stolen_items.keys():
             available_quests[1].append('%s want\'s you to find item %s' % (npc.name, item.unique_name))
-        for enemy in npc.enemies:
-            available_quests[0].append('%s want\'s you to kill %s' %(npc.name, enemy.name))
+        #for enemy in npc.enemies:
+        #    available_quests[0].append('%s want\'s you to kill %s' %(npc.name, enemy.name))
     if isinstance(king, KingNPC):
         for item in npc.inventory.stolen_items.keys():
             available_quests[2].append('King %s want\'s you to find item %s' % (npc.name, item.unique_name))
@@ -346,15 +346,17 @@ unique_npc = util.roll(*UNIQUES_ROLL)
     bad_wiz = filter(lambda x: isinstance(x, BadWizardNPC), world.capital.denizens)
     for wiz in bad_wiz:
         print 'Bad wizard %s lives in capital' % (wiz.name)
-        if len(wiz.minions) >= 4:
+        if len(wiz.minions) >= 3:
             print 'Bad %s wizard raised a group of zombies' %(wiz.name)
         quest_cnt += 1
+        if getattr(wiz, 'lich', False):
+            print 'There is a lich %s' % wiz.name
     if world.king is None or not isinstance(world.king, KingNPC):
         print 'King was killed by someone'
         quest_cnt += 1
     dead_kings = filter(lambda x: isinstance(x, RoyaltyNPC), world.deaders)
     for dead_king in dead_kings:
-        if dead_king.tomb and len(dead_king.inventory.items):
+        if dead_king.tomb :
             print 'The %s is burried in a tomb with all his treasures' % dead_king.type
             quest_cnt +=1
     if isinstance(world.king, KingNPC):
@@ -379,9 +381,9 @@ unique_npc = util.roll(*UNIQUES_ROLL)
         quest_cnt +=1
 
     infected_cities = filter(lambda x: city.plague_src, city_map)
+    quest_cnt += len(infected_cities) / 2
     for city in infected_cities:
         print 'There is a plague in city %s' % (city.name)
-        quest_cnt +=1
 
     def find_city(denizen):
         citis = filter(lambda x: denizen in x.denizens, city_map)
@@ -395,5 +397,5 @@ unique_npc = util.roll(*UNIQUES_ROLL)
         print 'There is a false king %s in city %s' % (false_king.name, find_city(false_king).name)
         quest_cnt +=1
 
-    if quest_cnt >= 5:
+    if quest_cnt >= 3:
         break
