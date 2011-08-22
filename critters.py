@@ -2,15 +2,41 @@ import math
 import gl
 import util
 from thirdparty.libtcod import libtcodpy as libtcod
+from collections import Iterable
 
 WALKING = 1
-FLYING = 2
-UNDEAD = 1 << 3
-COLD_BLOODED = 1 << 4
-PASS_THRU_WALLS = 1 << 5
-PASS_THRU_DOORS = 1 << 6
-INTELLIGENT = 1 << 7
-DEMON = 1 << 8
+FLYING = 1
+UNDEAD = 1
+COLD_BLOODED = 1
+PASS_THRU_WALLS = 1
+PASS_THRU_DOORS = 1
+INTELLIGENT = 1
+DEMON = 1
+SMALL_SIZE = 1
+LARGE_SIZE = 1
+
+class AutoAdd(type):
+
+    def __new__(mcs, name, bases, dict):
+        cls = type.__new__(mcs, name, bases, dict)
+        if dict.has_key('__meta_dict__'):
+            skip_dict = dict.get('__meta_dict__')
+        else:
+            skip_dict = find_base(cls)
+        if not skip_dict:
+            skip_dict = { 'skip_register' : cls.ALL }
+        for key, value in skip_dict.items():
+            if not dict.get(key):
+                value.append(cls)
+        return cls
+
+def find_base(cls):
+    for bcls in cls.__bases__:
+        if bcls.__dict__.has_key('__meta_dict__'):
+            return bcls.__meta_dict__
+        else:
+            return find_base(bcls)
+    return None
 
 class Critter(object):
     name = 'crit'
@@ -22,7 +48,6 @@ class Critter(object):
     y = 0
     last_seen_at = None
     regen_rate = 1
-    flags = WALKING
     description_past = 'Generic critter from the past'
     description_present = 'Generic critter from present time'
     description_future = 'Generic critter from distant future'
@@ -35,7 +60,7 @@ class Critter(object):
     dlvl = 1
     inven = []
     common = 10
-    __metaclass__ = util.AutoAdd
+    __metaclass__ = AutoAdd
     __meta_field__ = ALL
     __meta_skip__ = "skip_register"
     skip_register = True
@@ -43,6 +68,7 @@ class Critter(object):
     ai = None
     hp = base_hp
     mp = base_mp
+    flags = {WALKING}
     xp = 1
 
     def __init__(self):
@@ -101,7 +127,7 @@ class Critter(object):
         player = self.map.player
         see_range = self.fov_range
         #if it's intelligent one - let it follow source of light
-        if self.flags & INTELLIGENT:
+        if check_flag(self, INTELLIGENT):
             see_range += player.fov_range / 2
         if libtcod.map_is_in_fov(self.map.fov_map, self.x, self.y):
             d = util.distance(self.x, self.y, player.x, player.y)
@@ -148,10 +174,19 @@ class Critter(object):
         self.adjust_hd(self.base_hd + (hd_delta + dlvl_delta - 1) * 1 / self.dlvl)
 
     def is_demon(self):
-        return self.flags & DEMON
+        return self.check_flag(DEMON)
 
     def is_intelligent(self):
-        return self.flags & INTELLIGENT
+        return self.check_flag(INTELLIGENT)
+
+def check_flag(critter, flag):
+    if isinstance(flag, Iterable):
+        for flg in flag:
+            if not flg in critter.flags:
+                return False
+        return True
+    else:
+        return flag in critter.flags
 
 class Player(Critter):
     x, y = 0, 0
@@ -169,6 +204,7 @@ class Player(Critter):
 
     def __init__(self):
         self.map = None
+        self.gold = 0
 
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
@@ -214,7 +250,7 @@ class Rat(Critter):
 class Bat(Critter):
     char = 'w'
     name = 'bat'
-    flags = FLYING
+    flags = {FLYING}
     color = (0, 255, 60)
     description_past = 'Strange green glow comes from afar... Maybe it\'s a lost sool seeking exit from endless caverns... Wait! It\'s a bat?! Ouch, stop biting me!'
     description_present = 'Tiny bat emmiting a strange green glow, fliting high above the ground. If you can only catch one alive it can become a nice lantern.'
@@ -229,7 +265,7 @@ class Bat(Critter):
 class Orc(Critter):
     char = 'o'
     name = 'orc'
-    flags = WALKING | INTELLIGENT
+    flags = {WALKING , INTELLIGENT}
     color = (255, 0, 0)
     description_past = 'Beware! This mighty ugly-looking humanoid will eat you for dinner. Nightmare comes to live. By the way, there should be it\' friends somewhere nearby'
     description_present = 'Surely you have read about orcs (remember all this books, about hobbits, elves and others). This one looks exactly... dissimilary.'
@@ -243,7 +279,7 @@ class Orc(Critter):
 class Troll(Critter):
     char = 't'
     name = 'troll'
-    flags = WALKING | INTELLIGENT
+    flags = {WALKING,  INTELLIGENT}
     color = (220, 120, 120)
     description_past = 'Troll'
     description_present = 'Troll'
@@ -254,19 +290,53 @@ class Troll(Critter):
     base_dmg = [(1, 3)]
     dlvl = 3
 
-def filter_critters_by_flags(critter, flags=0):
-    if flags == 0 : return True
-    return critter.flags & flags
+class Skeleton(Critter):
+    name = 'skeleton'
+    flags = {UNDEAD}
+    description_past = 'Skeleton'
+    char = 'z'
 
-def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags=0):
+    def __init__(self, name = None, base_hd_adjust=0):
+        pass
+        #if name is None:
+            #self.name = creature.name + ' skeleton'
+        #else:
+            #self.name = name
+        #for flag in creature.flags:
+            #if flag != INTELLIGENT and flag != DEMON:
+                #self.flags.add(flag)
+        #if self.check_flag(LARGE_SIZE):
+            #self.char = 'Z'
+
+
+def filter_critters_by_flags(critter, flags=0, not_flags=0):
+    result = False
+    if flags == 0 and not_flags == 0: return True
+    elif flags != 0:
+        result = check_flag(critter, flags)
+    if not_flags != 0:
+        result &= not check_flag(critter, not_flags)
+    return result
+
+def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags=0, not_flags=0):
+    """ Finds and return creature apropriate for given HD. It first tries to find
+    creature with request HD. If this is not possible a random creature and adjust it's HD.
+    hd - target HD
+    inverse - will select items with lower 'common' value if turned on
+    exact - tells function to select mobs of exact given HD. If set to False then
+        mobs are filtered by hd >= hd and hd <= max_hd
+    max_hd - tells to select mobs with HD no higher than max_hd. Usable only with exact=False
+    flags - let's filter creatures by flags
+    not_flags - lets you select creatures with exact flag set to false
+    """
     ff = None
     if exact:
         ff = lambda x: x.base_hd == hd and filter_critters_by_flags(x, flags)
     else:
-        ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd and filter_critters_by_flags(x, flags)
+        ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd and filter_critters_by_flags(x, flags, not_flags)
     hd_match = filter(ff, Critter.ALL)
     if len (hd_match) < 1:#if no such NPC, take any and adjust HD
-        ff2 = lambda x: filter_critters_by_flags(x , flags)
+        ff2 = lambda x: filter_critters_by_flags(x , flags, not_flags)
         anymob = util.random_from_list_weighted(filter(ff2, Critter.ALL), inverse)()
         new_hd = hd
         if not exact:
@@ -275,5 +345,11 @@ def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags
         return anymob
 
     return util.random_from_list_weighted(hd_match, inverse)()
+
+def SKELETON(base_hd=0, name=None):
+    #critter = random_for_player_hd(base_hd, False, True, not_flags= UNDEAD | DEMON)
+    skele = Skeleton(name, base_hd)
+    return skele
+
 
 

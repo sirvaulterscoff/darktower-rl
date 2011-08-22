@@ -3,7 +3,10 @@ from random import randrange, random, choice, shuffle
 from features import *
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
+import des
 from copy import deepcopy
+from items import Item
+from types import FunctionType
 
 logger = util.create_logger('DG')
 NO_FLIP = 0
@@ -29,19 +32,44 @@ default_map_chars = {'#': FT_ROCK_WALL,
 	'T' : FT_TABLE,
 	'8' : FT_BED}
 
-def parse_string(map, map_chars):
+def parse_string(mapBytes, map_chars, mapDef=None):
     new_map = []
     x, y = 0, 0
-    if isinstance(map, list):
-        iterable = map
-    elif isinstance(map, str):
-        iterable = map.splitlines()
+    if isinstance(mapBytes, list):
+        iterable = mapBytes
+    elif isinstance(mapBytes, str):
+        iterable = mapBytes.splitlines()
 
     for line in iterable:
-	if len(line) < 1 :continue
+        if len(line) < 1 :continue
         new_map.append([])
         for char in line:
             ft = map_chars.get(char)
+            #it can me mob definition
+            if ft is None and mapDef:
+                    if char == '@':
+                        mapDef.entry_pos[mapDef.current_level] = (x, y)
+                    ft = mapDef.floor()
+                    lvl = mapDef.current_level
+                    if hasattr(mapDef, 'mons') and mapDef.mons.has_key(char):
+                        newMob = mapDef.mons[char]
+                        newMob.x, newMob.y = x, y
+                        if not mapDef.mobs.has_key(lvl):
+                            mapDef.mobs[lvl] = []
+                        mapDef.mobs[lvl].append(newMob)
+                    elif hasattr(mapDef, 'items') and mapDef.items.has_key(char):
+                        if not mapDef.items.has_key(lvl):
+                            mapDef.items[lvl] = []
+                        newItem = mapDef.items[char]
+                        mapDef.items[mapDef.current_level].append(newItem)
+                        newItem.x, newItem.y = x, y
+            #todo remove this check once all dungeon features are parametrized classes
+            if getattr(ft, 'invisible', False) and mapDef:
+                ft_delegate = mapDef.floor()
+                if callable(ft):
+                    ft = ft()
+                ft.set_target(ft_delegate)
+
             if ft is None:
                 raise RuntimeError('failed to parse char ' + char)
             new_map[y].append(ft)
@@ -50,23 +78,47 @@ def parse_string(map, map_chars):
         x = 0
     return new_map
 
+class FeatureRequest(object):
+    """ Holds info for dungeon generator about specific feature that should be placed
+    on the map during mapgen """
+    def __init__(self, mapdef, params={}):
+        self.mapdef = mapdef
+        self.params = params
+        self.mapdef.tune(params)
+
+
 #todo move entire class to des.py
 class MapDef(object):
     def __init__(self):
-	self.map_chars = default_map_chars.copy()
-	self.prepared = False
+        self.map_chars = default_map_chars.copy()
+        self.prepared = {}
+        self.id = ''
+        self.current_level = 0
+        self.floor = FT_FLOOR
+        self.mobs = {}
+        self.map = None
+        self.entry_pos = {}
 
-    def materialize(self, override_orient = ANY):
+    def set_level(self, level=0):
+        self.current_level = level
+        self.prepare(level)
+
+    def materialize(self, override_orient = ANY, level=None):
+        if not level:
+            level = self.current_level
         copy = deepcopy(self)
         if not self.prepared:
             print 'Not prepared yet!!!'
             return
-        _map = copy.desc
-        logger.debug('Materializing map ' + str(self.width) +'x' + str(self.height))
-        for y in xrange(0, self.height):
-            for x in xrange(0, self.width):
+        _map = copy.map[level]
+        logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
+        for y in xrange(0, len(_map)):
+            for x in xrange(0, len(_map[0])):
                 try:
-                    _map[y][x] = _map[y][x]()
+                    if callable(_map[y][x]):
+                        _map[y][x] = _map[y][x]()
+                    if not isinstance(_map[y][x], DungeonFeature):
+                        raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
                 except IndexError:
                     print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.width)
                     break
@@ -74,37 +126,62 @@ class MapDef(object):
             copy.orient(_map, override_orient)
         return copy
 
-    def __prepare__subst__(self):
+    def _prepare_subst(self):
         calc = {}
         for k,v in self.subst.iteritems():
-            if v.startswith('$'):
-                script = v.replace('$', '', 1)
-                #if it starts with $ - it's script
-                calc[k] = lambda : eval (script)
-            else:
-                calc[k] = globals()[v.strip()]
+            calc[k] = self._parse_value(v)
         self.map_chars.update(calc)
+        self.mons_chars = {}
+        if hasattr(self, 'mons'):
+            for k,v in self.mons.iteritems():
+                self.mons_chars[k] = self._parse_value(v)
         print 'substs:'
         for k,v in self.map_chars.items():
             print '%s => %s ' %(k, v)
 
+    def _parse_value(self, v):
+        """Parses value from SUBST or MONS tags. if it starts as $ - it's a script"""
+        if isinstance(v, str):
+            return globals()[v.strip()]
+        else:
+            return v
 
-    def __prepare_orient__(self):
+    def _prepare_orient(self):
         if self.orient == 'RANDOM':
             self.orient = lambda x, settings: random_rotate(x, settings)
         else:
             self.orient = None
 
-    def prepare(self):
-        if self.prepared: return
-        self.__prepare__subst__()
-        orient = self.__prepare_orient__()
-        self.desc = parse_string(self.map, self.map_chars)
-        self.height = len(self.desc)
-        self.width = len(self.desc[0])
-        logger.debug('Parsed map content:\n %s \n into desc. Width %d, height %d' % (self.map, self.width, self.height))
-        self.prepared = True
+    def prepare(self, level=None):
+        if not level:
+            level = self.current_level
+        map = self.map[level]
+        self.height = len(map)
+        self.width = len(map[0])
+        if self.prepared.get(level, False): return
+        self._prepare_subst()
+        orient = self._prepare_orient()
+        self.map[level] = parse_string(self.map[level], self.map_chars, self)
+        self.prepared[level] = True
         return self
+
+    def tune(params = {}):
+        """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
+        #todo map script callback
+
+    def __setattr__(self, name, value):
+        if name == 'map_chars':
+            super(MapDef, self).__setattr__(name, value)
+            return
+        if name.startswith('map_'):
+            print 'setting ' + name + ' to ' + str(value)
+            if not self.map:
+                self.map = []
+            print name.replace('map_', '')
+            index = int(name.replace('map_', ''))
+            self.map.insert(index, value)
+        else:
+            super(MapDef, self).__setattr__(name, value)
 
 def random_rotate(map, settings = ANY):
     rev_x, rev_y = util.coinflip(), util.coinflip()
@@ -130,15 +207,6 @@ def random_rotate(map, settings = ANY):
         return new_map
     return map
 
-def find_passable_square(map):
-    x, y = 0, 0
-    for row in map:
-        for item in row:
-            if not item.passable(): y += 1
-            else: return y, x
-        y = 0
-        x += 1
-    return 1, 1
 
 
 class Rect:
@@ -300,22 +368,23 @@ _parsed_files = {}
 _available_maps = {}
 class StaticRoomGenerator(AbstractGenerator):
     def __init__(self, flavour='', type='rooms'):
+        #todo rewrite to use util.parseDes
         prefix = '..'
         for file in os.listdir('.'):
             if file == 'data':
                 prefix = '.'
                 break
-        for file in os.listdir(prefix + '/data/' + type):
-            if file.find(flavour + '.map') > -1:
-                if not file.endswith('.map'): continue
+        for file in os.listdir(prefix + '/data/maps/' + type):
+            if file.find(flavour + '.des') > -1:
+                if not file.endswith('.des'): continue
                 logger.debug('Parsing mapfile ' + file)
-                _map_files.append(os.path.join(prefix, 'data', type, file))
+                _map_files.append(os.path.join(prefix, 'data/maps/', type, file))
 
     def parse_file(self, map_file):
-        maps = util.parseFile(map_file, MapDef)
+        maps = des.parseFile(map_file, MapDef)
         _parsed_files[map_file] = maps
         for map in maps:
-            _available_maps[map.name] = map
+            _available_maps[map.id] = map
         return maps
 
     def finish(self):
@@ -346,6 +415,8 @@ class StaticRoomGenerator(AbstractGenerator):
                 print 'parsing file ' + str(file)
                 self.parse_file(file)
             file_parsed = True
+        if not name in _available_maps:
+            return None
         map = _available_maps.get(name).prepare()
         return map.materialize()
 

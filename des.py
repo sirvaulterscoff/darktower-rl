@@ -2,7 +2,10 @@
 from pyparsing import *
 import string
 import random
-import util
+from critters import *
+from features import *
+from items import *
+
 #chars allowed for right-hand-value
 viable_chars = '!"#$%&\'()*+,-./:;<?@[\]^_`{|}~'
 equals = Literal('=').suppress()
@@ -30,7 +33,7 @@ ml_assignment = multiline_keyword
 assignment = ml_assignment | assignment
 parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
-def parseFile(fname, ttype):
+def _parseFile(fname, ttype):
     result = [None]#None indicates that a new item should be created
     assignment.setParseAction(lambda x: process(result,ttype, x))
     end_keyword.setParseAction(lambda x : end(result))
@@ -40,7 +43,39 @@ def parseFile(fname, ttype):
         result.pop()
     return result
 
+def parse_val(val, where):
+    """Adjusts the value from des file. There are several ways to do so
+    1) string.Template substitution when ${ is replaced with attribute of object
+    2) $-values. Values that starts with $-sign will be parsed using eval
+    3) %-blocks. Values that starts with %-sign will be parse using compile/exec. Then
+    we expect that such a block defines local named 'out'
+    """
+    val = string.Template(val).safe_substitute(where.__dict__)
+    if val.startswith('$') and not val.startswith('${'):
+        val = val[1:]
+        #here we address simple value evaluation via eval
+        try:
+            return eval(val)
+        except Exception ,e:
+            print 'Error parsing code :\n' + val + '\n' + str(e)
+            import sys
+            sys.exit(-1)
+    elif val.startswith('%'): #more complex - via compile and exec
+        val = val[1:]
+        try:
+            code = compile(val, '', 'exec')
+            exec(code)
+            #actualy any executed code should set 'out' variable. we take it and set to target class
+            return out
+        except Exception ,e:
+            print 'Error compiling code :\n' + val + '\n' + str(e)
+            import sys
+            sys.exit(-1)
+    else:
+        return val
+
 def process(items, ttype, toks):
+    """Invoked on each rhv """
     where = items[-1]
     if where is None:
         items.pop()
@@ -50,49 +85,35 @@ def process(items, ttype, toks):
     key = str(key).lower()
     value = toks[1]
     if isinstance(value, str):
-        val = value
-        val = string.Template(val).safe_substitute(where.__dict__)
-        if val.startswith('$') and not val.startswith('${'):
-            val = val[1:]
-            #here we address simple value evaluation via eval
-            try:
-                where.__dict__[key] = eval(val)
-            except Exception ,e:
-                print 'Error parsing code :\n' + val + '\n' + str(e)
-                import sys
-                sys.exit(-1)
-        elif val.startswith('%'): #more complex - via compile and exec
-            val = val[1:]
-            try:
-                code = compile(val, '', 'exec')
-                exec(code)
-                #actualy any executed code should set 'out' variable. we take it and set to target class
-                setattr(where,key,out)
-            except Exception ,e:
-                print 'Error parsing code :\n' + value[1:] + '\n' + str(e)
-                import sys
-                sys.exit(-1)
-        else: #simple assignment case
-            setattr(where,key,val)
+        out = parse_val(value, where)
+        setattr(where,key,out)
     else:
-        if where.__dict__.get(key) is None:
-            where.__dict__[key] = {}
+        if not hasattr(where, key):
+            setattr(where, key, {})
         for k, v in zip(value[::2], value[1::2]):
-            where.__dict__[key][k] = v
+            getattr(where, key)[k] = parse_val(v, where)
 
 def end(result):
     result.append(None)
 
-class HouseDes(object):
-    pass
-
-class Temple(object):
-    """Temple description """
-    def __init__(self, map_src):
-        super(Temple, self).__init__(map_src)
 
 
-a= 'import util;\ndef free_action(self, city):\n    print "YEEEEEEEEEEEEEEEEEEESSSSSSSSSSSSSS"\n\ndef action(who, world):\n    if isinstance(who, BadWizardNPC):\n        who.__dict__[free_action] = free_action'
-print a
-exec(a)
-free_action(None, None)
+parsed_des_files = { }
+def parseFile(file_name, type):
+    """parses file"""
+    if parsed_des_files.has_key(file_name):
+        return parsed_des_files[file_name]
+    _des = _parseFile(file_name, type)
+    parsed_des_files[file_name] = _des
+    return _des
+
+def parseDes(file_name, type, sub_type='des'):
+    """parses des file from data/des/ folder.
+    parameters:
+    file_name => is the name if the file without .des
+    type => class of the resource
+    sub_type => 'des' subfolder inside data folder
+    returns collection of type() items from parsed file
+    """
+    file_name = os.path.join(os.path.dirname(__file__), 'data', sub_type, file_name + '.des')
+    return parseFile(file_name, type)

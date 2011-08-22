@@ -649,10 +649,10 @@ class RoyaltyNPC(GoodNPC):
         if util.onechancein(3): #build a tomb or crypt
             if util.coinflip():
                 self.history.append('In year %d %s %s was burried in a crypt' % (world.year, self.type, self.name))
-                self.tomb = world.require_for_nextgen('crypt', '%s\'s crypt' % self.name, {'corpse' : self})
+                self.tomb = world.require_for_nextgen(self.city, 'crypt', '%s\'s crypt' % self.name, {'corpse' : self})
             else:
                 self.history.append('In year %d %s %s was burried in a tomb' % (world.year, self.type, self.name))
-                self.tomb = world.require_for_nextgen('royal_tomb', 'Royal tomb')
+                self.tomb = world.require_for_nextgen(self.city, 'royal_tomb', 'Royal tomb', {'corpse' : self} )
 
 class KingNPC(RoyaltyNPC):
     common = 1

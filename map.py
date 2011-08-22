@@ -7,24 +7,36 @@ import gl
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
+from dungeon_generators import MapDef
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
 
 class Map(object):
     def __init__(self, map_src):
-	self.map_critters = []
-	self.critter_xy_cache = {}
-        self.map = map_src
-        self.map_height = len(map_src)
-        self.map_width = len(map_src[0])
+        self.map_critters = []
+        self.critter_xy_cache = {}
+        if isinstance(map_src, MapDef):
+            self.map = map_src.map[map_src.current_level]
+        else:
+            self.map = map_src
+        self.map_height = len(self.map)
+        self.map_width = len(self.map[0])
         self.square = self.map_height * self.map_width
         self.fov_map = None
+        self.map_src = map_src
 
     def __getitem__(self, item):
         return self.map[item]
 
     def place_player(self, player):
+        pos_set = False;
+        if isinstance(self.map_src, MapDef):
+            if self.map_src.entry_pos.has_key(self.map_src.current_level):
+                player.x, player.y = self.map_src.entry_pos[map_src.current_level]
+                pos_set = True
+        if not pos_set:
+            player.x, player.y = self.find_passable_square()
         self.player = player
         player.map = self
 
@@ -39,8 +51,11 @@ class Map(object):
         libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS,
                                            not self[y][x].flags & features.BLOCK_WALK)
     def recompute_fov(self):
-        libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
+        try:
+            libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
                                 FOV_ALGORITHM)
+        except Exception, e:
+            print e
 
     def place_critter(self, crit_level, crit_hd, x, y):
         crit = util.random_by_level(crit_level, critters.Critter.ALL)
@@ -113,4 +128,15 @@ class Map(object):
 
     def coords_okay(self, x, y):
         return not (x < 0 or y< 0 or x >= self.map_width or y >= self.map_height)
+
+    def find_passable_square(self):
+        x, y = 0, 0
+        for row in self.map:
+            for item in row:
+                if not item.passable(): y += 1
+                else: return y, x
+            y = 0
+            x += 1
+        return 1, 1
+
 

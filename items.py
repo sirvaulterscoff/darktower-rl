@@ -2,10 +2,11 @@ import gl
 import util
 from random import randrange, choice, shuffle
 from acquire import acquire
+from features import DungeonFeature
 
 class Item(object):
     char = ' '
-    unided_name = color = (255,255,255)
+    color = (255,255,255)
     name = 'Generic item'
     unided_name = 'Unidentified item'
     description_past = 'description for a hero from past days'
@@ -16,10 +17,35 @@ class Item(object):
     common = 10
     #sets quest level for that item. If quest level is none, then item can't be used for quest-targets. otherwise it can be selected fro a quest-target
     quest_level = None
-    def __init__(self):
+    def __init__(self, char='0', color=(255,255,255), dark_color=(128,128,128)):
         self.randart = False
         self.unique_name = None
         pass
+
+    def doand(self, other):
+        if type(other) != DungeonFeature:
+            return
+        other.items.append(self)
+
+    def __rand__(self, other):
+        self.doand(other)
+
+    def __and__(self, other):
+        self.doand(other)
+
+class Gold(Item):
+    def __init__(self, value=1):
+        super(Gold, self).__init__('$', (255,255,102), (128,128,10))
+        self.value = value
+
+    def place(self, cell):
+        self.cell = cell
+
+    def player_move_into(self, player, x, y):
+        super(Gold, self).player_move_into(player, x, y)
+        player.gold += self.value
+        gl.message('You found ' + str(self.value) + ' gold. Now you have ' + str(player.gold))
+        self.cell.items.remove(self)
 
 class ArtefactDes(Item):
     def __init__(self):
@@ -151,12 +177,10 @@ class Crown(Armor):
     max_enchantment = 2
 armor = [Crown]
 
-print 'Parsing arts'
-artefacts = util.parseDes('art', ArtefactDes)
-for art in artefacts:
-    print art.type
-quest_items = util.parseDes('quest', QuestItemDes)
-key_items = util.parseDes('key', KeyItemDes)
+#print 'Parsing arts'
+#artefacts = des.parseDes('art', ArtefactDes)
+#quest_items = des.parseDes('quest', QuestItemDes)
+#key_items = des.parseDes('key', KeyItemDes)
 
 def random_key_item(check_unique=None):
     """ Finds random key item. Key items are those items,
@@ -166,10 +190,10 @@ def random_key_item(check_unique=None):
 def random_quest_target(artefact=False, check_unique=None) :
     result = None
     if artefact:
-	result = util.random_from_list_unique(artefacts, check_unique)
+        result = util.random_from_list_unique(artefacts, check_unique)
     else:
-	result = util.random_from_list_unique(quest_items, check_unique)
-    print 'generated ' + str(artefact) + ' ' + str(result) + str(result.name)
+        result = util.random_from_list_unique(quest_items, check_unique)
+        print 'generated ' + str(artefact) + ' ' + str(result) + str(result.name)
     return result
 
 def generate_artefacts(artefacts_count, check=None):
@@ -184,3 +208,16 @@ def generate_artefacts(artefacts_count, check=None):
         else:
             result.append(acquire(unique=check, artefact=True))
     return result
+
+
+def I_GOLD(min=0, max=1000):
+    value = randrange(min, max)
+    return Gold(value)
+
+def I_POTION(type=None):
+    if type == 'healing':
+        return HealingPotion()
+
+def I_RANDOM(price=1000, type='art'):
+    return HealingPotion()
+

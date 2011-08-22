@@ -1,7 +1,9 @@
 import sys, os
+import random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import des
 import util
+import dungeon_generators
 
 mNPC = []
 traders = []
@@ -49,29 +51,35 @@ deity_npc_names = []
 cities_names = {}
 """ Stores already generated quest items (artefact and general items together"""
 generated_quest_items = {}
-gen_requests = {}
 #Stores already generate book names
 book_names = {}
 
-def require_for_nextgen(what, name=None, mapgenparm={}):
-    """ registers a new worldgen request"""
-    if not gen_requests.has_key(what):
-        gen_requests[what] = []
-    gen_requests[what].append(name)
-    return True
-
-def require_for_next_mapgen(what):
+#To store rooms that was already generated
+unique_rooms = {}
+gen_requests = {}
+def require_for_nextgen(region, what, name=None, mapgenparm={}, unique=True):
     """ this method is used to issue requests for map_gen for certain features.
     For example a quest needs forest to be generated nearby - it should ask world to generate
     a forest for next map_gen.
     what - denotes a type of feature to be generated
     function returns the holder for requested feature.
     """
-    if what == 'house':
-        houses = util.parseFile('houses', des.HouseDes)
-        house = util.random_from_list_weighted(houses)
-        required_for_mapgen.append(house)
-    return house
+    global gen_requests
+    target = None
+    while True:
+        whats = util.parseDes(what, dungeon_generators.MapDef, 'rooms')
+        target = random.choice(whats)
+        if not unique: break
+        if hasattr(target, 'id') and not getattr(target, 'id') in gen_requests.keys():
+            break
+    request = dungeon_generators.FeatureRequest(target, mapgenparm)
+    """ registers a new worldgen request"""
+    if not gen_requests.has_key(region):
+        gen_requests[region] = {}
+    if not gen_requests[region].has_key(what):
+        gen_requests[region][what] = []
+    gen_requests[region][what].append(request)
+    return request
 
 """ Just what you may think about it - year in the game """
 year = 1000

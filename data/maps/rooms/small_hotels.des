@@ -4,7 +4,7 @@ SUBST=/=>$choice((FT_WINDOW,FT_ROCK_WALL))
 SUBST=$=>$choice((FT_WINDOW,FT_ROCK_WALL))
 SUBST=.=>FT_CARPET
 ORIENT=RANDOM
-NAME=hotel_small1
+id=hotel_small1
 MAP="""
 #######/###$###/###$##
 #....#8.F#8.F#8.F#8.F#
@@ -22,7 +22,7 @@ SUBST=:=>FT_WINDOW ,=>$FT_CARPET(128,0,0) /=>$choice((FT_WINDOW,FT_ROCK_WALL))
 SUBST= $ => $choice((FT_WINDOW,FT_ROCK_WALL))
 ORIENT=RANDOM
 SUBST=.=>FT_CARPET
-NAME=hotel_small2
+id=hotel_small2
 MAP="""
 #######/###$###/###$######
 #....#8.F#8.F#8.F#8.F#...#
@@ -42,7 +42,7 @@ SUBST $ => $choice((FT_WINDOW,FT_ROCK_WALL))
 SUBST= ,=>$FT_CARPET(128,0,0)
 ORIENT=RANDOM
 SUBST=.=>FT_CARPET
-NAME=hotel_small3
+id=hotel_small3
 MAP="""
 #######/###$###/###$######
 #,,,,#8..#8..#8..#8..#.h.#
@@ -59,7 +59,7 @@ SUBST= $ =>$choice((FT_WINDOW,FT_ROCK_WALL))
 SUBST= ,=>$FT_CARPET(128,0,0)
 SUBST=.=>FT_CARPET
 ORIENT=RANDOM
-NAME=hotel_small3_symmetry
+id=hotel_small3_symmetry
 MAP="""
 #######/###$###/###$#######
 #,,,,#8..#8..#8..#8..#,,,,#
@@ -80,7 +80,7 @@ SUBST=t=>FT_TREE
 SUBST=b=>FT_BUSH
 SUBST=o=>$choice((FT_GRASS,FT_WELL))
 ORIENT=RANDOM
-NAME=hotel_small_yard1
+id=hotel_small_yard1
 MAP="""
 tbbbbbbbbbbbbbbbbbbbbbbbbbt
 b,,,,,,,,,,,,,,,,,,,,,,,,,b
@@ -112,7 +112,7 @@ SUBST=b=>FT_BUSH
 SUBST=o=>$choice((FT_GRASS,FT_WELL))
 SUBST=F=>$choice((FT_STATUE,FT_FOUNTAIN))
 ORIENT=RANDOM
-NAME=hotel_small_yard2
+id=hotel_small_yard2
 MAP="""
 b,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 bt,,,,#######/###$###/###$##,
@@ -140,7 +140,7 @@ SUBST=b=>FT_BUSH
 SUBST=o=>$choice((FT_GRASS,FT_WELL))
 SUBST=F=>$choice((FT_STATUE,FT_FOUNTAIN))
 ORIENT=RANDOM
-NAME=hotel_small_long_pathway1
+id=hotel_small_long_pathway1
 MAP="""
 ttttttttttttttt,,,,,,,,,,,,,,,,,,,,,,
 ttttttttbt,,,,#######/###$###/###$##,

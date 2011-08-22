@@ -4,9 +4,9 @@ SUBST=b=>FT_BUSH
 SUBST=t=>FT_TREE 
 SUBST=o=>FT_WELL 
 SUBST=.=>FT_CARPET
-SUBST=c=>$FT_CARPET((120,0,0)
+SUBST=c=>$FT_CARPET((120,0,0))
 ORIENT=RANDOM
-NAME=large_house_with_garden3
+id=large_house_with_garden3
 MAP="""
 ##########::####,,,,,,,
 #....#.........#bbtbbb,

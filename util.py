@@ -4,7 +4,6 @@ import os
 import random
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
-import des
 
 import logging
 
@@ -39,6 +38,11 @@ def random_from_list(items):
     return choice(items)
 
 def random_from_list_weighted(items, inverse = False):
+    """ Gets random item from list. Probability of certain item is based on 'common' attribute
+    of item, i.e. the highest common gives highest probability of item outcome.
+    Note that if inverse is turned on then the item with lower 'common' value will get
+    a higher chance
+    """
     result = []
     _max = 0
     if inverse:
@@ -50,29 +54,6 @@ def random_from_list_weighted(items, inverse = False):
         else:
             result.extend(itertools.repeat(item, item.common))
     return result[random.randrange(0, len(result))]
-
-class AutoAdd(type):
-
-    def __new__(mcs, name, bases, dict):
-        cls = type.__new__(mcs, name, bases, dict)
-        if dict.has_key('__meta_dict__'):
-            skip_dict = dict.get('__meta_dict__')
-        else:
-            skip_dict = find_base(cls)
-        if not skip_dict:
-            skip_dict = { 'skip_register' : cls.ALL }
-        for key, value in skip_dict.items():
-            if not dict.get(key):
-                value.append(cls)
-        return cls
-
-def find_base(cls):
-    for bcls in cls.__bases__:
-        if bcls.__dict__.has_key('__meta_dict__'):
-            return bcls.__meta_dict__
-        else:
-            return find_base(bcls)
-    return None
 
 
 def distance(x1, y1, x2, y2):
@@ -224,25 +205,6 @@ def gen_name(flavour='name', check_unique=None):
     else: name = ng_names[flavour].next()
     logger.debug('Generated name %s for flavour %s' % (name, flavour))
     return name
-
-parsed_des_files = { }
-def parseDes(file_name, type, sub_type='des'):
-    """parses des file from data/des/ folder.
-    file_name is the name if the file without .des"""
-    file_name = os.path.join(os.path.dirname(__file__), 'data', sub_type, file_name + '.des')
-    if parsed_des_files.has_key(file_name):
-        return parsed_des_files[file_name]
-    _des = des.parseFile(file_name, type)
-    parsed_des_files[file_name] = _des
-    return _des
-
-def parseFile(file_name, type):
-    """parses file"""
-    if parsed_des_files.has_key(file_name):
-        return parsed_des_files[file_name]
-    _des = des.parseFile(file_name, type)
-    parsed_des_files[file_name] = _des
-    return _des
 
 
 static_colors = [

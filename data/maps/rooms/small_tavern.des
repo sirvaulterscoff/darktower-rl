@@ -1,7 +1,7 @@
 ORIENT=RANDOM
 SUBST=:=>FT_WINDOW 
 SUBST=/=>$choice((FT_WINDOW,FT_ROCK_WALL))
-NAME=small_tavern1
+id=small_tavern1
 MAP="""
 ########
 #hTh.Th#

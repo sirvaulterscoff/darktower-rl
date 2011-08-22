@@ -11,7 +11,6 @@ try:
 except ImportError:
     print 'Sadly no psyco'
 
-import vimpdb; vimpdb.set_trace()
 def main_loop():
     global map
     while gl.__game_state__ == "playing" and not gui.window_closed():
@@ -74,7 +73,6 @@ def handle_toggle_map():
     map.place_player(player)
     map.place_monsters()
     map.init_fov()
-    player.x, player.y = find_passable_square(map.map)
     gui.viewport = None
     gui.render_map(map,player)
 
@@ -108,11 +106,16 @@ if __name__ == "__main__":
     #    dg = RoomsCoridorsGenerator(80, 40)
     #    dg.generate()
     #    map = Map(dg.finish())
-    #dg = StaticRoomGenerator()
-    dg.generate()
+    dg = StaticRoomGenerator(type='')
+    #dg.generate()
 
-    map = Map(dg.finish(), player)
-    map.place_monsters()
+    #map = Map(dg.finish())
+    #map.place_monsters()
+
+    map = dg.map_by_name('crypt_1')
+    map.set_level(1)
+    map = map.materialize(level=1)
+    map = Map(map)
+    map.place_player(player)
     map.init_fov()
-    player.x, player.y = find_passable_square(map.map)
     main_loop()

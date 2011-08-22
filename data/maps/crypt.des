@@ -1,0 +1,63 @@
+ORIENT=RANDOM
+SUBST=$=>FT_HIDDEN_DOOR
+ITEMS=g=>$I_GOLD(10, 70)
+SUBST=G=>$FT_TRAP & I_GOLD(70, 100) 
+SUBST=^=>FT_TRAP
+MONS=1=>$SKELETON
+MONS=2=>$SKELETON(-1)
+orient=NONE
+id=crypt_1
+base_level=0
+MAP_0="""
+                        #######
+#########################.1..2#
+@.....^...^...^...^gggGg$...^>#
+#########################.1..2#
+                        #######
+"""
+ITEMS=a=>$I_RANDOM(1000)
+ITEMS=b=>$I_RANDOM({'price': 500, 'type' : 'book'})
+ITEMS=c=>$I_POTION('healing')
+SUBST=A=>$FT_ALTAR()
+SUBST=K=>$PH('TOMB')
+MONS=3=>$SKELETON(1, 'Skeleton-guard')
+SUBST={=>FT_POOL
+SUBST=}=>FT_POOL
+on_param_set="""%
+def crypt1_set_param(name, value, des):
+    if name == 'corpse':
+        des.replace_feature(PH, 'CORPSE', FT_TOMB('Tomb of ' + value.name ))
+        if hasattr(value, 'deity'):
+            altars = des.find_feature(FT_ALTAR)
+            for altar in altars:
+                altar.name = value.deity.altar_name
+        statues = des.find_feature(FT_STATUE)
+        for statue in statues:
+            statue.name = 'Statue of ' + value.name
+out = crypt1_set_param
+"""
+SUBST=%=>$FT_PREASURE_PLATE('x', 'remove')
+SUBST=x=>$FT_FIXED_WALL('x')
+SUBST=S=>FT_STATUE
+
+MAP_1="""
+########################################
+#c$......x....................x......$c#
+###...1..#......%%%.%%%.......#..1...###
+##...131.#.....##+###+##......#.131...##
+##....1..x.....#1311131#......x..1....##
+##x#####xx.....#.......#......xx#####x##
+##.............##ba.ab##..............##
+##.#########....###K###....##########.##
+##.#.......#......###......#.....#.A#.##
+##.#A#{{{#.#.##.........##.#.{{{{{#.#.##
+##.#A#{{{#.#.#.....3.....#.#.{{{{{#.#.##
+##.#.......#.#.##xxxxx##.#.#.....#.A#.##
+##.########..#11#.....#11#..#########.##
+##...........xxxx.%%%.xxxx............##
+###.{{{{{{{{....###$###....}}}}}}}}}.###
+##{{{{{.A.{{{{..#..^..#..}}}}S.A.S}}}}##
+##{{{{{{{{{{....#..<..#....}}}}}}}}}}}##
+########################################
+"""
+END

@@ -62,14 +62,14 @@ while True:
             logger.debug("Rerroling mNPCs as too low number %d of quest-givers was generated (expecting %d)", actual_quest_givers, min_quest_givers)
         #let's roll for number of NPC.  NOTE that we will also add types denoted by ! later.
         mNPC_count = util.roll(*MNPC_ROLL)
-    #now toss
-    result = []
-    actual_quest_givers = 0
-    for x in xrange(0, mNPC_count):
-            rnd = util.random_from_list_weighted(QuestNPC.mNPC)
-            result.append(rnd())
-            if not npc in QuestNPC.quest_giver_NPC:
-                actual_quest_givers += 1
+        #now toss
+        result = []
+        actual_quest_givers = 0
+        for x in xrange(0, mNPC_count):
+                rnd = util.random_from_list_weighted(QuestNPC.mNPC)
+                result.append(rnd())
+                if rnd in QuestNPC.quest_giver_NPC:
+                    actual_quest_givers += 1
     world.mNPC.extend(result)
     #now let's generate deities
     deity_coun= util.roll(*DEITY_ROLL)
@@ -101,6 +101,13 @@ while True:
         king.guards.append(guard)
     crown = acquire.acquire_armor(king, world.artefact_names, items.Crown, True)
     king.became_owner_of(crown)
+
+
+    #todo test delete
+    king.city = world.City('asd')
+    king.die(None)
+    import sys; sys.exit(-1)
+
     queen = RoyaltyNPC("queen")
     queen.name = util.gen_name('female', check_unique=world.npc_names)
     world.royalties.append(queen)
@@ -207,6 +214,7 @@ while True:
     capital = choice(city_map)
     capital.set_king(world.king)
     world.capital = capital
+    world.king.city = capital
 
     while len(need_to_place) > 0:
         for y in range(1, len(city_map)):
