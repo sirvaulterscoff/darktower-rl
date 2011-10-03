@@ -106,10 +106,9 @@ class MapDef(object):
     def materialize(self, override_orient = ANY, level=None):
         if not level:
             level = self.current_level
+        if not level in self.prepared:
+            self.prepare(level)
         copy = deepcopy(self)
-        if not self.prepared:
-            print 'Not prepared yet!!!'
-            return
         _map = copy.map[level]
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
         for y in xrange(0, len(_map)):

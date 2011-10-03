@@ -113,7 +113,7 @@ if __name__ == "__main__":
     #map.place_monsters()
 
     map = dg.map_by_name('crypt_1')
-    map.set_level(1)
+    map.set_level(0)
     map = map.materialize(level=1)
     map = Map(map)
     map.place_player(player)

@@ -30,10 +30,10 @@ class Map(object):
         return self.map[item]
 
     def place_player(self, player):
-        pos_set = False;
+        pos_set = False
         if isinstance(self.map_src, MapDef):
             if self.map_src.entry_pos.has_key(self.map_src.current_level):
-                player.x, player.y = self.map_src.entry_pos[map_src.current_level]
+                player.x, player.y = self.map_src.entry_pos[self.map_src.current_level]
                 pos_set = True
         if not pos_set:
             player.x, player.y = self.find_passable_square()
