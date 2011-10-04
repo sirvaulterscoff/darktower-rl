@@ -14,12 +14,15 @@ FOV_LIGHT_WALLS = True
 
 class Map(object):
     def __init__(self, map_src):
+        self.init(map_src)
+
+    def init(self, map_src):
         self.map_critters = []
         self.critter_xy_cache = {}
         if isinstance(map_src, MapDef):
             self.map = map_src.map[map_src.current_level]
         else:
-            self.map = map_src
+            raise RuntimeError('MapDef should be passed to map object')
         self.map_height = len(self.map)
         self.map_width = len(self.map[0])
         self.square = self.map_height * self.map_width
@@ -138,5 +141,16 @@ class Map(object):
             y = 0
             x += 1
         return 1, 1
+
+    def descend(self):
+        tile = self.map[self.player.y][self.player.x]
+        if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False): #ft_types.stairs
+            #this is stairs square
+            if self.map_src.max_levels < self.map_src.current_level + 1:
+                return False
+            self.map_src.current_level += 1
+            self.init(self.map_src)
+            self.init_fov()
+
 
 

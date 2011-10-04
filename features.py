@@ -24,18 +24,18 @@ def build_type(name, base=None, **argv):
         new_type = type(name, (base,), argv)
     return new_type
 
-#todo make FT_FLOOR etc return parametrized classes instead of objects
-#i.e. if we request FT_FLOOR(some_params) - return a class, upon creation of which we get proper fields filled
 class DungeonFeature(object):
     invisible = False
+    color_back = (30, 30, 30)
+    dim_color_back = (5, 5, 5)
+    description = 'Generic feature'
     def __init__(self):
         self.seen = False
-        self.color_back = (30, 30, 30)
-        self.dim_color_back = (5, 5, 5)
         self.items = []
-        self.description = 'Generic feature'
+        if not hasattr(self, 'flags'):
+            self.flags = NONE
 
-    def set_params(**argv):
+    def set_params(self, argv):
         for k, v in argv.items():
             setattr(self, k, v)
 
@@ -71,8 +71,10 @@ class DungeonFeature(object):
         self.char = delegate.char
         self.color = delegate.color
         self.dim_color = delegate.dim_color
-        self.color_back = delegate.color_back
-        self.dim_color_back = delegate.dim_color_back
+        if hasattr(delegate, 'color_back'):
+            self.color_back = delegate.color_back
+        if hasattr(delegate, 'dim_color_back'):
+            self.dim_color_back = delegate.dim_color_back
 
 class Door (DungeonFeature):
     def __init__(self, opened=False):
@@ -97,7 +99,10 @@ class Door (DungeonFeature):
 class HiddenDoor (Door):
     def __init__(self, skill=5,feature=None, opened=False):
         super(HiddenDoor, self).__init__(opened)
-        self.char = feature.char
+        if feature is None:
+            self.char = '#'
+        else:
+            self.char = feature.char
         if opened:
             self.char = '-'
         self.hidden = not opened
@@ -136,7 +141,8 @@ class TreasureChest(Furniture):
 
 class Altar(DungeonFeature):
     def __init__(self, id=id):
-        super(Altar, self).__init__('_', (255,255,255), (128,128,128), type=7, flags=NONE, id=id)
+        super(Altar, self).__init__()
+        self.set_params({'char':'_', 'color':(255,255,255), 'dim_color':(128,128,128), 'type':7, 'flags':NONE, 'id':id})
 
 class Grass(DungeonFeature):
     def __init__(self):
@@ -146,11 +152,10 @@ class Grass(DungeonFeature):
 
 class PreasurePlate(DungeonFeature):
     invisible = True
-    def __init__(self):
+    def __init__(self, affected='x', action='remove'):
         super(PreasurePlate, self).__init__()
-        , affected='x', type='remove'
         self.affected=affected
-        self.type=type
+        self.action=action
 
 class Trap(DungeonFeature):
     invisible = True
@@ -161,18 +166,18 @@ def FT_PREASURE_PLATE(affected='x', type='remove'):
     return  build_type('PreasurePlate_', PreasurePlate, affected=affected, type=type, subst=FT_FLOOR())
 
 def FT_TRAP():
-    return build_type('Trap_', Trap, char='.')
-def FT_FIXED_WALL(id=None): return build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, id=id)
-def FT_ROCK_WALL(id=None): return build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, id=id)
+    return build_type('Trap_', Trap, char='.', invisible=True)
+def FT_FIXED_WALL(id=None): return build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, id=id, type=ft_types['wall'])
+def FT_ROCK_WALL(id=None): return build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, id=id, type=ft_types['wall'])
 def FT_GLASS_WALL(id=None): return build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK, id=id)
 def FT_WINDOW(id=None): return build_type('Window', char='0', color=(128, 128, 160), dim_color=(0, 0, 60), flags=BLOCK_WALK, id=id)
-def FT_WELL(id=None): return DungeonFeature('Well', char='o', color=(255, 255, 255), dim_color=(0, 0, 60), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
-def FT_TREE(id=None): return DungeonFeature('Tree', char='T', color=(0, 90, 0), dim_color=(0, 40, 0), type=ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS, id=id)
-def FT_STATUE(id=None): return DungeonFeature('Statue', char='T', color=(100, 100, 100), dim_color=(80, 80, 80), type=ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS, id=id)
-def FT_FOUNTAIN(id=None): return DungeonFeature('Fountain', char='{', color=(20, 60, 200), dim_color=(10, 30, 100), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
-def FT_POOL(id=None): return DungeonFeature('Pool', char='{', color=(20, 60, 200), dim_color=(10, 30, 100), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
+def FT_WELL(id=None): return build_type('Well', char='o', color=(255, 255, 255), dim_color=(0, 0, 60), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
+def FT_TREE(id=None): return build_type('Tree', char='T', color=(0, 90, 0), dim_color=(0, 40, 0), type=ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS, id=id)
+def FT_STATUE(id=None): return build_type('Statue', char='T', color=(100, 100, 100), dim_color=(80, 80, 80), type=ft_types['furniture'], flags=BLOCK_WALK | BLOCK_LOS, id=id)
+def FT_FOUNTAIN(id=None): return build_type('Fountain', char='{', color=(20, 60, 200), dim_color=(10, 30, 100), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
+def FT_POOL(id=None): return build_type('Pool', char='{', color=(20, 60, 200), dim_color=(10, 30, 100), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
 def FT_BUSH(color=(0, 90, 0),id=None ): return DungeonFeature('Bush', char='*', color=color, dim_color=(0, 40, 0), type=ft_types['furniture'], flags=BLOCK_WALK, id=id)
-def FT_FLOOR(id=None): return DungeonFeature('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ft_types['floor'], id=id)
+def FT_FLOOR(id=None): return build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ft_types['floor'], id=id)
 def FT_ROAD(back=None, char=' ', id=None):
     if  back == None:
         color_bk = (128,128,128)
@@ -201,14 +206,21 @@ def FT_BED(id=None): return build_type('Bed', Furniture, char='8',color=(120, 12
 
 def FT_RANDOM_FURNITURE(id=None): return choice ((FT_CHAIR, FT_TABLE, FT_BED))()
 
-def FT_STAIRCASES_UP(id=None): return build_type('UpStaircase', char='<', color=(255,255,255), dim_color=(80,80,80), type=ft_types['stairs'])
-def FT_STAIRCASES_DOWN(id=None): return build_type('DownStaircase', char='>', color=(255,255,255), dim_color=(80,80,80), type=ft_types['stairs'])
+class FT_STAIRS(DungeonFeature):
+    def __init__(self, id=None, down=True):
+        char = '>'
+        if not down:
+            char = '<'
+        super(FT_STAIRS, self).__init__()
+        self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ft_types["stairs"], 'id':id})
+        self.can_go_down = down
+
+def FT_STAIRCASES_UP(id=None): return FT_STAIRS(id, False)
+def FT_STAIRCASES_DOWN(id=None): return FT_STAIRS(id)
+def FT_TREASURE_CHEST(id=None): return TreasureChest()
 
 def FT_HIDDEN_DOOR(skill=5, id=None):
-    return build_type('HiddenDoor,' HiddenDoor, skill=skill, feature=FT_ROCK_WALL())
-
-def FT_TREASURE_CHEST(id=None): 
-    return TreasureChest
+    return build_type('HiddenDoor', base=HiddenDoor, skill=skill, feature=FT_ROCK_WALL())
 
 
 def FT_ALTAR(id=None):
@@ -218,5 +230,6 @@ class PH(DungeonFeature):
     invisible = True
     def __init__(self, id):
         self.id = id
-        super(PH, self).__init__(' ', None, None, type=1, flags=NONE, id=id)
+        super(PH, self).__init__()
+        self.set_params({'char':' ', 'type':1, 'flags':NONE, 'id':id})
 

@@ -18,19 +18,19 @@ FORCE_VERTICAL_FLIP = (1 << 5) | VERTICAL_FLIP
 FORCE_ROTATE = (1 << 6) | ROTATE
 ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
 
-default_map_chars = {'#': FT_ROCK_WALL,
-	' ': FT_FLOOR,
-	'.': FT_FLOOR,
-	',': FT_GRASS,
-	'+': FT_DOOR,
-	'0': FT_WINDOW,
-	'F' : FT_RANDOM_FURNITURE,
-	'{' : FT_FOUNTAIN,
-	'<' : FT_STAIRCASES_UP,
-	'>' : FT_STAIRCASES_DOWN,
-	'h' : FT_CHAIR,
-	'T' : FT_TABLE,
-	'8' : FT_BED}
+default_map_chars = {'#': FT_ROCK_WALL(),
+	' ': FT_FLOOR(),
+	'.': FT_FLOOR(),
+	',': FT_GRASS(),
+	'+': FT_DOOR(),
+	'0': FT_WINDOW(),
+	'F' : FT_RANDOM_FURNITURE(),
+	'{' : FT_FOUNTAIN(),
+	'<' : FT_STAIRCASES_UP(),
+	'>' : FT_STAIRCASES_DOWN(),
+	'h' : FT_CHAIR(),
+	'T' : FT_TABLE(),
+	'8' : FT_BED()}
 
 def parse_string(mapBytes, map_chars, mapDef=None):
     new_map = []
@@ -45,11 +45,15 @@ def parse_string(mapBytes, map_chars, mapDef=None):
         new_map.append([])
         for char in line:
             ft = map_chars.get(char)
+            if isinstance(ft, FunctionType):
+                raise RuntimeError('feature %s is not type' % ft)
             #it can me mob definition
             if ft is None and mapDef:
                     if char == '@':
                         mapDef.entry_pos[mapDef.current_level] = (x, y)
-                    ft = mapDef.floor()
+                        ft = mapDef.floor(id='entry_pos')
+                    else:
+                        ft = mapDef.floor()
                     lvl = mapDef.current_level
                     if hasattr(mapDef, 'mons') and mapDef.mons.has_key(char):
                         newMob = mapDef.mons[char]
@@ -94,6 +98,7 @@ class MapDef(object):
         self.prepared = {}
         self.id = ''
         self.current_level = 0
+        self.max_levels = 0
         self.floor = FT_FLOOR
         self.mobs = {}
         self.map = None
@@ -116,6 +121,8 @@ class MapDef(object):
                 try:
                     if callable(_map[y][x]):
                         _map[y][x] = _map[y][x]()
+                    if isinstance(_map[y][x], type):
+                        _map[y][x] = _map[y][x]()
                     if not isinstance(_map[y][x], DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
                 except IndexError:
@@ -123,6 +130,10 @@ class MapDef(object):
                     break
         if copy.orient is not None:
             copy.orient(_map, override_orient)
+
+        res = copy.find_feature('entry_pos')
+        if res:
+            copy.entry_pos[copy.current_level] = (res[1], res[2])
         return copy
 
     def _prepare_subst(self):
@@ -141,9 +152,13 @@ class MapDef(object):
     def _parse_value(self, v):
         """Parses value from SUBST or MONS tags. if it starts as $ - it's a script"""
         if isinstance(v, str):
-            return globals()[v.strip()]
+            res = globals()[v.strip()]
         else:
-            return v
+            res = v
+        #now check if it's type
+        if isinstance(res, FunctionType):
+            return res()
+        return res
 
     def _prepare_orient(self):
         if self.orient == 'RANDOM':
@@ -152,6 +167,7 @@ class MapDef(object):
             self.orient = None
 
     def prepare(self, level=None):
+        self.max_levels = len(self.map)
         if not level:
             level = self.current_level
         map = self.map[level]
@@ -167,6 +183,19 @@ class MapDef(object):
     def tune(params = {}):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
         #todo map script callback
+
+    def find_feature(self, id):
+        """ Finds feature from map by id
+        """
+        x, y = 0,0
+        for line in self.map[self.current_level]:
+            for char in line:
+                if hasattr(char, 'id') and char.id == id:
+                    return char, x, y
+                x+=1
+            y+=1
+            x=0
+        return None
 
     def __setattr__(self, name, value):
         if name == 'map_chars':

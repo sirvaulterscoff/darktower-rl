@@ -88,6 +88,12 @@ def handle_wait():
         gl.__turn_count__ += 1
     return True
 
+def handle_descend():
+    if not map:
+        return False
+    if map.descend():
+        return True
+
 
 if __name__ == "__main__":
     global map
