@@ -92,6 +92,8 @@ class LibtcodGui(AbstractGui):
                 tile = map[y][x]
                 seen = tile.seen | gl.__wizard_mode__
                 visible = libtcod.map_is_in_fov(map.fov_map, x, y)
+                if isinstance(tile.color, tuple):
+                    tile.parse_color(self.create_color)
                 #if tile is seen or visible to player - print it
                 if seen or visible:
                     libtcod.console_set_char(self.con, consolex, consoley, tile.char)

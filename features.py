@@ -51,7 +51,7 @@ class DungeonFeature(object):
     def passable(self):
         return not self.flags & BLOCK_WALK
 
-    def player_move_into(self, player, x, y):
+    def player_move_into(self, player, x, y, map_def):
         #returns tupple. 1value for if this sqaure can be occupied,
         # second value if it takes turn
         # third value - denotes if fov should be recalculated
@@ -85,8 +85,8 @@ class Door (DungeonFeature):
         self.set_params({'char': char, 'color' : (255,255,255), 'dim_color':(128,128,128), 'type':ft_types['door'], 'flags': BLOCK_LOS | BLOCK_WALK})
         self.opened = opened
 
-    def player_move_into(self, player, x, y):
-        super(Door, self).player_move_into(player, x, y)
+    def player_move_into(self, player, x, y, mapdef):
+        super(Door, self).player_move_into(player, x, y, mapdef)
         if not self.opened:
             self.opened = True
             self.char = '-'
@@ -116,14 +116,14 @@ class HiddenDoor (Door):
             self.hidden = False
             self.char = '+'
 
-    def player_move_into(self, player, x, y):
+    def player_move_into(self, player, x, y, mapdef):
         #todo check for traps and doors skill. now just a coinflip
         if self.hidden and util.coinflip():
             self.hidden = False
             self.char = '+'
         if self.hidden:
             return False, False, False
-        return super(HiddenDoor, self).player_move_into(player, x, y)
+        return super(HiddenDoor, self).player_move_into(player, x, y, mapdef)
 
 class Furniture(DungeonFeature):
     type = ft_types['furniture']
@@ -135,8 +135,8 @@ class TreasureChest(Furniture):
         super(TreasureChest, self).__init__()
         self.set_params({'char':'8', 'color': (203,203,203), 'dim_color':(203,203,203), 'type':6, 'flags':NONE})
 
-    def player_move_into(self, player, x, y):
-        super(TreasureChest, self).player_move_into(player, x, y)
+    def player_move_into(self, player, x, y, mapdef):
+        super(TreasureChest, self).player_move_into(player, x, y, mapdef)
         print 'You found treasure chest'
 
 class Altar(DungeonFeature):
@@ -156,6 +156,22 @@ class PreasurePlate(DungeonFeature):
         super(PreasurePlate, self).__init__()
         self.affected=affected
         self.action=action
+        self.reacted = False
+
+    def player_move_into(self, player, x, y, map_def):
+        #todo check player is flying (maybe)
+        if self.reacted: return True, True, True #already pressed
+        self.reacted = True #todo - take skills in account
+        gl.message('You step on the pressure plate')
+        fts = map_def.map_src.find_feature(self.affected, multiple=True)
+        if fts:
+            for ft in fts:
+                getattr(self, self.action)(*ft, map_def=map_def, player=player)
+        return True, True, True
+
+    def remove(self, feature, ft_x, ft_y, map_def, player):
+        map_def.map_src.replace_feature_atxy(ft_x, ft_y, map_def.map_src.floor)
+
 
 class Trap(DungeonFeature):
     invisible = True

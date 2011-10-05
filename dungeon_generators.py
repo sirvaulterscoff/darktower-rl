@@ -185,7 +185,11 @@ class MapDef(object):
         #todo map script callback
 
     def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
-        """ Finds feature from map by id
+        """ Finds feature from map by id (if specified) or by certain type name (if specified
+        if multiple => True - all matching items will be returned list of tuples. Otherwise
+        only single tuple is returned
+        filter is a lambda expression invoked on each found item
+        returns tuple tile, x, y
         """
         res = []
         x, y = 0,0
@@ -211,6 +215,15 @@ class MapDef(object):
         if multiple and len(res):
             return res
         return None
+
+    def replace_feature_atxy(self, x, y, with_what):
+        ft = with_what
+        if callable(with_what):
+            ft = with_what()
+        if isinstance(ft, type):
+            ft = ft()
+
+        self.map[self.current_level][y][x] = ft
 
     def __setattr__(self, name, value):
         if name == 'map_chars':
