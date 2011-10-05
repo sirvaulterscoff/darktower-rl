@@ -59,6 +59,9 @@ class LibtcodGui(AbstractGui):
         self.message_colours[4] = libtcod.Color(255,255,255)
         self.viewport = None
 
+    def reset(self):
+        self.viewport = None
+
 
     def print_critter(self, x, y, char):
         libtcod.console_set_char(self.con, x, y, char)

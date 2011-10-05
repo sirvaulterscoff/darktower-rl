@@ -149,8 +149,13 @@ class Map(object):
             if self.map_src.max_levels < self.map_src.current_level + 1:
                 return False
             self.map_src.current_level += 1
+            stairs_up = self.map_src.find_feature(oftype='Stairs', multiple=True,
+                                                  filter=lambda ft: ft.can_go_down==False)
+            #okay, lets have just the first stairs. TODO - link stairs while parsing the map
+            self.player.x, self.player.y = stairs_up[0][1], stairs_up[0][2]
             self.init(self.map_src)
             self.init_fov()
+            return True
 
 
 

@@ -206,17 +206,17 @@ def FT_BED(id=None): return build_type('Bed', Furniture, char='8',color=(120, 12
 
 def FT_RANDOM_FURNITURE(id=None): return choice ((FT_CHAIR, FT_TABLE, FT_BED))()
 
-class FT_STAIRS(DungeonFeature):
+class Stairs(DungeonFeature):
     def __init__(self, id=None, down=True):
         char = '>'
         if not down:
             char = '<'
-        super(FT_STAIRS, self).__init__()
+        super(Stairs, self).__init__()
         self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ft_types["stairs"], 'id':id})
         self.can_go_down = down
 
-def FT_STAIRCASES_UP(id=None): return FT_STAIRS(id, False)
-def FT_STAIRCASES_DOWN(id=None): return FT_STAIRS(id)
+def FT_STAIRCASES_UP(id=None): return Stairs(id, False)
+def FT_STAIRCASES_DOWN(id=None): return Stairs(id)
 def FT_TREASURE_CHEST(id=None): return TreasureChest()
 
 def FT_HIDDEN_DOOR(skill=5, id=None):

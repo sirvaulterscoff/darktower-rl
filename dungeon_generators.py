@@ -184,17 +184,32 @@ class MapDef(object):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
         #todo map script callback
 
-    def find_feature(self, id):
+    def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
         """ Finds feature from map by id
         """
+        res = []
         x, y = 0,0
         for line in self.map[self.current_level]:
             for char in line:
-                if hasattr(char, 'id') and char.id == id:
-                    return char, x, y
+                if id:
+                    if hasattr(char, 'id') and char.id == id:
+                        if filter and not filter(char): continue
+                        if multiple:
+                            res.append((char, x, y))
+                        else:
+                            return char, x, y
+                elif oftype:
+                    if char.__class__.__name__ == oftype:
+                        if filter and not filter(char): continue
+                        if multiple:
+                            res.append((char, x, y))
+                        else:
+                            return char, x, y
                 x+=1
             y+=1
             x=0
+        if multiple and len(res):
+            return res
         return None
 
     def __setattr__(self, name, value):

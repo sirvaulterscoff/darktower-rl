@@ -92,6 +92,8 @@ def handle_descend():
     if not map:
         return False
     if map.descend():
+        gl.__fov_recompute__ = True
+        gui.reset()
         return True
 
 
