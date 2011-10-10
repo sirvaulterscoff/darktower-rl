@@ -244,5 +244,11 @@ class LambdaMap(dict):
             return item()
         else:
             return item
+class NamedMap(object):
+    def __init__(self, dict):
+        self.map = dict
+
+    def __getattr__(self, name):
+        return self.map[name]
 class Des():
     pass

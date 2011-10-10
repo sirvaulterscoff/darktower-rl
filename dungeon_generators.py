@@ -1,6 +1,6 @@
 import os
 from random import randrange, random, choice, shuffle
-from features import *
+from features import features
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
 import des
@@ -17,20 +17,21 @@ FORCE_HORIZONTAL_FLIP = (1 << 4) | HORIZONTAL_FLIP
 FORCE_VERTICAL_FLIP = (1 << 5) | VERTICAL_FLIP
 FORCE_ROTATE = (1 << 6) | ROTATE
 ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
+ft = util.NamedMap(features)
 
-default_map_chars = {'#': FT_ROCK_WALL(),
-	' ': FT_FLOOR(),
-	'.': FT_FLOOR(),
-	',': FT_GRASS(),
-	'+': FT_DOOR(),
-	'0': FT_WINDOW(),
-	'F' : FT_RANDOM_FURNITURE(),
-	'{' : FT_FOUNTAIN(),
-	'<' : FT_STAIRCASES_UP(),
-	'>' : FT_STAIRCASES_DOWN(),
-	'h' : FT_CHAIR(),
-	'T' : FT_TABLE(),
-	'8' : FT_BED()}
+default_map_chars = {'#': ft.rock_wall,
+	' ': ft.floor,
+	'.': ft.floor,
+	',': ft.grass,
+	'+': ft.door,
+	'0': ft.window,
+	'{' : ft.fountain,
+	'<' : ft.stair_up,
+	'>' : ft.stairs_down,
+	'h' : ft.chair,
+	'T' : ft.table,
+	'8' : ft.bed,
+    }
 
 def parse_string(mapBytes, map_chars, mapDef=None):
     new_map = []
