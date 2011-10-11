@@ -1,5 +1,6 @@
 from random import choice, randrange
 import gl
+from util import build_type as build_type_
 
 BLOCK_WALK = 1
 BLOCK_LOS = 2
@@ -22,13 +23,6 @@ class TypeEnum(object):
         return self.ft_types[name]
 
 ftype = TypeEnum()
-
-def build_type(name, base=None, **argv):
-    if not base:
-        new_type = type(name, (DungeonFeature,), argv)
-    else:
-        new_type = type(name, (base,), argv)
-    return new_type
 
 class DungeonFeature(object):
     invisible = False
@@ -81,6 +75,9 @@ class DungeonFeature(object):
             self.color_back = delegate.color_back
         if hasattr(delegate, 'dim_color_back'):
             self.dim_color_back = delegate.dim_color_back
+
+def build_type(name, base=DungeonFeature, **args):
+    return build_type_(name, base, **args)
 
 class Door (DungeonFeature):
     def __init__(self, opened=False):
