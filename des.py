@@ -2,15 +2,15 @@
 from pyparsing import *
 import string
 import random
-from critters import *
-from features import *
-from items import *
+#from critters import *
+#from features import *
+#from items import *
 
 #chars allowed for right-hand-value
 viable_chars = '!"#$%&\'()*+,-./:;<?@[\]^_`{|}~'
 equals = Literal('=').suppress()
 #comment = Regex(r'^#[' + alphanums + ']$')
-comma = ZeroOrMore(',,').suppress()
+comma = ZeroOrMore(',').suppress()
 #right-hand-value(rhv) definition
 rhv = Combine(Optional('$') + Word(alphanums + viable_chars + '\ '))
 #assign to dictionary
@@ -33,9 +33,18 @@ ml_assignment = multiline_keyword
 assignment = ml_assignment | assignment
 parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
-def _parseFile(fname, ttype):
+def transform_number(x):
+    print 'parsing %s' % x
+    return int(x[0])
+
+param_number = Word(string.digits).setParseAction(transform_number)
+param_lhv = Word(alphanums) + Literal(':').suppress()
+param_rhv = (param_number | Word(alphanums +"'" + '"')) + Optional(Literal(',')).suppress()
+params_parser = dictOf(param_lhv, param_rhv)
+
+def _parseFile(fname, ttype, lookup_dicts):
     result = [None]#None indicates that a new item should be created
-    assignment.setParseAction(lambda x: process(result,ttype, x))
+    assignment.setParseAction(lambda x: process(result,ttype, x, lookup_dicts))
     end_keyword.setParseAction(lambda x : end(result))
     cont = open(fname).read()
     parser.parseString(cont)
@@ -43,19 +52,34 @@ def _parseFile(fname, ttype):
         result.pop()
     return result
 
-def parse_val(val, where):
+def lookup_val(val, lookup_dicts):
+    for lookup in lookup_dicts:
+        if lookup.has_key(val):
+            return lookup[val]
+    return None
+
+def parse_val(val, where, lookup_dicts):
     """Adjusts the value from des file. There are several ways to do so
     1) string.Template substitution when ${ is replaced with attribute of object
     2) $-values. Values that starts with $-sign will be parsed using eval
-    3) %-blocks. Values that starts with %-sign will be parse using compile/exec. Then
+    3) %-blocks. Values that starts with %-sign will be parsed using compile/exec. Then
     we expect that such a block defines local named 'out'
+    lookup_dicts stores dicts that holds available classes for that type of parsing
     """
     val = string.Template(val).safe_substitute(where.__dict__)
     if val.startswith('$') and not val.startswith('${'):
         val = val[1:]
         #here we address simple value evaluation via eval
         try:
-            return eval(val)
+            if val.contains('('):#we have a record in form $func_name(param:value)
+                func = val[:val.find('(')] #get function name
+                args = val[val.find('(')+1:val.find(')')] #get args between '(' and ')'
+                target = lookup_val(func, lookup_dicts)
+                #now we check two options: if this is a type - then we create new parametrized type
+                #if it's function - we just call it with provided params
+            else:
+                return lookup_val(val, lookup_dicts)
+
         except Exception ,e:
             print 'Error parsing code :\n' + val + '\n' + str(e)
             import sys
@@ -74,20 +98,22 @@ def parse_val(val, where):
     else:
         return val
 
-def process(items, ttype, toks):
+def process(items, ttype, toks, lookup_dicts):
     """Invoked on each rhv """
     where = items[-1]
+    #just take previous item from results. if it's empty - it's either start of file or 
+    #END keyword was prior to current line
     if where is None:
         items.pop()
-        where = ttype()
+        where = ttype() #create new item of requested type
         items.append(where)
     key = toks[0]
     key = str(key).lower()
     value = toks[1]
-    if isinstance(value, str):
-        out = parse_val(value, where)
+    if isinstance(value, str): #if the result is plain string - parse and set
+        out = parse_val(value, where, lookup_dicts)
         setattr(where,key,out)
-    else:
+    else: #if the result is map - parse each value
         if not hasattr(where, key):
             setattr(where, key, {})
         for k, v in zip(value[::2], value[1::2]):
@@ -99,11 +125,11 @@ def end(result):
 
 
 parsed_des_files = { }
-def parseFile(file_name, type):
+def parseFile(file_name, type, lookup_dicts):
     """parses file"""
     if parsed_des_files.has_key(file_name):
         return parsed_des_files[file_name]
-    _des = _parseFile(file_name, type)
+    _des = _parseFile(file_name, type, lookup_dicts)
     parsed_des_files[file_name] = _des
     return _des
 

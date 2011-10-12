@@ -252,3 +252,8 @@ class NamedMap(object):
         return self.map[name]
 class Des():
     pass
+
+
+def build_type(name, base, **argv):
+    new_type = type(name, (base,), argv)
+    return new_type
