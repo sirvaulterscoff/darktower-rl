@@ -33,11 +33,7 @@ ml_assignment = multiline_keyword
 assignment = ml_assignment | assignment
 parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
-def transform_number(x):
-    print 'parsing %s' % x
-    return int(x[0])
-
-param_number = Word(string.digits).setParseAction(transform_number)
+param_number = Word(string.digits).setParseAction(lambda x: int(x[0]))
 param_lhv = Word(alphanums) + Literal(':').suppress()
 param_rhv = (param_number | Word(alphanums +"'" + '"')) + Optional(Literal(',')).suppress()
 params_parser = dictOf(param_lhv, param_rhv)
@@ -71,18 +67,30 @@ def parse_val(val, where, lookup_dicts):
         val = val[1:]
         #here we address simple value evaluation via eval
         try:
-            if val.contains('('):#we have a record in form $func_name(param:value)
+            if val.find('(') > -1:#we have a record in form $func_name(param:value)
                 func = val[:val.find('(')] #get function name
                 args = val[val.find('(')+1:val.find(')')] #get args between '(' and ')'
+                args = params_parser.parseString(args).asDict(); #parse params
                 target = lookup_val(func, lookup_dicts)
+                if not target:
+                    raise RuntimeError('No callable under the name %s' % func)
                 #now we check two options: if this is a type - then we create new parametrized type
                 #if it's function - we just call it with provided params
+                if isinstance(target, type): #if this is a type - create subtype
+                    return type(target.__name__, (target,), args)
+                if callable(target):
+                    return target(**args)
+                else:
+                    raise RuntimeError('Invalid target in parsing %s' % target)
             else:
                 return lookup_val(val, lookup_dicts)
 
         except Exception ,e:
             print 'Error parsing code :\n' + val + '\n' + str(e)
+            import traceback
             import sys
+            t,v, tb = sys.exc_info()
+            traceback.print_tb(tb)
             sys.exit(-1)
     elif val.startswith('%'): #more complex - via compile and exec
         val = val[1:]
