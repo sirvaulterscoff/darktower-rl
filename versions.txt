@@ -19,6 +19,7 @@ I Story telling
     6. Random shuffle NPCs, define basic quests
     7. Make text from what we have so far
     8. Layout first quest start - background, NPC placement, apropriate map
+    9. Allow editing of generational params at the start of the game
 actualy story telling based on random text generation is going to be stupidly
 boring. What actualy we need is to define some relationships and etc. so that
 we get something like that

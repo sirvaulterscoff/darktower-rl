@@ -90,6 +90,7 @@ def flood_fill(startx, starty, tile_check_callback, tile_create_callback,
                             (0,1), (1,1), (2,1),
                             (0,2), (1, 2), (2, 2)],
                passed = None):
+    #todo move to separate module 
     #means it's topmost run
     if passed == None:
         passed = []
@@ -244,15 +245,13 @@ class LambdaMap(dict):
             return item()
         else:
             return item
+
 class NamedMap(object):
     def __init__(self, dict):
         self.map = dict
 
     def __getattr__(self, name):
         return self.map[name]
-class Des():
-    pass
-
 
 def build_type(name, base, **argv):
     new_type = type(name, (base,), argv)

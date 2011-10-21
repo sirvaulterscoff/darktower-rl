@@ -90,50 +90,52 @@ class FeatureRequest(object):
         self.mapdef.tune(params)
 
 
+class MapRequest(object):
+    """Holds info for dungeon generator about specific map to load from des """
+    def __init__(self, type, params={}):
+        self.type = type
+        self.params = {}
+    pass
+
+class RegionRequest(object):
+    """Holds info about specific region request (i.e. forest, city etc)"""
+    pass
+
 #todo move entire class to des.py
 class MapDef(object):
     def __init__(self):
-        self.map_chars = default_map_chars.copy()
-        self.prepared = {}
         self.id = ''
         self.current_level = 0
         self.max_levels = 0
         self.floor = ft.floor
         self.mobs = {}
+        self.items = {}
         self.map = None
-        self.entry_pos = {}
+        self.entry_pos = None
+        """ There is several available modes
+        include = places a map over already generated map (i.e. place a house in forest)
+        overflow = place a map over generated map, possibly morphing it into original map 
+        (i.e. can remove some walls or features)
+        asis = this map is already a fully functional map"""
+        self.mode = 'overflow'
+        """Terrain defines what type of dungeon generator is suitabe for this map.
+        Map placement/generator selection can use two separate algorithms:
+            1. we have specific generator defined and when we place our submaps we
+            check terrain type for each, making sure it's the same as current generator
+            2. we have a request for specific map type (i.e. crypt) - we choose a map
+            and see what generator would be apropriate for that map (checking attr terrain)
+        """
+        self.terrain = None
+        """Require only one map with such id"""
+        self.unique = False
+        """ Sets the minimum hd which is allowed for this map """
+        self.HD = 0
+        """ How common is this map """
+        self.common = 10
+        """ Whats the chance of selecting this map """
+        self.chance = 0
 
-    def set_level(self, level=0):
-        self.current_level = level
-        self.prepare(level)
 
-    def materialize(self, override_orient = ANY, level=None):
-        if not level:
-            level = self.current_level
-        if not level in self.prepared:
-            self.prepare(level)
-        copy = deepcopy(self)
-        _map = copy.map[level]
-        logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
-        for y in xrange(0, len(_map)):
-            for x in xrange(0, len(_map[0])):
-                try:
-                    if callable(_map[y][x]):
-                        _map[y][x] = _map[y][x]()
-                    if isinstance(_map[y][x], type):
-                        _map[y][x] = _map[y][x]()
-                    if not isinstance(_map[y][x], DungeonFeature):
-                        raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
-                except IndexError:
-                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.width)
-                    break
-        if copy.orient is not None:
-            copy.orient(_map, override_orient)
-
-        res = copy.find_feature('entry_pos')
-        if res:
-            copy.entry_pos[copy.current_level] = (res[1], res[2])
-        return copy
 
     def _prepare_subst(self):
         calc = {}
@@ -223,20 +225,6 @@ class MapDef(object):
             ft = ft()
 
         self.map[self.current_level][y][x] = ft
-
-    def __setattr__(self, name, value):
-        if name == 'map_chars':
-            super(MapDef, self).__setattr__(name, value)
-            return
-        if name.startswith('map_'):
-            print 'setting ' + name + ' to ' + str(value)
-            if not self.map:
-                self.map = []
-            print name.replace('map_', '')
-            index = int(name.replace('map_', ''))
-            self.map.insert(index, value)
-        else:
-            super(MapDef, self).__setattr__(name, value)
 
 def random_rotate(map, settings = ANY):
     rev_x, rev_y = util.coinflip(), util.coinflip()
@@ -418,12 +406,31 @@ class RoomsCoridorsGenerator(AbstractGenerator):
         return self._map
 
 file_parsed = False
-_map_files = []
 _parsed_files = {}
 _available_maps = {}
+
+def get_map_name(flavour, subfolder=''):
+    prefix = '..'
+    for file in os.listdir('.'):
+        if file == 'data':
+            prefix = '.'
+            break
+    for file in os.listdir(prefix + '/data/maps/' + subfolder):
+        if file.find(flavour + '.des') > -1:
+            if not file.endswith('.des'): continue
+            logger.debug('Parsing mapfile ' + file)
+            return os.path.join(prefix, 'data/maps/' + subfolder, file)
+
+def parse_file(self, map_file):
+    maps = des.parseFile(map_file, MapDef)
+    _parsed_files[map_file] = maps
+    for map in maps:
+        _available_maps[map.id] = map
+    return maps
+
+
 class StaticRoomGenerator(AbstractGenerator):
     def __init__(self, flavour='', type='rooms'):
-        #todo rewrite to use util.parseDes
         prefix = '..'
         for file in os.listdir('.'):
             if file == 'data':

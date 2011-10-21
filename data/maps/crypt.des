@@ -1,3 +1,5 @@
+mode=overflow
+terrain=graveyard city
 ORIENT=RANDOM
 SUBST=$=>$hidden_door
 ITEMS=g=>$Gold(min: 10, max: 70)
@@ -7,7 +9,8 @@ MONS=1=>$skeleton
 MONS=2=>$skeleton(hd: -1)
 id=crypt_1
 base_level=0
-MAP_0="""
+HD=10
+MAP="""
                         #######
 #########################.1..2#
 ......^...^...^...^gggGg$..@^>#
@@ -22,6 +25,7 @@ SUBST=K=>$ph(id: 'TOMB')
 MONS=3=>$skeletonl(hd: 1, name: 'Skeleton-guard')
 SUBST={=>$pool
 SUBST=}=>$pool
+mode=asis
 on_param_set="""%
 def crypt1_set_param(name, value, des):
     if name == 'corpse':
@@ -41,7 +45,7 @@ SUBST=x=>$fixed_wall(id='x')
 SUBST=X=>$fixed_wall(id='X')
 SUBST=S=>$statue
 
-MAP_1="""
+MAP="""
 ########################################
 #c$......X....................X......$c#
 ###...1..#......!!!.!!!.......#..1...###

@@ -8,9 +8,12 @@ from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
 from dungeon_generators import MapDef
+from features import DungeonFeature
+from collections import Iterable
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
+logger = util.create_logger('DG')
 
 class Map(object):
     def __init__(self, map_src):
@@ -19,18 +22,56 @@ class Map(object):
     def init(self, map_src):
         self.map_critters = []
         self.critter_xy_cache = {}
-        if isinstance(map_src, MapDef):
-            self.map = map_src.map[map_src.current_level]
+        self.current_level = 0
+        self.max_levels = 1
+        if isinstance(map_src, Iterable):
+            if not isinstance(map_src[0], MapDef):
+                raise RuntimeError('MapDef should be passed to map object')
+            self.map_src = map_src
+        elif isinstance(map_src, MapDef):
+            self.map_src = [map_src]
         else:
             raise RuntimeError('MapDef should be passed to map object')
         self.map_height = len(self.map)
         self.map_width = len(self.map[0])
         self.square = self.map_height * self.map_width
         self.fov_map = None
-        self.map_src = map_src
+        self.map = [None for x in len(self.map_src)]
+        #shortcut for self.map[self.current_level]
+        self.shortcut = None
 
     def __getitem__(self, item):
-        return self.map[item]
+        return self.shortcut[item]
+
+    def prepare_level(self):
+        """ This launches preparation on new level.
+        1. Checks if a level was already prepared
+        2. Materializez it from MapDef object (creates all required tiles)
+        """
+        if self.map[self.current_level]:
+            return
+        self.map[self.current_level] = self.__materialize()
+        self.shortcut = self.map[self.current_level]
+        #todo - now materialize mobs defined for that level
+
+    def __materialize(self):
+        _map = self.map_src[self.current_level]
+        newmap = []
+        logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
+        for y in xrange(0, len(_map)):
+            newmap.append([])
+            for x in xrange(0, len(_map[0])):
+                try:
+                    if callable(_map[y][x]):
+                        newmap.append(_map[y][x]())
+                    elif isinstance(_map[y][x], type):
+                        newmap.append(_map[y][x]())
+                    if not isinstance(newmap[y][x], DungeonFeature):
+                        raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
+                except IndexError:
+                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.width)
+                    break
+        return newmap
 
     def place_player(self, player):
         pos_set = False
