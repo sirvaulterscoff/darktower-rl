@@ -1,6 +1,7 @@
 mode=overflow
 terrain=graveyard city
 ORIENT=RANDOM
+position=None
 SUBST=$=>$hidden_door
 ITEMS=g=>$Gold(min: 10, max: 70)
 SUBST=G=>$trap && Gold(min: 70, max: 100) 
@@ -8,7 +9,6 @@ SUBST=^=>$trap
 MONS=1=>$skeleton
 MONS=2=>$skeleton(hd: -1)
 id=crypt_1
-base_level=0
 HD=10
 MAP="""
                         #######
@@ -17,6 +17,7 @@ MAP="""
 #########################.1..2#
                         #######
 """
+level=1
 ITEMS=a=>$irandom(value: 1000)
 ITEMS=b=>$irandom(value: 500, type : 'book'})
 ITEMS=c=>$HealingPotion
@@ -45,7 +46,7 @@ SUBST=x=>$fixed_wall(id='x')
 SUBST=X=>$fixed_wall(id='X')
 SUBST=S=>$statue
 
-MAP="""
+MAP_1="""
 ########################################
 #c$......X....................X......$c#
 ###...1..#......!!!.!!!.......#..1...###

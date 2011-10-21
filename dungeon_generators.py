@@ -9,14 +9,6 @@ from items import Item, items
 from types import FunctionType
 
 logger = util.create_logger('DG')
-NO_FLIP = 0
-HORIZONTAL_FLIP = 1
-VERTICAL_FLIP = 2
-ROTATE = 4
-FORCE_HORIZONTAL_FLIP = (1 << 4) | HORIZONTAL_FLIP
-FORCE_VERTICAL_FLIP = (1 << 5) | VERTICAL_FLIP
-FORCE_ROTATE = (1 << 6) | ROTATE
-ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
 ft = util.NamedMap(features)
 
 default_map_chars = {'#': ft.rock_wall,
@@ -49,7 +41,7 @@ def parse_string(mapBytes, map_chars, mapDef=None):
             #it can me mob definition
             if ft is None and mapDef:
                     if char == '@':
-                        mapDef.entry_pos[mapDef.current_level] = (x, y)
+                        mapDef.entry_pos[mapDef.base_level] = (x, y)
                         ft = mapDef.floor(id='entry_pos')
                     else:
                         ft = mapDef.floor()
@@ -103,10 +95,13 @@ class RegionRequest(object):
 
 #todo move entire class to des.py
 class MapDef(object):
-    def __init__(self):
+    current_level = 0
+    def __init__(self, parent=None):
+        self.parent = parent
         self.id = ''
-        self.current_level = 0
         self.max_levels = 0
+        """ Used in multi-layered maps. Holds references to another """
+        self.levels = {}
         self.floor = ft.floor
         self.mobs = {}
         self.items = {}
@@ -116,7 +111,8 @@ class MapDef(object):
         include = places a map over already generated map (i.e. place a house in forest)
         overflow = place a map over generated map, possibly morphing it into original map 
         (i.e. can remove some walls or features)
-        asis = this map is already a fully functional map"""
+        asis = this map is already a fully functional map
+        """
         self.mode = 'overflow'
         """Terrain defines what type of dungeon generator is suitabe for this map.
         Map placement/generator selection can use two separate algorithms:
@@ -134,8 +130,16 @@ class MapDef(object):
         self.common = 10
         """ Whats the chance of selecting this map """
         self.chance = 0
-
-
+        """ Rooms already on that map """
+        self.rooms = {}
+        self.width = 0
+        self.height = 0
+        self.orient = 'RANDOM'
+        self.prepared = False
+        """ Speicifes where dungeon generator should place this room, valid option are:
+            -SW, SE, NW, NE, CENTER, NONE
+        """
+        self.position = None
 
     def _prepare_subst(self):
         calc = {}
@@ -151,6 +155,7 @@ class MapDef(object):
             print '%s => %s ' %(k, v)
 
     def _parse_value(self, v):
+        #todo delete this
         """Parses value from SUBST or MONS tags. if it starts as $ - it's a script"""
         if isinstance(v, str):
             res = globals()[v.strip()]
@@ -161,25 +166,18 @@ class MapDef(object):
             return res()
         return res
 
-    def _prepare_orient(self):
-        if self.orient == 'RANDOM':
-            self.orient = lambda x, settings: random_rotate(x, settings)
-        else:
-            self.orient = None
-
-    def prepare(self, level=None):
-        self.max_levels = len(self.map)
-        if not level:
-            level = self.current_level
-        map = self.map[level]
-        self.height = len(map)
-        self.width = len(map[0])
-        if self.prepared.get(level, False): return
+    def prepare(self):
+        if self.prepared:
+            return
+        if not self.parent:
+            self.max_levels = len(self.levels) + 1
+        self.height = len(self.map)
+        self.width = len(self.map[0])
         self._prepare_subst()
-        orient = self._prepare_orient()
-        self.map[level] = parse_string(self.map[level], self.map_chars, self)
-        self.prepared[level] = True
-        return self
+        self.map = parse_string(self.map, self.map_chars, self)
+        for lvl in self.levels.values():
+            lvl.prepare() #todo check that multilevels actualy prepare
+        self.prepared = True
 
     def tune(params = {}):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
@@ -194,7 +192,7 @@ class MapDef(object):
         """
         res = []
         x, y = 0,0
-        for line in self.map[self.current_level]:
+        for line in self.map[self.base_level]:
             for char in line:
                 if id:
                     if hasattr(char, 'id') and char.id == id:
@@ -224,33 +222,32 @@ class MapDef(object):
         if isinstance(ft, type):
             ft = ft()
 
-        self.map[self.current_level][y][x] = ft
+        self.map[self.base_level][y][x] = ft
 
-def random_rotate(map, settings = ANY):
-    rev_x, rev_y = util.coinflip(), util.coinflip()
-    if settings & FORCE_VERTICAL_FLIP:
-        rev_x = 1
-    if settings & FORCE_HORIZONTAL_FLIP:
-        rev_y = 1
-    swap_x_y = util.coinflip()
-    if settings & FORCE_ROTATE:
-        swap_x_y = 1
-    if rev_x and settings & VERTICAL_FLIP:
-        for line in map:
-            line.reverse()
-    if rev_y and settings & HORIZONTAL_FLIP:
-        map.reverse()
-    if swap_x_y and settings & ROTATE:
-        new_map = []
-        for x in xrange(0, len(map[0])):
-            new_line = []
-            for y in xrange(0, len(map)):
-                new_line.append(map[y][x])
-            new_map.append(new_line)
-        return new_map
-    return map
+    def __setattr__(self, name, value):
+        if name == 'map_chars' or name=='levels':
+            super(MapDef, self).__setattr__(name, value)
+            return
+        if name == 'level': #here we switch level
+            self.current_level = value
+            self.levels[value] = MapDef(self)
+            return
+        if self.current_level > 0:
+            object.__setattr__(self.levels[value], name, value)
+        else:
+            object.__setattr__(self, name, value)
 
-
+    def __getattribute__(self, name):
+        if name == 'levels' or name == 'current_level':
+            return object.__getattribute__(self, name)
+        if self.current_level > 0:
+            next = object.__getattribute__(self, 'levels')[self.current_level]
+            try:
+                object.__getattribute__(next, name)
+            except AttributeError: #inner level has no such attr
+                return object.__getattribute__(self, name)
+        else:
+            return object.__getattribute__(self, name)
 
 class Rect:
     def __init__(self, x, y, width, heigh):

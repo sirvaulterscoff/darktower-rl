@@ -198,5 +198,10 @@ class Map(object):
             self.init_fov()
             return True
 
+class Room(object):
+    def __init__(self):
+        pass
 
+class MultilevelRoom(Room):
+    pass
 
