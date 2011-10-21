@@ -34,8 +34,12 @@ class Item(object):
         self.doand(other)
 
 class Gold(Item):
-    def __init__(self, value=1):
+    min=0
+    max=100
+    def __init__(self, value=None):
         super(Gold, self).__init__('$', (255,255,102), (128,128,10))
+        if not value:
+            self.value = randrange(self.min, self.max + 1)
         self.value = value
 
     def place(self, cell):
@@ -209,15 +213,26 @@ def generate_artefacts(artefacts_count, check=None):
             result.append(acquire(unique=check, artefact=True))
     return result
 
+class Random(Item):
+    type_ = 'gold'
+    def __new__(Type, **args):
+        print 'Type is %s args is %s' %(Type, args)
+        print 'Self type is %s' % type_
+        target = items[self.type_]
+        return util.build_type(self.type_+'__', target, args)()
 
-def I_GOLD(min=0, max=1000):
-    value = randrange(min, max)
-    return Gold(value)
 
-def I_POTION(type=None):
-    if type == 'healing':
-        return HealingPotion()
+items = {}
+loc = locals()
+for var, deff in loc.items():
+    if isinstance(deff,type) and issubclass(deff, Item):
+        items[var] = deff
 
-def I_RANDOM(price=1000, type='art'):
-    return HealingPotion()
 
+def random_type(**args):
+    if args.has_key('type'):
+        #todo implement
+        return Gold()
+    else:
+        return choice(items)
+items['irandom'] = random_type

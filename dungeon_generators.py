@@ -5,7 +5,7 @@ import thirdparty.libtcod.libtcodpy as libtcod
 import util
 import des
 from copy import deepcopy
-from items import Item
+from items import Item, items
 from types import FunctionType
 
 logger = util.create_logger('DG')
@@ -26,7 +26,7 @@ default_map_chars = {'#': ft.rock_wall,
 	'+': ft.door,
 	'0': ft.window,
 	'{' : ft.fountain,
-	'<' : ft.stair_up,
+	'<' : ft.stairs_up,
 	'>' : ft.stairs_down,
 	'h' : ft.chair,
 	'T' : ft.table,
@@ -46,8 +46,6 @@ def parse_string(mapBytes, map_chars, mapDef=None):
         new_map.append([])
         for char in line:
             ft = map_chars.get(char)
-            if isinstance(ft, FunctionType):
-                raise RuntimeError('feature %s is not type' % ft)
             #it can me mob definition
             if ft is None and mapDef:
                     if char == '@':
@@ -100,7 +98,7 @@ class MapDef(object):
         self.id = ''
         self.current_level = 0
         self.max_levels = 0
-        self.floor = FT_FLOOR
+        self.floor = ft.floor
         self.mobs = {}
         self.map = None
         self.entry_pos = {}
@@ -285,7 +283,7 @@ class Rect:
 
 class AbstractGenerator(object):
     def __init__(self, length, width):
-        self._map = [[FT_ROCK_WALL()
+        self._map = [[ft.rock_wall()
                       for i in range(0, length)]
                      for j in range(0, width)]
 
@@ -293,12 +291,12 @@ class AbstractGenerator(object):
         pass
     def generate_border(self):
         for j in range(0, self.length):
-            self._map[0][j] = FT_FIXED_WALL()
-            self._map[self.width - 1][j] = FT_FIXED_WALL()
+            self._map[0][j] = ft.fixed_wall()
+            self._map[self.width - 1][j] = ft.fixed_wall()
 
         for j in range(0, self.width):
-            self._map[j][0] = FT_FIXED_WALL()
-            self._map[j][self.length - 1] = FT_FIXED_WALL()
+            self._map[j][0] = ft.fixed_wall()
+            self._map[j][self.length - 1] = ft.fixed_wall()
 
 
 class CaveGenerator(AbstractGenerator):
@@ -306,7 +304,7 @@ class CaveGenerator(AbstractGenerator):
         self.length = length
         self.width = width
         self.open_area = open_area
-        self._map = [[FT_ROCK_WALL()
+        self._map = [[ft.rock_wall()
                       for i in range(0, length)]
                      for j in range(0, width)]
 
@@ -324,13 +322,13 @@ class CaveGenerator(AbstractGenerator):
             rand_y = randrange(1, self.width - 1)
 
             if self._map[rand_y][rand_x].is_wall:
-                self._map[rand_y][rand_x] = FT_FLOOR()
+                self._map[rand_y][rand_x] = ft.floor()
                 walls_left -= 1
                 ticks -= 1
 
     def finish(self):
         count_walls = self.count_neigh_walls
-        wall, floor = FT_ROCK_WALL, FT_FLOOR
+        wall, floor = ft.rock_wall, ft.floor
         for x in range(1, self.length - 1):
             for y in range(1, self.width - 1):
                 wall_count = count_walls(y, x)
@@ -355,7 +353,7 @@ class CaveGenerator(AbstractGenerator):
 
 class RoomsCoridorsGenerator(AbstractGenerator):
     def __init__(self, length, width, room_max_size=15, room_min_size=3, max_rooms=30):
-        self._map = [[FT_FIXED_WALL()
+        self._map = [[ft.fixed_wall()
                       for i in range(0, length)]
                      for j in range(0, width)]
         self.length = length
@@ -398,11 +396,11 @@ class RoomsCoridorsGenerator(AbstractGenerator):
 
     def create_h_tunnel(self, x1, x2, y):
         for x in range(min(x1, x2), max(x1, x2)):
-            self._map[y][x] = FT_FLOOR()
+            self._map[y][x] = ft.floor()
 
     def create_v_tunnel(self, y1, y2, x):
         for y in range(min(y1, y2), max(y1, y2)):
-            self._map[y][x] = FT_FLOOR()
+            self._map[y][x] = ft.floor()
 
 
     def check_room_overlap(self, rooms, new_room):
@@ -413,7 +411,7 @@ class RoomsCoridorsGenerator(AbstractGenerator):
     def create_room(self, room):
         for x in range(room.x1 + 1, room.x2):
             for y in range(room.y1 + 1, room.y2):
-                self._map[y][x] = FT_FLOOR()
+                self._map[y][x] = ft.floor()
 
     def finish(self):
         self.generate_border()
@@ -438,7 +436,7 @@ class StaticRoomGenerator(AbstractGenerator):
                 _map_files.append(os.path.join(prefix, 'data/maps/', type, file))
 
     def parse_file(self, map_file):
-        maps = des.parseFile(map_file, MapDef)
+        maps = des.parseFile(map_file, MapDef, [features, items])
         _parsed_files[map_file] = maps
         for map in maps:
             _available_maps[map.id] = map
@@ -479,7 +477,7 @@ class StaticRoomGenerator(AbstractGenerator):
 
 class CityGenerator(StaticRoomGenerator):
     RANK_CITY = 3
-    def __init__(self, flavour, width, height, rank, filler=FT_GRASS, road=FT_ROAD, break_road=10,
+    def __init__(self, flavour, width, height, rank, filler=ft.grass, road=ft.road, break_road=10,
                  room_placer=None):
         ms_start = libtcod.sys_elapsed_milli()
         self.flavour = flavour

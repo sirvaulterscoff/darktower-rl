@@ -3,6 +3,7 @@ import gl
 import util
 from thirdparty.libtcod import libtcodpy as libtcod
 from collections import Iterable
+from util import build_type
 
 WALKING = 1
 FLYING = 1
@@ -346,10 +347,14 @@ def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags
 
     return util.random_from_list_weighted(hd_match, inverse)()
 
-def SKELETON(base_hd=0, name=None):
-    #critter = random_for_player_hd(base_hd, False, True, not_flags= UNDEAD | DEMON)
-    skele = Skeleton(name, base_hd)
-    return skele
+mobs = {}
+skeleton = Skeleton
+
+loc = locals()
+for var, deff in loc.items():
+    if isinstance(deff,type) and issubclass(deff, Critter) and not deff==Player:
+        mobs[var] = deff
+
 
 
 

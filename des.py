@@ -2,6 +2,7 @@
 from pyparsing import *
 import string
 import random
+from collections import Iterable
 #from critters import *
 #from features import *
 #from items import *
@@ -33,7 +34,7 @@ ml_assignment = multiline_keyword
 assignment = ml_assignment | assignment
 parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
-param_number = Word(string.digits).setParseAction(lambda x: int(x[0]))
+param_number = Combine(Optional('-') + Word(string.digits)).setParseAction(lambda x: int(x[0]))
 param_lhv = Word(alphanums) + Literal(':').suppress()
 param_rhv = (param_number | Word(alphanums +"'" + '"')) + Optional(Literal(',')).suppress()
 params_parser = dictOf(param_lhv, param_rhv)
@@ -51,8 +52,21 @@ def _parseFile(fname, ttype, lookup_dicts):
 def lookup_val(val, lookup_dicts):
     for lookup in lookup_dicts:
         if lookup.has_key(val):
-            return lookup[val]
+            res = lookup[val]
+            if res is None:
+                raise RuntimeError('None contained in lookup dicts under the key %s' % val)
+            return res
     return None
+
+def extend_list(l, what):
+    """ Extends list l with item/items from what
+    If what is Iterable - calls l.extend
+    if it's not - calls append(what)
+    """
+    if isinstance(what, Iterable):
+        l.extend(what)
+    else:
+        l.append(what)
 
 def parse_val(val, where, lookup_dicts):
     """Adjusts the value from des file. There are several ways to do so
@@ -65,15 +79,21 @@ def parse_val(val, where, lookup_dicts):
     val = string.Template(val).safe_substitute(where.__dict__)
     if val.startswith('$') and not val.startswith('${'):
         val = val[1:]
+        if val.find('&&') > -1:
+            args = val.partition('&&')
+            item = parse_val('$' + args[0].strip(), where, lookup_dicts)
+            if not item:
+                raise RuntimeError('No callable under the name [%s]' % args[0])
+            return extend_list([item], parse_val('$'+args[2], where, lookup_dicts))
         #here we address simple value evaluation via eval
         try:
             if val.find('(') > -1:#we have a record in form $func_name(param:value)
-                func = val[:val.find('(')] #get function name
+                func = val[:val.find('(')].strip() #get function name
                 args = val[val.find('(')+1:val.find(')')] #get args between '(' and ')'
-                args = params_parser.parseString(args).asDict(); #parse params
+                args = params_parser.parseString(args).asDict() #parse params
                 target = lookup_val(func, lookup_dicts)
                 if not target:
-                    raise RuntimeError('No callable under the name %s' % func)
+                    raise RuntimeError('No callable under the name [%s]' % func)
                 #now we check two options: if this is a type - then we create new parametrized type
                 #if it's function - we just call it with provided params
                 if isinstance(target, type): #if this is a type - create subtype
@@ -83,7 +103,7 @@ def parse_val(val, where, lookup_dicts):
                 else:
                     raise RuntimeError('Invalid target in parsing %s' % target)
             else:
-                return lookup_val(val, lookup_dicts)
+                return lookup_val(val.strip(), lookup_dicts)
 
         except Exception ,e:
             print 'Error parsing code :\n' + val + '\n' + str(e)
@@ -109,7 +129,7 @@ def parse_val(val, where, lookup_dicts):
 def process(items, ttype, toks, lookup_dicts):
     """Invoked on each rhv """
     where = items[-1]
-    #just take previous item from results. if it's empty - it's either start of file or 
+    #just take previous item from results. if it's empty - it's either start of file or
     #END keyword was prior to current line
     if where is None:
         items.pop()
@@ -125,7 +145,7 @@ def process(items, ttype, toks, lookup_dicts):
         if not hasattr(where, key):
             setattr(where, key, {})
         for k, v in zip(value[::2], value[1::2]):
-            getattr(where, key)[k] = parse_val(v, where)
+            getattr(where, key)[k] = parse_val(v, where, lookup_dicts)
 
 def end(result):
     result.append(None)

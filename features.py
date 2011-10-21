@@ -227,3 +227,4 @@ loc = locals()
 for var, deff in loc.items():
     if isinstance(deff,type) and issubclass(deff, DungeonFeature):
         features[var] = deff
+

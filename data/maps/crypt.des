@@ -1,10 +1,10 @@
 ORIENT=RANDOM
-SUBST=$=>FT_HIDDEN_DOOR
-ITEMS=g=>$I_GOLD(10, 70)
-SUBST=G=>$FT_TRAP & I_GOLD(70, 100) 
-SUBST=^=>FT_TRAP
-MONS=1=>$SKELETON
-MONS=2=>$SKELETON(-1)
+SUBST=$=>$hidden_door
+ITEMS=g=>$Gold(min: 10, max: 70)
+SUBST=G=>$trap && Gold(min: 70, max: 100) 
+SUBST=^=>$trap
+MONS=1=>$skeleton
+MONS=2=>$skeleton(hd: -1)
 id=crypt_1
 base_level=0
 MAP_0="""
@@ -14,14 +14,14 @@ MAP_0="""
 #########################.1..2#
                         #######
 """
-ITEMS=a=>$I_RANDOM(1000)
-ITEMS=b=>$I_RANDOM({'price': 500, 'type' : 'book'})
-ITEMS=c=>$I_POTION('healing')
-SUBST=A=>$FT_ALTAR()
-SUBST=K=>$PH('TOMB')
-MONS=3=>$SKELETON(1, 'Skeleton-guard')
-SUBST={=>FT_POOL
-SUBST=}=>FT_POOL
+ITEMS=a=>$irandom(value: 1000)
+ITEMS=b=>$irandom(value: 500, type : 'book'})
+ITEMS=c=>$HealingPotion
+SUBST=A=>$altar()
+SUBST=K=>$ph(id: 'TOMB')
+MONS=3=>$skeletonl(hd: 1, name: 'Skeleton-guard')
+SUBST={=>$pool
+SUBST=}=>$pool
 on_param_set="""%
 def crypt1_set_param(name, value, des):
     if name == 'corpse':
@@ -35,11 +35,11 @@ def crypt1_set_param(name, value, des):
             statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
 """
-SUBST=%=>$FT_PREASURE_PLATE('x', 'remove')
-SUBST=!=>$FT_PREASURE_PLATE('X', 'remove')
-SUBST=x=>$FT_FIXED_WALL('x')
-SUBST=X=>$FT_FIXED_WALL('X')
-SUBST=S=>FT_STATUE
+SUBST=%=>$preassure_plate(affected='x', action='remove')
+SUBST=!=>$preassure_plate(affected='X', action='remove')
+SUBST=x=>$fixed_wall(id='x')
+SUBST=X=>$fixed_wall(id='X')
+SUBST=S=>$statue
 
 MAP_1="""
 ########################################
@@ -62,3 +62,4 @@ MAP_1="""
 ########################################
 """
 END
+
