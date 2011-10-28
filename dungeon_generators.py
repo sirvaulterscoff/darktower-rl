@@ -111,7 +111,8 @@ class MapDef(object):
         include = places a map over already generated map (i.e. place a house in forest)
         overflow = place a map over generated map, possibly morphing it into original map 
         (i.e. can remove some walls or features)
-        asis = this map is already a fully functional map
+        asis = this map is already a fully functional map - similar to include but will not generate
+        neither monsters nor traps/items on that map
         """
         self.mode = 'overflow'
         """Terrain defines what type of dungeon generator is suitabe for this map.
@@ -140,6 +141,7 @@ class MapDef(object):
             -SW, SE, NW, NE, CENTER, NONE
         """
         self.position = None
+        self.subst = {}
 
     def _prepare_subst(self):
         calc = {}

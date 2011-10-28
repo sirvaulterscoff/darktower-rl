@@ -5,6 +5,7 @@ from util import build_type as build_type_
 BLOCK_WALK = 1
 BLOCK_LOS = 2
 NONE = 4
+FIXED=8
 import util
 class TypeEnum(object):
     ft_types = {
@@ -47,6 +48,8 @@ class DungeonFeature(object):
 
     def is_road(self):
         return self.type == 5
+    def is_fixed(self):
+        return self.flags & FIXED
 
     def passable(self):
         return not self.flags & BLOCK_WALK
@@ -85,7 +88,7 @@ class Door (DungeonFeature):
         char = '+'
         if opened:
             char = '-'
-        self.set_params({'char': char, 'color' : (255,255,255), 'dim_color':(128,128,128), 'type':ftype.door, 'flags': BLOCK_LOS | BLOCK_WALK})
+        self.set_params({'char': char, 'color' : (255,255,255), 'dim_color':(128,128,128), 'type':ftype.door, 'flags': BLOCK_LOS | BLOCK_WALK | FIXED})
         self.opened = opened
 
     def player_move_into(self, player, x, y, mapdef):
@@ -187,14 +190,14 @@ class Stairs(DungeonFeature):
         if not down:
             char = '<'
         super(Stairs, self).__init__()
-        self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ftype.stairs, 'id':id})
+        self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ftype.stairs, 'id':id, 'flags': FIXED})
         self.can_go_down = down
 
 
 floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
 preasure_plate = build_type('PreasurePlate_', PreasurePlate, affected='x', type='remove', subst=floor)
 trap = build_type('Trap_', Trap, char='.', invisible=True)
-fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
+fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)
 window = build_type('Window', char='0', color=(128, 128, 160), dim_color=(0, 0, 60), flags=BLOCK_WALK)

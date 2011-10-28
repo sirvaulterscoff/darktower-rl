@@ -1,5 +1,5 @@
 from dungeon_generators import MapDef, MapRequest, get_map_name, parse_file 
-from random import choice
+from random import choice, randrange
 from util import random_from_list_weighted, roll
 from maputils import *
 from map import *
@@ -20,6 +20,7 @@ class DungeonGenerator(object):
             d. cave-like
             e. maze-like
             f. canyon
+            f1. mines
             g. city
             h. village ?
             i. null - used for static levels from des-files
@@ -30,28 +31,40 @@ class DungeonGenerator(object):
             c. trap generator
             d. small features generator (those are from des files)
             e. house generator* (actualy will be only used by lvl1 generators)
+            e1. tower generator
             f. river/lava river generator (if apropriate lvl1 was selected)
             g. bridge generator (if lvl2.f was selected)
             h. items generator
             i. checker - checks for lvl connectivity, and number of desired features/items
             Lvl2 generators should be piped in stated order
     """
-    def generate_map(width=400, height=300, player_hd=1, generator_type=None, requests=None, params={}, name='', theme=''):
+    def generate_map(generator_type, width=400, height=300, player_hd=1, requests=None, params={}, name='', theme=''):
         if not generators.has_key(generator_type):
             raise RuntimeError('Unknow style [%s] for dungeon generator' % generator_type)
-        map_draft = generators[generator_type]() #okay we just take requested generator and invoke it. Now we have draft map
+        map_draft = generators[generator_type](width, height, player_hd, generator_type, requests, params, theme) #okay we just take requested generator and invoke it. Now we have draft map
+        for transformer in transformation_pipe:
+            if transformer.decide(player_hd, generator_type, requests, theme, params):
+                transformer.transformer(map_draft, player_hd, generator_type, requests, theme, params)
     generate_map = staticmethod(generate_map)
 
-def null_generator():
+def null_generator(width, height, player_hd, generator_type, requests, params, theme):
     """Special cased generator - used when we need full sized, untransformed map from des file
     """
+    map_draft = MapDef()
+    map_draft.width, map_draft.height = width, height
+    mapsrc= [ ['.' for y in xrange(width)] for x in xrange(height)]
+    map_draft.map = mapsrc
+    map_draft.prepare()
     return MapDef()
 
 generators['null'] = null_generator
 class PipeItem(object):
-    def __init__(self, transformer):
+    def __init__(self, transformer, name=None):
         self.transformer = transformer
-        self.ttype = transformer.__name__
+        if not name:
+            self.ttype = transformer.__name__
+        else:
+            self.ttype = name
 
     def decide(self, player_hd, generator_type, requests, theme,  params={}):
         if self.ttype == 'static_transformer':
@@ -144,7 +157,8 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
 
 
 
-
+rooms_rows = 3 #todo this is param.
+map_free_coeff = 1.5 #todo move to params
 def __assure_mapsize(map_draft, rooms):
     """
     __assure_mapsize(...) -> None
@@ -152,14 +166,50 @@ def __assure_mapsize(map_draft, rooms):
     @map_draft - MapDef with current map
     @rooms - list of rooms to include
     """
+    if len(rooms) < rooms_rows:
+        width = reduce(lambda x,y : x.width + y.width, rooms)
+        height = reduce(lambda x,y: max(x.height, y.height), rooms)
+        map_draft.width, map.height = width * map_free_coeff, height * map_free_coeff
+    hrooms = rooms[:]
+    hrooms.sort(lambda x, y: (x.height) - (y.height), reverse=True) #now we sort all rooms by side
+    wrooms = rooms[:]
+    wrooms.sort(lambda x, y: (x.width) - (y.width), reverse=True) #now we sort all rooms by side
+    height, width = 0,0
+    for x in xrange(0, rooms_rows):#total height should be sum of all larges elements
+        height += hrooms[x].height
+        width += wrooms[x].width
+    map_draft.width, map.height = width * map_free_coeff, height * map_free_coeff
 
-def __find_random_mergepoint(map_draft, map, position):
+def __find_random_mergepoint(map_draft, room, position):
+    """__find_random_mergepoint(MapDef, MapDef, MapDef.position) - > (x, y)
+    Finds a random pair of x,y suitable for merging this room into map_draft
+    """
     if position == 'NW':
-        return 0,0
-    if position == ''
-    maxx, maxy = map_draft.width - map.width, map_draft.height - map.height #first of all let's determine maximum id where we can place our map
+        return 0,0 #todo check if it's already occupied
+    if position == 'NE':
+        return map_draft.width - room.width, 0
+    if position == 'SE':
+        return map_draft.width -room.width, map_draft.height - room.height
+    if position == 'SW':
+        return 0, map_draft.height - room.height
+    if position == 'CENTER':
+        return (map_draft.width / 2) - (room.width / 2), (map_draft.height / 2) - (room.height / 2)
+    itercnt = 1000 #time to find solution
+    while True:
+        if itercnt <= 0: raise RuntimeError('Failed to place a room')
+        itercnt -= 1
+        x, y = randrange(0, map_draft.width), randrange(0, map_draft.heigth)
+        if x + room.width > map_draft.width or y + room.height > map_draft.height:
+            #if we are beyond the map edge - try again
+            continue
+        for room in map_draft.rooms:
+            if xy_in_room(room, x, y):
+                continue
+        return x, y
+
 
 def __merge_leveled(map_draft, child_map, level, parent_map):
+    """Adds non-base level map to a room which will hold base level map"""
     #check if rooms already exists
     if map_draft.rooms.has_key(parent_map.id):
         room = map_draft.rooms[parent_map.id]
@@ -182,6 +232,29 @@ def __create_room(map_draft, newmap, map_src):
     room.height = map_src.height
     return room
 
+nomerge_chance = 50
+def __merge(map_draft, room, params):
+    """ __merge(MapDef, MapDef, {}) -> None
+    Merges room in map_draft, choosing random location
+    """
+    mode = room.src.mode
+    x, y = __find_random_mergepoint(map_draft, room, room.src.position)
+    room.x, room.y = x.y
+    for line in map.src.map:
+        for tile in line:
+            dest_tile = map_draft.map[y][x]
+            if mode == 'overflow':
+                if dest_tile.is_fixed(): continue #in overflow mode we don't rewrite underlying pixels
+                if tile.is_fixed(): #we should rewrite if room's fixel is fixed
+                    map_draft.map[y][x] = tile
+                elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
+                    continue
+            elif mode == 'include' or mode == 'asis':
+                map_draft.map[y][x] = tile
+            else:
+                raise RuntimeError('Invalid merge mode [%s] specified for map [%s]' % (mode, room.src.id)) 
+
+
 def merger(producer, map_draft, player_hd, generator_type, requests, theme, params={}):
     """
     merger(...) -> map_draft:MapDraft
@@ -199,7 +272,6 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
     maps_to_merge = producer(map_draft, player_hd, generator_type, requests, theme, params)
     rooms = []
     for map in maps_to_merge:
-        mode = map.mode
         if map.orient:
             newmap, rotate_params = random_rotate(map.map, map.orient)
         else:
@@ -215,5 +287,9 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
 #            __merge(map_draft, newmap, map, mode)
         rooms.append(__create_room(map_draft, newmap, map))
     __assure_mapsize(map_draft, rooms)
+    for room in rooms:
+        __merge_room(map_draft, room, params)
 
-transformation_pipe.append(PipeItem(static_transformer))
+
+transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
+    merger(static_transfomer, map_draft, player_hd, generator_type, requests, theme, params), 'static_transformer'))

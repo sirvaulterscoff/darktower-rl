@@ -51,3 +51,40 @@ def random_rotate(map, settings = 'any', params = None):
 
 def __clone_map(original):
     return [[y for y in x] for x in original]
+
+class Room(object):
+    def __init__(self):
+        self.x, self.y = None, None
+        self.x2, self.y2 = None, None
+        self.width, self.height = 0, 0
+
+    def __getattribute__(self, name):
+        if name == 'x2':
+            w = object.__getattribute__(self, 'width')
+            x = object.__getattribute__(self, 'x')
+            if x and w:
+                return x + w
+            else:
+                return None
+        if name == 'y2':
+            h = object.__getattribute__(self, 'height')
+            y = object.__getattribute__(self, 'y')
+            if y and h:
+                return y + h
+            else:
+                return None
+        return object.__getattribute__(self, name)
+
+
+
+class MultilevelRoom(Room):
+    def __init__(self):
+        super(MultilevelRoom, self).__init__()
+
+def xy_in_room(room , x, y):
+    if not room.x:
+        return False
+    if x>=room.x and x<=room.x2:
+        if y>=room.y and y<=room.y2:
+            return True
+    return False
