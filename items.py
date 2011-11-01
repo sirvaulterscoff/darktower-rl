@@ -234,5 +234,5 @@ def random_type(**args):
         #todo implement
         return Gold()
     else:
-        return choice(items)
+        return choice(items.values())
 items['irandom'] = random_type

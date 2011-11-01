@@ -7,6 +7,7 @@ import des
 from copy import deepcopy
 from items import Item, items
 from types import FunctionType
+from critters import mobs
 
 logger = util.create_logger('DG')
 ft = util.NamedMap(features)
@@ -25,7 +26,7 @@ default_map_chars = {'#': ft.rock_wall,
 	'8' : ft.bed,
     }
 
-def parse_string(mapBytes, map_chars, mapDef=None):
+def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
     new_map = []
     x, y = 0, 0
     if isinstance(mapBytes, list):
@@ -41,22 +42,21 @@ def parse_string(mapBytes, map_chars, mapDef=None):
             #it can me mob definition
             if ft is None and mapDef:
                     if char == '@':
-                        mapDef.entry_pos[mapDef.base_level] = (x, y)
+                        mapDef.entry_pos = (x, y)
                         ft = mapDef.floor(id='entry_pos')
                     else:
                         ft = mapDef.floor()
-                    lvl = mapDef.current_level
-                    if hasattr(mapDef, 'mons') and mapDef.mons.has_key(char):
-                        newMob = mapDef.mons[char]
+                    if mobs and mobs.has_key(char):
+                        newMob = mobs[char]
                         newMob.x, newMob.y = x, y
-                        if not mapDef.mobs.has_key(lvl):
-                            mapDef.mobs[lvl] = []
-                        mapDef.mobs[lvl].append(newMob)
-                    elif hasattr(mapDef, 'items') and mapDef.items.has_key(char):
-                        if not mapDef.items.has_key(lvl):
-                            mapDef.items[lvl] = []
+                        if not mapDef.mobs:
+                            mapDef.mobs = []
+                        mapDef.mobs.append(newMob)
+                    elif items and items.has_key(char):
+                        if not mapDef.items:
+                            mapDef.items = []
                         newItem = mapDef.items[char]
-                        mapDef.items[mapDef.current_level].append(newItem)
+                        mapDef.items.append(newItem)
                         newItem.x, newItem.y = x, y
             #todo remove this check once all dungeon features are parametrized classes
             if getattr(ft, 'invisible', False) and mapDef:
@@ -86,8 +86,13 @@ class MapRequest(object):
     """Holds info for dungeon generator about specific map to load from des """
     def __init__(self, type, params={}):
         self.type = type
+        #available sizes are large, mini?, None
+        self.size = None
         self.params = {}
-    pass
+
+    def __repr__(self):
+        return "MapRequest type=%s size=%s params=%s" % (self.type, self.size, self.params)
+
 
 class RegionRequest(object):
     """Holds info about specific region request (i.e. forest, city etc)"""
@@ -95,6 +100,7 @@ class RegionRequest(object):
 
 #todo move entire class to des.py
 class MapDef(object):
+    parent = None
     current_level = 0
     def __init__(self, parent=None):
         self.parent = parent
@@ -142,6 +148,7 @@ class MapDef(object):
         """
         self.position = None
         self.subst = {}
+        self.map_chars = default_map_chars.copy()
 
     def _prepare_subst(self):
         calc = {}
@@ -150,7 +157,7 @@ class MapDef(object):
         self.map_chars.update(calc)
         self.mons_chars = {}
         if hasattr(self, 'mons'):
-            for k,v in self.mons.iteritems():
+            for k,v in self.mobs.iteritems():
                 self.mons_chars[k] = self._parse_value(v)
         print 'substs:'
         for k,v in self.map_chars.items():
@@ -172,13 +179,16 @@ class MapDef(object):
         if self.prepared:
             return
         if not self.parent:
-            self.max_levels = len(self.levels) + 1
-        self.height = len(self.map)
-        self.width = len(self.map[0])
+            self.level = 0 #disable autoleveling for des parsing
+            self.max_levels = len(self.levels)
         self._prepare_subst()
-        self.map = parse_string(self.map, self.map_chars, self)
+        self.map = parse_string(self.map, self.map_chars, self, items, mobs)
+        for level in self.levels.values():
+            level.map = parse_string(level.map, level.map_chars, level, items, mobs)
         for lvl in self.levels.values():
             lvl.prepare() #todo check that multilevels actualy prepare
+        self.height = len(self.map)
+        self.width = len(self.map[0])
         self.prepared = True
 
     def tune(params = {}):
@@ -227,29 +237,36 @@ class MapDef(object):
         self.map[self.base_level][y][x] = ft
 
     def __setattr__(self, name, value):
-        if name == 'map_chars' or name=='levels':
-            super(MapDef, self).__setattr__(name, value)
+        if name == 'map_chars' or name=='levels' or name=='prepared':
+            object.__setattr__(self, name, value)
             return
         if name == 'level': #here we switch level
-            self.current_level = value
-            self.levels[value] = MapDef(self)
+            if value > 0:
+                self.current_level = value
+                self.levels[value] = MapDef(self)
+                self.levels[value].current_level = value
+            else:
+                object.__setattr__(self, 'current_level', value)
             return
-        if self.current_level > 0:
-            object.__setattr__(self.levels[value], name, value)
+        if self.parent: #already at child record
+            object.__setattr__(self, name, value)
+            return
+        if self.current_level > 0: #set on child record
+            object.__setattr__(self.levels[self.current_level], name, value)
         else:
             object.__setattr__(self, name, value)
 
-    def __getattribute__(self, name):
-        if name == 'levels' or name == 'current_level':
-            return object.__getattribute__(self, name)
-        if self.current_level > 0:
-            next = object.__getattribute__(self, 'levels')[self.current_level]
-            try:
-                object.__getattribute__(next, name)
-            except AttributeError: #inner level has no such attr
-                return object.__getattribute__(self, name)
-        else:
-            return object.__getattribute__(self, name)
+#    def __getattribute__(self, name):
+#        if name == 'levels' or name == 'current_level':
+#            return object.__getattribute__(self, name)
+#        if self.current_level > 0:
+#            next = object.__getattribute__(self, 'levels')[self.current_level]
+#            try:
+#                return object.__getattribute__(next, name)
+#            except AttributeError: #inner level has no such attr
+#                return object.__getattribute__(self, name)
+#        else:
+#            return object.__getattribute__(self, name)
 
 class Rect:
     def __init__(self, x, y, width, heigh):
@@ -408,20 +425,30 @@ file_parsed = False
 _parsed_files = {}
 _available_maps = {}
 
-def get_map_name(flavour, subfolder=''):
+def get_map_file(flavour, subfolder='', size=None):
+    """ get_map_file (...) => string (or None if nothing found)
+    Generates filename for requested map.
+    @flavour is the name of the map (e.g. flavour='crypt' will return 'crypt.des')
+    @subfolder (optional) allows to reach subdirs in data folder
+    @size is the prefix for the name (e.g. flavour='crypt' and prefix='mini' will produce mini_crypt.des
+    """
     prefix = '..'
     for file in os.listdir('.'):
         if file == 'data':
             prefix = '.'
             break
     for file in os.listdir(prefix + '/data/maps/' + subfolder):
-        if file.find(flavour + '.des') > -1:
+        name = flavour + '.des'
+        if size:
+            name = size + '_' + name
+        if file.find(name) > -1:
             if not file.endswith('.des'): continue
             logger.debug('Parsing mapfile ' + file)
             return os.path.join(prefix, 'data/maps/' + subfolder, file)
+    return None
 
-def parse_file(self, map_file):
-    maps = des.parseFile(map_file, MapDef)
+def parse_file(map_file):
+    maps = des.parseFile(map_file, MapDef, [items, features, mobs])
     _parsed_files[map_file] = maps
     for map in maps:
         _available_maps[map.id] = map

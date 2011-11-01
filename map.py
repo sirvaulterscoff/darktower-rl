@@ -24,19 +24,12 @@ class Map(object):
         self.critter_xy_cache = {}
         self.current_level = 0
         self.max_levels = 1
-        if isinstance(map_src, Iterable):
-            if not isinstance(map_src[0], MapDef):
-                raise RuntimeError('MapDef should be passed to map object')
-            self.map_src = map_src
-        elif isinstance(map_src, MapDef):
-            self.map_src = [map_src]
-        else:
-            raise RuntimeError('MapDef should be passed to map object')
-        self.map_height = len(self.map)
-        self.map_width = len(self.map[0])
+        self.map_src = map_src
+        self.map_height = map_src.height
+        self.map_width = map_src.width
         self.square = self.map_height * self.map_width
         self.fov_map = None
-        self.map = [None for x in len(self.map_src)]
+        self.map = [None for x in xrange(self.map_src.max_levels + 1)]
         #shortcut for self.map[self.current_level]
         self.shortcut = None
 
@@ -55,28 +48,24 @@ class Map(object):
         #todo - now materialize mobs defined for that level
 
     def __materialize(self):
-        _map = self.map_src[self.current_level]
-        newmap = []
+        _map = self.map_src.map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
         for y in xrange(0, len(_map)):
-            newmap.append([])
             for x in xrange(0, len(_map[0])):
                 try:
-                    if callable(_map[y][x]):
-                        newmap.append(_map[y][x]())
-                    elif isinstance(_map[y][x], type):
-                        newmap.append(_map[y][x]())
-                    if not isinstance(newmap[y][x], DungeonFeature):
+                    if callable(_map[y][x]) or isinstance(_map[y][x], type):
+                        _map[y][x] = _map[y][x]()
+                    if not isinstance(_map[y][x], DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
                 except IndexError:
-                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.width)
+                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.map_width)
                     break
-        return newmap
+        return _map
 
     def place_player(self, player):
         pos_set = False
         if isinstance(self.map_src, MapDef):
-            if self.map_src.entry_pos.has_key(self.map_src.current_level):
+            if self.map_src.entry_pos:
                 player.x, player.y = self.map_src.entry_pos[self.map_src.current_level]
                 pos_set = True
         if not pos_set:
@@ -175,7 +164,7 @@ class Map(object):
 
     def find_passable_square(self):
         x, y = 0, 0
-        for row in self.map:
+        for row in self.map[self.current_level]:
             for item in row:
                 if not item.passable(): y += 1
                 else: return y, x

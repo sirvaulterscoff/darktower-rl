@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 from critters import *
-from dungeon_generators import *
+from dungeon_generators import MapRequest
 import game_input
 from gui import  *
 from game_input import *
 from features import *
 from map import Map
+from dg import DungeonGenerator
 try:
     import psyco ; psyco.full()
 except ImportError:
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     player.camx2 = VIEWPORT_WIDTH -1
     player.camy2 = VIEWPORT_HEIGHT - 1
 
-    dg = CaveGenerator(60, 60)
+    #dg = CaveGenerator(60, 60)
     #dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
     #dg = CityGenerator('',80, 40, 5, break_road=5, room_placer=CityGenerator.generate_rooms_along_road)
     #dg = CityGenerator('',80, 40, 2, break_road=5)
@@ -114,16 +115,15 @@ if __name__ == "__main__":
     #    dg = RoomsCoridorsGenerator(80, 40)
     #    dg.generate()
     #    map = Map(dg.finish())
-    dg = StaticRoomGenerator(type='')
+    #dg = StaticRoomGenerator(type='')
     #dg.generate()
 
     #map = Map(dg.finish())
     #map.place_monsters()
+    map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt')])
 
-    map = dg.map_by_name('crypt_1')
-    map.set_level(0)
-    map = map.materialize(level=1)
     map = Map(map)
+    map.prepare_level()
     map.place_player(player)
     map.init_fov()
     main_loop()

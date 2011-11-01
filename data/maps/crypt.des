@@ -1,4 +1,4 @@
-mode=overflow
+mode=asis
 terrain=graveyard city
 ORIENT=RANDOM
 position=None
@@ -23,7 +23,7 @@ ITEMS=b=>$irandom(value: 500, type : 'book'})
 ITEMS=c=>$HealingPotion
 SUBST=A=>$altar()
 SUBST=K=>$ph(id: 'TOMB')
-MONS=3=>$skeletonl(hd: 1, name: 'Skeleton-guard')
+MONS=3=>$skeleton(hd: 1, name: 'Skeleton-guard')
 SUBST={=>$pool
 SUBST=}=>$pool
 mode=asis
@@ -40,13 +40,13 @@ def crypt1_set_param(name, value, des):
             statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
 """
-SUBST=%=>$preassure_plate(affected='x', action='remove')
-SUBST=!=>$preassure_plate(affected='X', action='remove')
-SUBST=x=>$fixed_wall(id='x')
-SUBST=X=>$fixed_wall(id='X')
+SUBST=%=>$preasure_plate(affected:'x', action:'remove')
+SUBST=!=>$preasure_plate(affected:'X', action:'remove')
+SUBST=x=>$fixed_wall(id:'x')
+SUBST=X=>$fixed_wall(id:'X')
 SUBST=S=>$statue
 
-MAP_1="""
+MAP="""
 ########################################
 #c$......X....................X......$c#
 ###...1..#......!!!.!!!.......#..1...###

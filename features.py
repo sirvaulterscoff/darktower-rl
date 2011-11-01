@@ -30,9 +30,11 @@ class DungeonFeature(object):
     color_back = (30, 30, 30)
     dim_color_back = (5, 5, 5)
     description = 'Generic feature'
-    def __init__(self):
+    flags = NONE
+    def __init__(self, id=None):
         self.seen = False
         self.items = []
+        self.id = id
         if not hasattr(self, 'flags'):
             self.flags = NONE
 

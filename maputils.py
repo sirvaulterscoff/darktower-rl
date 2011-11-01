@@ -80,6 +80,7 @@ class Room(object):
 class MultilevelRoom(Room):
     def __init__(self):
         super(MultilevelRoom, self).__init__()
+        self.levels = {}
 
 def xy_in_room(room , x, y):
     if not room.x:
