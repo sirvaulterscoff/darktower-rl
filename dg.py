@@ -277,7 +277,7 @@ def __find_random_mergepoint(map_draft, room, position):
         if itercnt <= 0: raise RuntimeError('Failed to place a room')
         itercnt -= 1
         x, y = randrange(1, map_draft.width), randrange(1, map_draft.height)
-        if x + room.width > map_draft.width or y + room.height > map_draft.height:
+        if x + room.width + 1 > map_draft.width or y + room.height + 1 > map_draft.height:
             #if we are beyond the map edge - try again
             continue
         for room in map_draft.rooms.values():
@@ -306,8 +306,8 @@ def __create_room(map_draft, newmap, map_src):
         map_draft.rooms[map_src.id] = room
     room.src = map_src
     room.map = newmap
-    room.width = map_src.width
-    room.height = map_src.height
+    room.width = len(newmap[0])
+    room.height = len(newmap)
     return room
 
 nomerge_chance = 50
@@ -318,26 +318,30 @@ def __merge_room(map_draft, room, params):
     mode = room.src.mode
     x, y = __find_random_mergepoint(map_draft, room, room.src.position)
     room.x, room.y = x, y
-    _x = x
-    for line in room.map:
-        for tile in line:
-            dest_tile = map_draft.map[y][_x]
-            if mode == 'overflow':
-                if dest_tile.flags & FIXED: continue #in overflow mode we don't rewrite underlying pixels
-                if tile.flags & FIXED: #we should rewrite if room's fixel is fixed
-                    map_draft.map[y][_x] = tile
-                elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
-                    _x+=1
-                    continue
+    try:
+        for line in room.map:
+            for tile in line:
+                dest_tile = map_draft.map[y][x]
+                if mode == 'overflow':
+                    if dest_tile.flags & FIXED: continue #in overflow mode we don't rewrite underlying pixels
+                    if tile.flags & FIXED: #we should rewrite if room's fixel is fixed
+                        map_draft.map[y][x] = tile
+                    elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
+                        x+=1
+                        continue
+                    else:
+                        map_draft.map[y][x] = tile
+                elif mode == 'include' or mode == 'asis':
+                    map_draft.map[y][x] = tile
                 else:
-                    map_draft.map[y][_x] = tile
-            elif mode == 'include' or mode == 'asis':
-                map_draft.map[y][_x] = tile
-            else:
-                raise RuntimeError('Invalid merge mode [%s] specified for map [%s]' % (mode, room.src.id))
-            _x+=1
-        _x = x
-        y += 1
+                    raise RuntimeError('Invalid merge mode [%s] specified for map [%s]' % (mode, room.src.id))
+                x+=1
+            x = room.x
+            y += 1
+    except IndexError, ie:
+        print 'Failed to merge static feature into map. Map params w:[%d] h:[%d] \n Room params: w:[%d] h:[%d] x:[%d] y:[%d]\n current %d,%d' % \
+              (map_draft.width, map_draft.height, room.width, room.height, room.x, room.y, x, y)
+        raise ie
 
 
 def merger(producer, map_draft, player_hd, generator_type, requests, theme, params):
