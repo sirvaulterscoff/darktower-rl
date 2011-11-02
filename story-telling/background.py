@@ -161,6 +161,7 @@ def make_story():
 class StartActionBackground():
     pass
 class RoomStartBackground(StartActionBackground):
+    #todo nogood - remove this. too static
     def you(self):
 
         #find your place here.

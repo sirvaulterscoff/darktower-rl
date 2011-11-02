@@ -102,12 +102,6 @@ while True:
     crown = acquire.acquire_armor(king, world.artefact_names, items.Crown, True)
     king.became_owner_of(crown)
 
-
-    #todo test delete
-    king.city = world.City('asd')
-    king.die(None)
-    import sys; sys.exit(-1)
-
     queen = RoyaltyNPC("queen")
     queen.name = util.gen_name('female', check_unique=world.npc_names)
     world.royalties.append(queen)

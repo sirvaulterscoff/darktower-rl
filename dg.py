@@ -146,29 +146,13 @@ def _assure_mapsize(map_draft, generator_type, requests):
     map_draft.height = max(height, map_draft.height)
 
 
+#todo parametrize this variable
 large_theme_map_chance=(1, 5)  #chance of large map to be included in current level (1/5 chance for now)
 def _static_request_preprocessor(generator_type, player_hd, requests, params, theme):
     """ _staic_request_processor(...) => None
     The goal of static request processor is to take large MapRequests, choose apropriate map for them and assure map-size.
     @params - no_large can be passed to disable random large-map selection
     """
-    #if theme:
-        #todo parametrize this variables
-        #todo move mini to transformer stage. no need to load them during preprocess
-#        mini_maps = randrange(*small_theme_maps_count)
-#        if params.has_key('no_mini'):
-#            mini_maps = 0
-#        for x in xrange(mini_maps):
-#            try:
-#                mini = _choose_map(generator_type, params, player_hd, theme, 'mini')
-#                if mini:
-#                    room = Room()
-#                    room.src = mini
-#                    result.append(room)
-#            except Exception, e:
-#                print 'Exception during static preprocessor ' + e
-#                break #don't break anything
-
     #now process requests
     if requests:
         map_requests = filter(lambda x: isinstance(x, MapRequest), requests)
@@ -385,9 +369,7 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
                 child_map = random_rotate(child.map, map.orient, params=rotate_params)
             __merge_leveled(map_draft, child_map, level, map)
 
-#            __merge(map_draft, newmap, map, mode)
         rooms.append(__create_room(map_draft, newmap, map))
-    #_assure_mapsize(map_draft, rooms, generator_type)
     for room in rooms:
         __merge_room(map_draft, room, params)
 

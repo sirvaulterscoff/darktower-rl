@@ -13,10 +13,10 @@ I Story telling
     2.1 Random description generation
     3.[+] Ability to subsitute mNPCs names to background text, defering them as bad and good ones
     (i.e. if background says that you were robbed by sum1 - that can be a bad NPC you'll meet later)
-    4.[*] Artifact and unique items (basic skeleton)
-    5. Add Artifact or unique items reference to backgroun text
+    4.[+] Artifact and unique items (basic skeleton)
+    5. Add Artifact or unique items reference to background text
     6?. Unique NPCs parser engine
-    6. Random shuffle NPCs, define basic quests
+    6[+]. Random shuffle NPCs, define basic quests
     7. Make text from what we have so far
     8. Layout first quest start - background, NPC placement, apropriate map
     9. Allow editing of generational params at the start of the game
@@ -32,6 +32,7 @@ we get something like that
         -e quest start at some other place
     11. If npc is the target of quest and has bad realtionship with some deity
     this deity can optionaly help you during the quest
+    12. Chapters
 
 One day you wake up in your room (custom action) and see your friend (relationship) 
 (actualy he's an npc with assigned role) and Dave (your friend's friend) in your
@@ -48,15 +49,15 @@ II. Dungeon generators.
         variant = util.roll(1, 5)
     if it does - that buble is okay. So first - randomly place that features and then
     try to connect bubles. Disallow player placement in a bubble with downstairs only.
-    2. Add entrance description and house orientation to static generator
-    3. Move features to extern file, parse it. As i use functions all over
+    2[+]. Add entrance description and house orientation to static generator
+    3[+]. Move features to extern file, parse it. As i use functions all over
     the project to create tiles - create functions (parse file, then add them to globals)
-    4. Add a check for mandatory tiles - FT_ROCK_WALL, FT_FLOOR, FT_GRASS, FT_ROAD
+    4[-]. Add a check for mandatory tiles - FT_ROCK_WALL, FT_FLOOR, FT_GRASS, FT_ROAD
     5. Add tree border (optional) to CityGenerator
     6. Add some trees (optional) to city generator see II.11
     7. Moar features to place
-    8. Split maps into layers, to generate buildings 2 and more floors high
-    9.0 Store the rects of parsed maps (we will need them later). Also find rooms in shuch
+    8[+]. Split maps into layers, to generate buildings 2 and more floors high
+    9.0 [+] Store the rects of parsed maps (we will need them later). Also find rooms in shuch
     maps and store them as well. Transform rects as we rotate or flip the map.
     9. Adjust rendering of other tiles to reflect you going up or down the floors
     basically, we can make only trees and other houses to render for the second floor
@@ -64,11 +65,30 @@ II. Dungeon generators.
     10. Actions and special places for maps (places where the quest starts or ends). Possibly
     we need this right before I.8
     11. Next we need dense forest generator
-    12. option for map description, to limit number of generations of certain room
+    12.[*] option for map description, to limit number of generations of certain room
     (i.e. some rooms can be generated once per game, or once per level)
-    13. Place-type specification for des-maps - like forest, desert (ie some
+    13.[+] Place-type specification for des-maps - like forest, desert (ie some
      predefined rooms can be placed only in certain locations)
-    14. multilevel rooms
+     14. Move old generators to new dg module
+     15. Implement all listed generators
+     16. Definition of branches
+     17[*]. Make test crypt map work as it is intented to work, including wandering mobs and working traps
+
+III. Gameplay features
+    1. Ability to go up/down stairs
+    2. Chained map-generation. If we go downstairs we need to generate next level
+
+IV. World
+    1. World itself. We should generate world map and regions with some static elements
+    2. Select random position to start
+    3. Handle region requests during world-gen
+    4. Place cruicial items/npcs across world
+    5. Define branches
+
+V. UI
+    1. Chapter anounce
+    2. Dialogs
+    3. Movies for quests
 
 Future goals
     1. maze generator
@@ -91,11 +111,6 @@ with some randomizations.
  ###$$######
     ##
 5. Rivers (see http://www.umbrarumregnum.net/articles/creating-rivers). Definetly should be in for large maps
-
-Features done
-1. Viewport. 11-04-2011
-2. Room generator 11-04-2011
-3. City generator 12-04-2001
 
 IDEAS
  1. spell - elemental plane portal. opens portal to one of selected planes
