@@ -9,11 +9,24 @@ from random import randrange
 import util
 from dungeon_generators import MapDef
 from features import DungeonFeature
-from collections import Iterable
+from maputils import  xy_in_room, MultilevelRoom
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
 FOV_LIGHT_WALLS = True
 logger = util.create_logger('DG')
+
+
+class MainView(object):
+    def __init__(self, map, map_src):
+        self.map = map
+        self.map_src = map_src
+        self.inited = False
+        self.height = len(map)
+        self.width = len(map[0])
+
+class LayerView(MainView):
+    def __init__(self, map, map_src):
+        super(LayerView, self).__init__(map, map_src)
 
 class Map(object):
     def __init__(self, map_src):
@@ -22,33 +35,37 @@ class Map(object):
     def init(self, map_src):
         self.map_critters = []
         self.critter_xy_cache = {}
-        self.current_level = 0
-        self.max_levels = 1
         self.map_src = map_src
-        self.map_height = map_src.height
-        self.map_width = map_src.width
-        self.square = self.map_height * self.map_width
         self.fov_map = None
-        self.map = [None for x in xrange(self.map_src.max_levels + 1)]
-        #shortcut for self.map[self.current_level]
-        self.shortcut = None
+        self.map = map_src.map
+        """ Layers of the map """
+        self.layers = {}
+        """ Main layer of the map """
+        self.main = MainView(self.map, self.map_src)
+        """ Current layer of the map. All operations are done on current layer"""
+        self.current = self.main
+        self.square = self.current.height * self.current.width
 
-    def __getitem__(self, item):
-        return self.shortcut[item]
-
+    @property
+    def width(self):
+        return self.current.width
+    @property
+    def height(self):
+        return self.current.height
+    
     def prepare_level(self):
         """ This launches preparation on new level.
         1. Checks if a level was already prepared
         2. Materializez it from MapDef object (creates all required tiles)
         """
-        if self.map[self.current_level]:
+        if self.current.inited:
             return
-        self.map[self.current_level] = self.__materialize()
-        self.shortcut = self.map[self.current_level]
+        self.__materialize()
+        self.current.inited = True
         #todo - now materialize mobs defined for that level
 
     def __materialize(self):
-        _map = self.map_src.map
+        _map = self.current.map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
@@ -58,31 +75,33 @@ class Map(object):
                     if not isinstance(_map[y][x], DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
                 except IndexError:
-                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.map_width)
+                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)
                     break
-        return _map
+        self.current.map = _map
+
+    def tile_at(self, x, y):
+        return self.current.map[y][x]
 
     def place_player(self, player):
         pos_set = False
-        if isinstance(self.map_src, MapDef):
-            if self.map_src.entry_pos:
-                player.x, player.y = self.map_src.entry_pos[self.map_src.current_level]
-                pos_set = True
+        if self.main.map_src.entry_pos:
+            player.x, player.y = self.main.map_src.entry_pos
+            pos_set = True
         if not pos_set:
             player.x, player.y = self.find_passable_square()
         self.player = player
         player.map = self
 
     def init_fov(self):
-        self.fov_map = libtcod.map_new(self.map_width, self.map_height)
-        for y in range(self.map_height):
-            for x in range(self.map_width):
+        self.fov_map = libtcod.map_new(self.current.width, self.current.height)
+        for y in range(self.current.height):
+            for x in range(self.current.width):
                 self.update_fov_for(x, y)
 
 
     def update_fov_for(self, x, y):
-        libtcod.map_set_properties(self.fov_map, x, y, not self[y][x].flags & features.BLOCK_LOS,
-                                           not self[y][x].flags & features.BLOCK_WALK)
+        libtcod.map_set_properties(self.fov_map, x, y, not self.tile_at(x, y).flags & features.BLOCK_LOS,
+                                           not self.tile_at(x, y).flags & features.BLOCK_WALK)
     def recompute_fov(self):
         try:
             libtcod.map_compute_fov(self.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
@@ -143,28 +162,28 @@ class Map(object):
         self.map_critters.remove(critter)
 
     def find_random_square(self, occupied):
-        startx = libtcod.random_get_int(0, 0, self.map_width)
-        starty = libtcod.random_get_int(0, 0, self.map_height)
+        startx = libtcod.random_get_int(0, 0, self.current.width)
+        starty = libtcod.random_get_int(0, 0, self.current.height)
 
-        for y in range(starty, self.map_height):
-            for x in range(startx, self.map_width):
+        for y in range(starty, self.current.height):
+            for x in range(startx, self.current.width):
                 if self.map[y][x].passable() and not occupied((x, y)):
                     return x, y
             #if nothing found - let's try once again
         return self.find_random_square(occupied)
 
     def can_walk(self, x, y):
-        return self.map[y][x].passable() and not self.has_critter_at((x, y))
+        return self.tile_at(x, y).passable() and not self.has_critter_at((x, y))
 
     def passable(self, x, y):
-        return self.map[y][x].passable()
+        return self.tile_at(x, y).passable()
 
     def coords_okay(self, x, y):
-        return not (x < 0 or y< 0 or x >= self.map_width or y >= self.map_height)
+        return not (x < 0 or y< 0 or x >= self.current.width or y >= self.current.height)
 
     def find_passable_square(self):
         x, y = 0, 0
-        for row in self.map[self.current_level]:
+        for row in self.current.map:
             for item in row:
                 if not item.passable(): y += 1
                 else: return y, x
@@ -173,17 +192,45 @@ class Map(object):
         return 1, 1
 
     def descend(self):
-        tile = self.map[self.player.y][self.player.x]
+        tile = self.tile_at(self.player.x, self.player.y)
         if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False): #ft_types.stairs
             #this is stairs square
-            if self.map_src.max_levels < self.map_src.current_level + 1:
-                return False
-            self.map_src.current_level += 1
-            stairs_up = self.map_src.find_feature(oftype='Stairs', multiple=True,
-                                                  filter=lambda ft: ft.can_go_down==False)
+            #now we need to find a room (if any)
+            inroom = None
+            for room in self.map_src.rooms.values():
+                if xy_in_room(room, self.player.x, self.player.y):
+                    inroom = room
+                    break
+            if inroom and isinstance(inroom, MultilevelRoom):
+                #this is actualy a static room so we go down it's level
+                self._handle_static_descend(inroom)
+            else:
+                #this is actualy a dungeon - fire event to generate next dungeon level
+                self._handle_dungeon_descend()
+            stairs_up = self.map_src.find_feature(oftype='StairsUp', multiple=True, map=self.current.map)
+            if not stairs_up:
+                raise RuntimeError('No upstairs found on the level below')
             #okay, lets have just the first stairs. TODO - link stairs while parsing the map
             self.player.x, self.player.y = stairs_up[0][1], stairs_up[0][2]
-            self.init(self.map_src)
             self.init_fov()
             return True
+
+    def _handle_static_descend(self, inroom):
+        """ Descends to a static room
+        """
+        next_level = str(-1)
+        level = inroom.levels[next_level]
+        if not level:
+            raise RuntimeError('No level %s in room %s' % (next_level, inroom))
+        if not self.layers.has_key(next_level):
+            layer = LayerView(level, inroom.src)
+            self.current = layer
+            self.layers[next_level] = layer
+            self.prepare_level()
+        else:
+            self.current = self.layers[next_level]
+
+    def _handle_dungeon_descend(self):
+        pass
+
 

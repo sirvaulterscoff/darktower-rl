@@ -214,7 +214,7 @@ class Player(Critter):
         if self.map.has_critter_at((newx, newy)):
             self.attack(self.map.get_critter_at(newx, newy))
             return True, False
-        next_tile = self.map[newy][newx]
+        next_tile = self.map.tile_at(newx, newy)
         move_to, take_turn, fov_recalc = next_tile.player_move_into(self, newx, newy, self.map)
         if move_to:
             self.x, self.y = newx, newy

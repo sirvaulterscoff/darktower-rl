@@ -183,28 +183,29 @@ class MapDef(object):
             self.max_levels = len(self.levels)
         self._prepare_subst()
         self.map = parse_string(self.map, self.map_chars, self, items, mobs)
-        for level in self.levels.values():
-            level.map = parse_string(level.map, level.map_chars, level, items, mobs)
         for lvl in self.levels.values():
-            lvl.prepare() #todo check that multilevels actualy prepare
+            lvl.prepare()
         self.height = len(self.map)
         self.width = len(self.map[0])
         self.prepared = True
 
-    def tune(params = {}):
+    def tune(self, params = {}):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
         #todo map script callback
 
-    def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
+    def find_feature(self, id=None, oftype=None, multiple=False, filter=None, map = None):
         """ Finds feature from map by id (if specified) or by certain type name (if specified
         if multiple => True - all matching items will be returned list of tuples. Otherwise
         only single tuple is returned
         filter is a lambda expression invoked on each found item
         returns tuple tile, x, y
         """
+        _map = self.map
+        if map:
+            _map = map
         res = []
         x, y = 0,0
-        for line in self.map[self.base_level]:
+        for line in _map:
             for char in line:
                 if id:
                     if hasattr(char, 'id') and char.id == id:

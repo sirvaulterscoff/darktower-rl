@@ -76,9 +76,9 @@ class LibtcodGui(AbstractGui):
         if not self.viewport:
             cc = self.create_color
             self.viewport = Viewport(VIEWPORT_WIDTH, VIEWPORT_HEIGHT, map)
-            for y in range(0, map.map_height):
-                for x in range(0, map.map_width):
-                    map[y][x].parse_color(cc)
+            for y in range(0, map.height):
+                for x in range(0, map.width):
+                    map.tile_at(x, y).parse_color(cc)
         if gl.__fov_recompute__:
             gl.logger.debug('Recomputing fov')
             gl.__fov_recompute__ = False
@@ -89,7 +89,7 @@ class LibtcodGui(AbstractGui):
         gl.logger.debug('Diplaying viewport from %d:%d to %d:%d' % (self.viewport.x, self.viewport.y, self.viewport.x2, self.viewport.y2))
         for y in xrange(self.viewport.y, self.viewport.y2):
             for x in xrange(self.viewport.x, self.viewport.x2):
-                tile = map[y][x]
+                tile = map.tile_at(x, y)
                 seen = tile.seen | gl.__wizard_mode__
                 visible = libtcod.map_is_in_fov(map.fov_map, x, y)
                 if isinstance(tile.color, tuple):
@@ -282,8 +282,8 @@ class Viewport(object):
     def update_coords(self, playerx, playery):
         self.x = util.cap_lower(playerx - self.center[0], 0, 0)
         self.y = util.cap_lower(playery - self.center[1], 0, 0)
-        self.x2 = util.cap(self.x + self.w - 1, self.map.map_width)
-        self.y2 = util.cap(self.y + self.h - 1, self.map.map_height)
+        self.x2 = util.cap(self.x + self.w - 1, self.map.width)
+        self.y2 = util.cap(self.y + self.h - 1, self.map.height)
 
     def adjust_coords(self, x, y):
         return x - self.x, y - self.y

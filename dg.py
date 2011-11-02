@@ -40,7 +40,7 @@ class DungeonGenerator(object):
             i. checker - checks for lvl connectivity, and number of desired features/items
             Lvl2 generators should be piped in stated order
     """
-    def generate_map(generator_type, width=400, height=300, player_hd=1, requests=None, params=None, name='', theme=''):
+    def generate_map(generator_type, width=1, height=1, player_hd=1, requests=None, params=None, name='', theme=''):
         """generate_map(generator_type, ...) => MapDef
         """
         if not generators.has_key(generator_type):
@@ -105,12 +105,12 @@ def _choose_map(generator_type, params, player_hd, theme, size):
             break
     unique_maps_already_generated[tmap.id] = 1
     #prepare a map
-    #tmap.prepare()
+    tmap.prepare()
     return tmap
 
 
 rooms_rows = 3 #todo this is param.
-map_free_coeff = 1.5 #todo move to params
+map_free_coeff = 1.3 #todo move to params
 
 def _assure_mapsize(map_draft, generator_type, requests):
     """
@@ -368,9 +368,9 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
         for level, child in map.levels.items(): # now we transform all submaps
             child_map = None
             if child.orient: #if child redefines orient - let's use it
-                child_map = random_rotate(child.map, child.orient)
+                child_map, ignored = random_rotate(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
-                child_map = random_rotate(child.map, map.orient, params=rotate_params)
+                child_map, ignored = random_rotate(child.map, map.orient, params=rotate_params)
             __merge_leveled(map_draft, child_map, level, map)
 
         rooms.append(__create_room(map_draft, newmap, map))
@@ -381,4 +381,4 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     merger(static_transformer, map_draft, player_hd, generator_type, requests, theme, params), 'static_transformer'))
 
-DungeonGenerator.generate_map('null', requests=[MapRequest('crypt')])
+#DungeonGenerator.generate_map('null', requests=[MapRequest('crypt')])

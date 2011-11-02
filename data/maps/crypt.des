@@ -1,7 +1,7 @@
 mode=asis
 terrain=graveyard city
-ORIENT=RANDOM
-position=None
+ORIENT=NONE
+position=NW
 SUBST=$=>$hidden_door
 ITEMS=g=>$Gold(min: 10, max: 70)
 SUBST=G=>$trap && Gold(min: 70, max: 100) 
@@ -12,12 +12,12 @@ id=crypt_1
 HD=10
 MAP="""
                         #######
-#########################.1..2#
+.########################.1..2#
 ......^...^...^...^gggGg$..@^>#
 #########################.1..2#
                         #######
 """
-level=1
+level=-1
 ITEMS=a=>$irandom(value: 1000)
 ITEMS=b=>$irandom(value: 500, type : 'book'})
 ITEMS=c=>$HealingPotion

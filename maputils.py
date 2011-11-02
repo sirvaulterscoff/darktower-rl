@@ -11,8 +11,9 @@ ANY = HORIZONTAL_FLIP | VERTICAL_FLIP | ROTATE
 FORCE_ALL = 100
 
 rotate_setting = {
-    "any" : ANY,
-    "RANDOM": ANY
+    'any' : ANY,
+    'RANDOM': ANY,
+    'NONE' : NO_FLIP
 }
 
 def random_rotate(map, settings = 'any', params = None):
@@ -55,36 +56,31 @@ def __clone_map(original):
 class Room(object):
     def __init__(self):
         self.x, self.y = None, None
-        self.x2, self.y2 = None, None
         self.width, self.height = 0, 0
 
-    def __getattribute__(self, name):
-        if name == 'x2':
-            w = object.__getattribute__(self, 'width')
-            x = object.__getattribute__(self, 'x')
-            if x and w:
-                return x + w
-            else:
-                return None
-        if name == 'y2':
-            h = object.__getattribute__(self, 'height')
-            y = object.__getattribute__(self, 'y')
-            if y and h:
-                return y + h
-            else:
-                return None
-        return object.__getattribute__(self, name)
-
+    @property
+    def x2(self):
+        if self.x is not None and self.width:
+            return self.x + self.width
+        else:
+            return None
+    @property
+    def y2(self):
+        if self.y is not None and self.height:
+            return self.y + self.height
+        else:
+            return None
 
 
 class MultilevelRoom(Room):
+    """
+    Describes multilevel room
+    """
     def __init__(self):
         super(MultilevelRoom, self).__init__()
         self.levels = {}
 
 def xy_in_room(room , x, y):
-    if not room.x:
-        return False
     if x>=room.x and x<=room.x2:
         if y>=room.y and y<=room.y2:
             return True
