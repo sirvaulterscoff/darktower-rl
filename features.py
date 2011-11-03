@@ -33,12 +33,14 @@ class DungeonFeature(object):
     dim_color = (128, 128, 128)
     description = 'Generic feature'
     flags = NONE
+    seen = False
+    items = []
+    id = None
     def __init__(self, id=None):
-        self.seen = False
-        self.items = []
-        self.id = id
         if not hasattr(self, 'flags'):
             self.flags = NONE
+        if id and not self.id:
+            self.id = id
 
     def set_params(self, argv):
         for k, v in argv.items():
@@ -59,9 +61,14 @@ class DungeonFeature(object):
         return not self.flags & BLOCK_WALK
 
     def player_move_into(self, player, x, y, map_def):
-        #returns tupple. 1value for if this sqaure can be occupied,
-        # second value if it takes turn
-        # third value - denotes if fov should be recalculated
+        """ player_move_into(Player, int, int, map.Map) => (bool, bool, bool)
+        Invoked before player steps onto next tile. Must return tuple of 3 values:
+        first - if player can occupy square, second if it takes turn,
+        third value - denotes if fov should be recalculated
+        @player - player or monster stepping on that tile
+        @x, @y - coords of tile
+        @map_def - link to the map itself
+        """
         return self.passable(), self.passable(), self.passable()
 
     def player_over(self, player):
@@ -162,28 +169,32 @@ class Grass(DungeonFeature):
 
 class PreasurePlate(DungeonFeature):
     invisible = True
-    def __init__(self, affected='x', action='remove'):
+    affected='x'
+    action='remove'
+    def __init__(self):
         super(PreasurePlate, self).__init__()
-        self.affected=affected
-        self.action=action
         self.reacted = False
 
     def player_move_into(self, player, x, y, map_def):
         #todo check player is flying (maybe)
+        #todo map does update incorrectly. That's because when we remove walls we don't set them as seen
         if self.reacted: return True, True, True #already pressed
         self.reacted = True #todo - take skills in account
         gl.message('You step on the pressure plate')
-        fts = map_def.map_src.find_feature(self.affected, multiple=True)
+        fts = map_def.current.find_feature(self.affected, multiple=True)
         if fts:
-            for ft in fts:
+            for ft, x, y in fts:
                 if self.action == 'remove':
-                    map_def.map_src.replace_feature_atxy(*ft, with_what=map_def.map_src.floor)
+                    map_def.current.replace_feature_atxy(x, y, with_what=map_def.map_src.floor)
             if self.action == 'remove':
                 if util.coinflip():
                     gl.message('You hear grinding noise')
                 else:
                     gl.message('You hear some strange shrieking noise')
+        else:
+            gl.message('Nothing seems to happen')
         return True, True, True
+
 
 
 class Trap(DungeonFeature):
@@ -229,7 +240,7 @@ treasure_chest = build_type('TreasureChest_', TreasureChest)
 hidden_door = build_type('HiddenDoor', base=HiddenDoor, skill=50, feature=rock_wall)
 
 altar = build_type('Altar_', base=Altar)
-ph = build_type('PH', DungeonFeature)
+ph = build_type('PH', DungeonFeature, char=' ', invisible=True)
 
 
 features = {}

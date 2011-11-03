@@ -22,7 +22,7 @@ ITEMS=a=>$irandom(value: 1000)
 ITEMS=b=>$irandom(value: 500, type : 'book'})
 ITEMS=c=>$HealingPotion
 SUBST=A=>$altar()
-SUBST=K=>$ph(id: 'TOMB')
+SUBST=K=>$ph(id: TOMB)
 MONS=3=>$skeleton(hd: 1, name: 'Skeleton-guard')
 SUBST={=>$pool
 SUBST=}=>$pool
@@ -40,19 +40,19 @@ def crypt1_set_param(name, value, des):
             statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
 """
-SUBST=%=>$preasure_plate(affected:'x', action:'remove')
-SUBST=!=>$preasure_plate(affected:'X', action:'remove')
-SUBST=x=>$fixed_wall(id:'x')
-SUBST=X=>$fixed_wall(id:'X')
+SUBST=%=>$preasure_plate(affected:x, action:remove)
+SUBST=!=>$preasure_plate(affected:Y, action:remove)
+SUBST=x=>$fixed_wall(id:x)
+SUBST=Y=>$fixed_wall(id:Y)
 SUBST=S=>$statue
 
 MAP="""
 ########################################
-#c$......X....................X......$c#
+#c$......Y....................Y......$c#
 ###...1..#......!!!.!!!.......#..1...###
 ##...131.#.....##+###+##......#.131...##
-##....1..X.....#1311131#......X..1....##
-##X#####XX.....#.......#......XX#####X##
+##....1..Y.....#1311131#......Y..1....##
+##Y#####YY.....#.......#......YY#####Y##
 ##.............##ba.ab##..............##
 ##.#########....###K###....##########.##
 ##.#.......#......###......#.....#.A#.##

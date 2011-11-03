@@ -7,11 +7,11 @@ import gl
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
-from dungeon_generators import MapDef
+from dungeon_generators import MapDef, find_feature, replace_feature_atxy
 from features import DungeonFeature
 from maputils import  xy_in_room, MultilevelRoom
 
-FOV_ALGORITHM = libtcod.FOV_PERMISSIVE(2)
+FOV_ALGORITHM = libtcod.FOV_PERMISSIVE_8
 FOV_LIGHT_WALLS = True
 logger = util.create_logger('DG')
 
@@ -23,6 +23,12 @@ class MainView(object):
         self.inited = False
         self.height = len(map)
         self.width = len(map[0])
+
+    def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
+        return find_feature(self.map, id, oftype, multiple, filter)
+
+    def replace_feature_atxy(self, x, y, with_what):
+        return replace_feature_atxy(self.map, x, y, with_what)
 
 class LayerView(MainView):
     def __init__(self, map, map_src):
@@ -207,7 +213,7 @@ class Map(object):
             else:
                 #this is actualy a dungeon - fire event to generate next dungeon level
                 self._handle_dungeon_descend()
-            stairs_up = self.map_src.find_feature(oftype='StairsUp', multiple=True, map=self.current.map)
+            stairs_up = find_feature(self.current.map, oftype='StairsUp', multiple=True)
             if not stairs_up:
                 raise RuntimeError('No upstairs found on the level below')
             #okay, lets have just the first stairs. TODO - link stairs while parsing the map

@@ -193,49 +193,6 @@ class MapDef(object):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
         #todo map script callback
 
-    def find_feature(self, id=None, oftype=None, multiple=False, filter=None, map = None):
-        """ Finds feature from map by id (if specified) or by certain type name (if specified
-        if multiple => True - all matching items will be returned list of tuples. Otherwise
-        only single tuple is returned
-        filter is a lambda expression invoked on each found item
-        returns tuple tile, x, y
-        """
-        _map = self.map
-        if map:
-            _map = map
-        res = []
-        x, y = 0,0
-        for line in _map:
-            for char in line:
-                if id:
-                    if hasattr(char, 'id') and char.id == id:
-                        if filter and not filter(char): continue
-                        if multiple:
-                            res.append((char, x, y))
-                        else:
-                            return char, x, y
-                elif oftype:
-                    if char.__class__.__name__ == oftype:
-                        if filter and not filter(char): continue
-                        if multiple:
-                            res.append((char, x, y))
-                        else:
-                            return char, x, y
-                x+=1
-            y+=1
-            x=0
-        if multiple and len(res):
-            return res
-        return None
-
-    def replace_feature_atxy(self, x, y, with_what):
-        ft = with_what
-        if callable(with_what):
-            ft = with_what()
-        if isinstance(ft, type):
-            ft = ft()
-
-        self.map[self.base_level][y][x] = ft
 
     def __setattr__(self, name, value):
         if name == 'map_chars' or name=='levels' or name=='prepared':
@@ -262,6 +219,47 @@ class MapDef(object):
             return self.levels[self.current_level].subst
         else:
             return self.subst
+
+def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):
+    """ Finds feature from map by id (if specified) or by certain type name (if specified
+    if multiple => True - all matching items will be returned list of tuples. Otherwise
+    only single tuple is returned
+    filter is a lambda expression invoked on each found item
+    returns tuple tile, x, y
+    """
+    res = []
+    x, y = 0,0
+    for line in _map:
+        for char in line:
+            if id:
+                if hasattr(char, 'id') and char.id == id:
+                    if filter and not filter(char): continue
+                    if multiple:
+                        res.append((char, x, y))
+                    else:
+                        return char, x, y
+            elif oftype:
+                if char.__class__.__name__ == oftype:
+                    if filter and not filter(char): continue
+                    if multiple:
+                        res.append((char, x, y))
+                    else:
+                        return char, x, y
+            x+=1
+        y+=1
+        x=0
+    if multiple and len(res):
+        return res
+    return None
+
+def replace_feature_atxy(map, x, y, with_what):
+    ft = with_what
+    if callable(with_what):
+        ft = with_what()
+    if isinstance(ft, type):
+        ft = ft()
+
+    map[y][x] = ft
 
 #    def __getattribute__(self, name):
 #        if name == 'levels' or name == 'current_level':

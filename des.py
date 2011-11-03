@@ -36,7 +36,7 @@ parser =  OneOrMore(OneOrMore(assignment)  + end_keyword)
 
 param_number = Combine(Optional('-') + Word(string.digits)).setParseAction(lambda x: int(x[0]))
 param_lhv = Word(alphanums) + Literal(':').suppress()
-param_rhv = (param_number | Word(alphanums +"'" + '"')) + Optional(Literal(',')).suppress()
+param_rhv = (param_number | Word(alphanums +"'" + '"' + ' ')) + Optional(Literal(',')).suppress()
 params_parser = dictOf(param_lhv, param_rhv)
 
 def _parseFile(fname, ttype, lookup_dicts):

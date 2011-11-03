@@ -68,6 +68,7 @@ class LibtcodGui(AbstractGui):
 
 
     def clear_critter(self, x, y):
+        #libtcod.console_set_back(self.con, x, consoley, libtcod.black, libtcod.BKGND_SET)
         libtcod.console_set_char(self.con, x, y, ' ')
 
 
@@ -89,6 +90,11 @@ class LibtcodGui(AbstractGui):
         gl.logger.debug('Diplaying viewport from %d:%d to %d:%d' % (self.viewport.x, self.viewport.y, self.viewport.x2, self.viewport.y2))
         for y in xrange(self.viewport.y, self.viewport.y2):
             for x in xrange(self.viewport.x, self.viewport.x2):
+                if x >= map.width or \
+                        y  >= map.height:
+                    self.clear_critter(x, y)
+                    continue
+
                 tile = map.tile_at(x, y)
                 seen = tile.seen | gl.__wizard_mode__
                 visible = libtcod.map_is_in_fov(map.fov_map, x, y)
@@ -140,12 +146,6 @@ class LibtcodGui(AbstractGui):
         libtcod.console_set_fore(self.con ,x, y, cc(player.color))
         self.print_critter(x, y, player.char)
 
-        gl.logger.debug('Clearing screen')
-        if self.viewport.not_full():
-            x, y = self.viewport.get_blank()
-            for x in xrange(x, self.viewport.w):
-                for y in xrange(y, self.viewport.h):
-                    libtcod.console_set_char(self.con, consolex, consoley, ' ')
 
         if gl.__wizard_mode__:
             libtcod.console_print_left(self.con, 0, VIEWPORT_HEIGHT - 1, libtcod.BKGND_NONE, 'WIZ MODE')
@@ -289,23 +289,14 @@ class Viewport(object):
     def update_coords(self, playerx, playery):
         self.x = util.cap_lower(playerx - self.center[0], 0, 0)
         self.y = util.cap_lower(playery - self.center[1], 0, 0)
-        self.x2 = util.cap(self.x + self.w - 1, self.map.width)
-        self.y2 = util.cap(self.y + self.h - 1, self.map.height)
+        self.x2 = self.x + self.w#util.cap(self.x + self.w - 1, self.map.width)
+        self.y2 = self.y + self.h#util.cap(self.y + self.h - 1, self.map.height)
 
     def adjust_coords(self, x, y):
         return x - self.x, y - self.y
 
     def in_view(self, x, y):
         return x>=self.x  and x<self.x2 and y >= self.y and y < self.y2
-
-    def not_full(self):
-        return self.x2 < (self.x + self.w - 1) or \
-            self.y2 < (self.y + self.h - 1)
-
-    def get_blank(self):
-        x = self.x + self.map.width
-        y = self.y + self.map.height
-        return x, y
 
 
 def dim_color(color):
