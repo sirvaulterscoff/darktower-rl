@@ -34,10 +34,15 @@ def message(text, level = 1):
     wraped_msg = textwrap.wrap(text, MSG_WIDTH)
     if prev_message == hash(text):
         prev_message_count += 1
-        __msgs__.pop()
-        __msgs__.append('%s x%d' % (text, prev_message_count))
+        for line in wraped_msg:
+            __msgs__.pop()
+        for line in wraped_msg:
+            if len(__msgs__) == MSG_COUNT:
+                __msg_history__.append(__msgs__.pop(0))
+            __msgs__.append(('%s x%d' % (line, prev_message_count), level))
+        return
     else:
-        prev_message_count = 0
+        prev_message_count = 1
     prev_message = hash(text)
     for line in wraped_msg:
         if len(__msgs__) == MSG_COUNT:

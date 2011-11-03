@@ -21,7 +21,6 @@ def main_loop():
             gl.__show_chapter__ = None
         #gui.clear_all(map.map_critters)
         gui.render_ui(player)
-        gui.render_messages()
         key = game_input.readkey()
         if handle_key(key):
             for critter in map.map_critters:
@@ -29,6 +28,7 @@ def main_loop():
                     game_input.readkey()
                     break
                 critter.take_turn()
+        gui.render_messages()
 
 
 def handle_key(key):
