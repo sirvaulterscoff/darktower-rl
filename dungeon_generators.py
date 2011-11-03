@@ -257,11 +257,20 @@ class MapDef(object):
         else:
             object.__setattr__(self, name, value)
 
+    def get_subst(self):
+        if self.current_level > 0:
+            return self.levels[self.current_level].subst
+        else:
+            return self.subst
+
 #    def __getattribute__(self, name):
 #        if name == 'levels' or name == 'current_level':
 #            return object.__getattribute__(self, name)
-#        if self.current_level > 0:
-#            next = object.__getattribute__(self, 'levels')[self.current_level]
+#        if object.__getattribute__(self, 'current_level') > 0:
+#            try:
+#                next = object.__getattribute__(self, 'levels')[self.current_level]
+#            except KeyError:
+#                return object.__getattribute__(self, name)
 #            try:
 #                return object.__getattribute__(next, name)
 #            except AttributeError: #inner level has no such attr

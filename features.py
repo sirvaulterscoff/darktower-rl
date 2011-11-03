@@ -29,6 +29,8 @@ class DungeonFeature(object):
     invisible = False
     color_back = (30, 30, 30)
     dim_color_back = (5, 5, 5)
+    color = (255, 255, 255)
+    dim_color = (128, 128, 128)
     description = 'Generic feature'
     flags = NONE
     def __init__(self, id=None):
@@ -174,11 +176,14 @@ class PreasurePlate(DungeonFeature):
         fts = map_def.map_src.find_feature(self.affected, multiple=True)
         if fts:
             for ft in fts:
-                getattr(self, self.action)(*ft, map_def=map_def, player=player)
+                if self.action == 'remove':
+                    map_def.map_src.replace_feature_atxy(*ft, with_what=map_def.map_src.floor)
+            if self.action == 'remove':
+                if util.coinflip():
+                    gl.message('You hear grinding noise')
+                else:
+                    gl.message('You hear some strange shrieking noise')
         return True, True, True
-
-    def remove(self, feature, ft_x, ft_y, map_def, player):
-        map_def.map_src.replace_feature_atxy(ft_x, ft_y, map_def.map_src.floor)
 
 
 class Trap(DungeonFeature):

@@ -1,4 +1,5 @@
 import textwrap
+import util
 
 __wizard_mode__ = False
 __dlvl__ = 1
@@ -18,18 +19,25 @@ __hp_warning__ = 0.5
 
 __show_chapter__ = False
 __chapter_text__ = 'Chapter 1. Departure'
+log = util.create_logger()
 #DEBUG - debug only (wiz mode), NONE -general info, WARN - warning (hp/mp),
 # critical - critical hits, stepping on traps, critical hp level,
 #info - general info on skills level up etc
 message_levels = { 'DEBUG' : 0,  'NONE' : 1, 'WARN' : 2, 'CRITICAL' : 3, 'INFO' : 4, 'DAMAGE': 5}
 prev_message = None
+prev_message_count = 1
 def message(text, level = 1):
-    global prev_message
+    log.info(text)
+    global prev_message, prev_message_count
     if isinstance(level, str):
         level = message_levels[level]
     wraped_msg = textwrap.wrap(text, MSG_WIDTH)
     if prev_message == hash(text):
-        return
+        prev_message_count += 1
+        __msgs__.pop()
+        __msgs__.append('%s x%d' % (text, prev_message_count))
+    else:
+        prev_message_count = 0
     prev_message = hash(text)
     for line in wraped_msg:
         if len(__msgs__) == MSG_COUNT:

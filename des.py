@@ -144,8 +144,12 @@ def process(items, ttype, toks, lookup_dicts):
     else: #if the result is map - parse each value
         if not hasattr(where, key):
             setattr(where, key, {})
+        if hasattr(where, 'get_' + key):
+            dict = getattr(where, 'get_' + key)()
+        else:
+            dict = getattr(where, key)
         for k, v in zip(value[::2], value[1::2]):
-            getattr(where, key)[k] = parse_val(v, where, lookup_dicts)
+            dict[k] = parse_val(v, where, lookup_dicts)
 
 def end(result):
     result.append(None)
