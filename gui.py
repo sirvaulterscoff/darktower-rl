@@ -140,6 +140,13 @@ class LibtcodGui(AbstractGui):
         libtcod.console_set_fore(self.con ,x, y, cc(player.color))
         self.print_critter(x, y, player.char)
 
+        gl.logger.debug('Clearing screen')
+        if self.viewport.not_full():
+            x, y = self.viewport.get_blank()
+            for x in xrange(self.viewport.x2 + 1, x):
+                for y in xrange(self.viewport.y2 + 1, y):
+                    libtcod.console_set_char(self.con, consolex, consoley, ' ')
+
         if gl.__wizard_mode__:
             libtcod.console_print_left(self.con, 0, VIEWPORT_HEIGHT - 1, libtcod.BKGND_NONE, 'WIZ MODE')
 
@@ -290,6 +297,16 @@ class Viewport(object):
 
     def in_view(self, x, y):
         return x>=self.x  and x<self.x2 and y >= self.y and y < self.y2
+
+    def not_full(self):
+        return self.x2 < (self.x + self.w - 1) or \
+            self.y2 < (self.y + self.h - 1)
+
+    def get_blank(self):
+        x = self.x + self.w - 1 - self.x2
+        y = self.y + self.w - 1 - self.y2
+        return x, y
+
 
 def dim_color(color):
     if isinstance(color, tuple):
