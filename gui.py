@@ -143,8 +143,8 @@ class LibtcodGui(AbstractGui):
         gl.logger.debug('Clearing screen')
         if self.viewport.not_full():
             x, y = self.viewport.get_blank()
-            for x in xrange(self.viewport.x2 + 1, x):
-                for y in xrange(self.viewport.y2 + 1, y):
+            for x in xrange(x, self.viewport.w):
+                for y in xrange(y, self.viewport.h):
                     libtcod.console_set_char(self.con, consolex, consoley, ' ')
 
         if gl.__wizard_mode__:
@@ -303,8 +303,8 @@ class Viewport(object):
             self.y2 < (self.y + self.h - 1)
 
     def get_blank(self):
-        x = self.x + self.w - 1 - self.x2
-        y = self.y + self.w - 1 - self.y2
+        x = self.x + self.map.width
+        y = self.y + self.map.height
         return x, y
 
 
