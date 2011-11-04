@@ -80,6 +80,7 @@ class Map(object):
                         _map[y][x] = _map[y][x]()
                     if not isinstance(_map[y][x], DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
+                    _map[y][x].init()
                 except IndexError:
                     print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)
                     break

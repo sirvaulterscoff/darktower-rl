@@ -7,6 +7,7 @@ from features import DungeonFeature
 class Item(object):
     char = ' '
     color = (255,255,255)
+    dark_color=(128,128,128)
     name = 'Generic item'
     unided_name = 'Unidentified item'
     description_past = 'description for a hero from past days'
@@ -17,7 +18,7 @@ class Item(object):
     common = 10
     #sets quest level for that item. If quest level is none, then item can't be used for quest-targets. otherwise it can be selected fro a quest-target
     quest_level = None
-    def __init__(self, char='0', color=(255,255,255), dark_color=(128,128,128)):
+    def __init__(self):
         self.randart = False
         self.unique_name = None
         pass
@@ -27,6 +28,9 @@ class Item(object):
             return
         other.items.append(self)
 
+    def player_move_into(self, player, x, y, map_src):
+        pass
+
     def __rand__(self, other):
         self.doand(other)
 
@@ -34,22 +38,27 @@ class Item(object):
         self.doand(other)
 
 class Gold(Item):
+    char = '$'
+    color = (255,255,102)
+    dim_color = (128,128,10)
     min=0
     max=100
     def __init__(self, value=None):
-        super(Gold, self).__init__('$', (255,255,102), (128,128,10))
+        super(Gold, self).__init__()
         if not value:
             self.value = randrange(self.min, self.max + 1)
-        self.value = value
+        else:
+            self.value = value
 
     def place(self, cell):
         self.cell = cell
 
-    def player_move_into(self, player, x, y):
-        super(Gold, self).player_move_into(player, x, y)
+    def player_move_into(self, player, x, y, map_src):
+        super(Gold, self).player_move_into(player, x, y, map_src)
         player.gold += self.value
         gl.message('You found ' + str(self.value) + ' gold. Now you have ' + str(player.gold))
         self.cell.items.remove(self)
+
 
 class ArtefactDes(Item):
     def __init__(self):

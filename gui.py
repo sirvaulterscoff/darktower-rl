@@ -98,7 +98,11 @@ class LibtcodGui(AbstractGui):
                     tile.parse_color(self.create_color)
                 #if tile is seen or visible to player - print it
                 if seen or visible:
-                    libtcod.console_set_char(self.con, consolex, consoley, tile.char)
+                    if len(tile.items):
+                        char = tile.items[-1].char
+                    else:
+                        char = tile.char
+                    libtcod.console_set_char(self.con, consolex, consoley, char)
                     #if it's not in LOS, but seen - print in dim color
                 else:
                     libtcod.console_set_char(self.con, consolex, consoley, ' ')

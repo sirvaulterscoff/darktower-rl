@@ -69,6 +69,8 @@ class DungeonFeature(object):
         @x, @y - coords of tile
         @map_def - link to the map itself
         """
+        for item in self.items:
+            item.player_move_into(player, x, y, map_def)
         return self.passable(), self.passable(), self.passable()
 
     def player_over(self, player):
@@ -89,6 +91,12 @@ class DungeonFeature(object):
             self.color_back = delegate.color_back
         if hasattr(delegate, 'dim_color_back'):
             self.dim_color_back = delegate.dim_color_back
+
+    def init(self):
+        for x in xrange(len(self.items)):
+            self.items[x] = self.items[x]()
+            self.items[x].place(self)
+
 
 def build_type(name, base=DungeonFeature, **args):
     return build_type_(name, base, **args)

@@ -52,11 +52,11 @@ def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
                         if not mapDef.mobs:
                             mapDef.mobs = []
                         mapDef.mobs.append(newMob)
-                    elif items and items.has_key(char):
-                        if not mapDef.items:
-                            mapDef.items = []
+                    elif items and mapDef.items.has_key(char):
+                        if not ft.items:
+                            ft.items = []
                         newItem = mapDef.items[char]
-                        mapDef.items.append(newItem)
+                        ft.items.append(newItem)
                         newItem.x, newItem.y = x, y
             #todo remove this check once all dungeon features are parametrized classes
             if getattr(ft, 'invisible', False) and mapDef:
