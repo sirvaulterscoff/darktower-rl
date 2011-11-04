@@ -175,22 +175,22 @@ class PreasurePlate(DungeonFeature):
         super(PreasurePlate, self).__init__()
         self.reacted = False
 
-    def player_move_into(self, player, x, y, map_def):
+    def player_move_into(self, player, x, y, map):
         #todo check player is flying (maybe)
-        #todo map does update incorrectly. That's because when we remove walls we don't set them as seen
         if self.reacted: return True, True, True #already pressed
         self.reacted = True #todo - take skills in account
         gl.message('You step on the pressure plate')
-        fts = map_def.current.find_feature(self.affected, multiple=True)
+        fts = map.current.find_feature(self.affected, multiple=True)
         if fts:
             for ft, x, y in fts:
                 if self.action == 'remove':
-                    map_def.current.replace_feature_atxy(x, y, with_what=map_def.map_src.floor)
+                    map.current.replace_feature_atxy(x, y, with_what=map.map_src.floor)
             if self.action == 'remove':
                 if util.coinflip():
                     gl.message('You hear grinding noise')
                 else:
                     gl.message('You hear some strange shrieking noise')
+                map.init_fov()
         else:
             gl.message('Nothing seems to happen')
         return True, True, True

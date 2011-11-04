@@ -85,7 +85,7 @@ class LibtcodGui(AbstractGui):
             gl.__fov_recompute__ = False
             map.recompute_fov()
 
-        consolex, consoley = 0,0
+        consolex, consoley, xx = 0,0, 0
         self.viewport.update_coords(player.x, player.y)
         gl.logger.debug('Diplaying viewport from %d:%d to %d:%d' % (self.viewport.x, self.viewport.y, self.viewport.x2, self.viewport.y2))
         for y in xrange(self.viewport.y, self.viewport.y2):
@@ -119,6 +119,7 @@ class LibtcodGui(AbstractGui):
                     #if current tile is visible for now - mark as seen
                     tile.seen = True
                 consolex += 1
+            xx = consolex
             consolex = 0
             consoley += 1
 
@@ -150,6 +151,12 @@ class LibtcodGui(AbstractGui):
         if gl.__wizard_mode__:
             libtcod.console_print_left(self.con, 0, VIEWPORT_HEIGHT - 1, libtcod.BKGND_NONE, 'WIZ MODE')
 
+        for x in xrange(0, VIEWPORT_WIDTH):
+            for y in xrange(0, VIEWPORT_HEIGHT):
+                if x >= xx:
+                    self.clear_critter(x, y)
+                #if y > consoley:
+                #    self.clear_critter(x, y)
         libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
 
