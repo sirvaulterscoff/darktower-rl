@@ -123,7 +123,16 @@ class Door (DungeonFeature):
             return False, True, True
         return True, True, True
 
-class HiddenDoor (Door):
+class HiddenFeature(object):
+    invisible = True
+    has_hidden = True
+    skill = 5
+
+    def found(self, player):
+        gl.message('You have found %s' % self)
+        self.has_hidden = False
+
+class HiddenDoor (Door, HiddenFeature):
     def __init__(self, skill=5,feature=None, opened=False):
         super(HiddenDoor, self).__init__(opened)
         if feature is None:
@@ -137,25 +146,23 @@ class HiddenDoor (Door):
         self.skill = skill
         self.feature = feature
 
-
-    def player_move_by(self, player, x, y):
-        #todo check for traps and doors skill. now just a coinflip
-        if self.hidden and util.coinflip():
-            self.hidden = False
-            self.char = '+'
+    def found(self, player):
+        super(HiddenDoor, self).found(player)
+        self.hidden = False
+        self.char = '+'
 
     def player_move_into(self, player, x, y, mapdef):
-        #todo check for traps and doors skill. now just a coinflip
-        if self.hidden and util.coinflip():
-            self.hidden = False
-            self.char = '+'
+        player.search_skill.observe(self)
         if self.hidden:
+            gl.message("You bump into wall")
             return False, False, False
         return super(HiddenDoor, self).player_move_into(player, x, y, mapdef)
 
     def __getattribute__(self, name):
         return super(HiddenDoor, self).__getattribute__(name)
 
+    def __repr__(self):
+        return 'hidden door'
 
 class Furniture(DungeonFeature):
     type = ftype.furniture
@@ -182,8 +189,7 @@ class Grass(DungeonFeature):
         self.char = choice(['`', ',', '.'])
         self.color = choice( [ (0, 80, 0),(20, 80, 0), (0,80,20), (20,80,20)])
 
-class PreasurePlate(DungeonFeature):
-    invisible = True
+class PreasurePlate(DungeonFeature, HiddenFeature):
     affected='x'
     action='remove'
     def __init__(self):
@@ -210,12 +216,28 @@ class PreasurePlate(DungeonFeature):
             gl.message('Nothing seems to happen')
         return True, True, True
 
+    def found(self, player):
+        super(PreasurePlate, self).found(player)
+        self.char = '^'
 
-
-class Trap(DungeonFeature):
-    invisible = True
+class Trap(DungeonFeature, HiddenFeature):
+    disarmed = False
     def __init__(self):
         super(Trap, self).__init__()
+
+    def found(self, player):
+        self.has_hidden = False
+        self.char = '^'
+        gl.message('You found a trap')
+
+    def player_move_into(self, player, x, y, map_def):
+        if self.has_hidden:
+            player.search_skill.observe(self)
+        if not self.has_hidden and not self.disarmed:
+            #todo check if this trap is actualy nasty
+            #todo implement me
+            pass
+        return super(Trap, self).player_move_into(player, x, y, map_def)
 
 class Stairs(DungeonFeature):
     def __init__(self, id=None, down=True):
@@ -229,7 +251,7 @@ class Stairs(DungeonFeature):
 
 floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
 preasure_plate = build_type('PreasurePlate_', PreasurePlate, affected='x', type='remove', subst=floor)
-trap = build_type('Trap_', Trap, char='.', invisible=True)
+trap = build_type('Trap_', Trap, char='.', dim_color=(0, 0, 100))
 fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)

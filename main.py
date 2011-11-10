@@ -44,8 +44,10 @@ def handle_key(key):
 
 
 def handle_move(dx, dy):
+    global map
     if gl.__game_state__ == "playing":
         take_turn, fov_recompute = player.move(dx, dy)
+        map.player_moved()
         if fov_recompute:
             gl.__fov_recompute__ = True
         if take_turn:
@@ -90,6 +92,11 @@ def handle_wait():
     if gl.__game_state__ == "playing":
         gl.__turn_count__ += 1
     return True
+
+def handle_search():
+    if gl.__game_state__ == "playing":
+        gl.message('You check your surroundings')
+        map.search()
 
 def handle_descend():
     if not map:

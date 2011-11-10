@@ -226,6 +226,17 @@ class Map(object):
             x += 1
         return 1, 1
 
+    def search(self):
+        x0, y0 = self.player.fov_xy0
+        x2, y2 = self.player.fov_xy2
+        x2, y2 = min(x2, self.current.width - 1), min(y2, self.current.height - 1)
+        for x in xrange(x0, x2):
+            for y in xrange(y0, y2):
+                self.player.see(self.current.map[y][x], x, y, self.current)
+
+    def player_moved(self):
+        self.search()
+
     def descend(self):
         tile = self.tile_at(self.player.x, self.player.y)
         if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False): #ft_types.stairs

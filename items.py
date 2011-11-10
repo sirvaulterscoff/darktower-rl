@@ -37,6 +37,10 @@ class Item(object):
     def __and__(self, other):
         self.doand(other)
 
+    def __repr__(self):
+        return self.unided_name
+
+
 class Gold(Item):
     char = '$'
     color = (255,255,102)
@@ -58,6 +62,11 @@ class Gold(Item):
         player.gold += self.value
         gl.message('You found ' + str(self.value) + ' gold. Now you have ' + str(player.gold))
         self.cell.items.remove(self)
+
+    def __repr__(self):
+        if self.value == 1:
+            return 'gold piece'
+        return '%d gold pieces' % self.value
 
 
 class ArtefactDes(Item):

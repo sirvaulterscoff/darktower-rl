@@ -256,3 +256,12 @@ class NamedMap(object):
 def build_type(name, base, **argv):
     new_type = type(name, (base,), argv)
     return new_type
+
+def chance_in(chance, in_what):
+    """
+    Returns true if chance chance/in_what happens
+    """
+    return randrange(chance, in_what) <= chance
+
+def one_chance_in(in_what):
+    return chance_in(1, in_what)

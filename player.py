@@ -1,6 +1,29 @@
 from critters import Critter
 import gl
 import util
+search_skill_scale = [x for x in xrange(5, 1000, 17)]
+search_skill_scale.insert(0, 0)
+class PassiveSkill(object):
+    pass
+
+class SearchSkill(PassiveSkill):
+    def __init__(self, player):
+        self.skill = 1
+        self.player = player
+
+    def observe(self, tile):
+        if self.skill > tile.skill:
+            #if player search level is higher than feature's then we have tile_skill/skill chance of feature veing revealed
+            if util.chance_in(search_skill_scale[tile.skill], search_skill_scale[self.skill]):
+                tile.found(self.player)
+        elif self.skill == tile.skill:
+            if util.one_chance_in(10):
+                tile.found(self.player)
+        else: #player skill is lover
+            if util.chance_in(search_skill_scale[self.skill], search_skill_scale[tile.skill]):
+                tile.found(self.player)
+            
+                
 
 class Player(Critter):
     x, y = 0, 0
@@ -19,6 +42,7 @@ class Player(Critter):
     def __init__(self):
         self.map = None
         self.gold = 0
+        self.search_skill = SearchSkill(self)
 
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
@@ -49,4 +73,21 @@ class Player(Critter):
         self.xl += 1
         gl.message ("Congratulations! Level up", 'INFO')
 
-  
+    def see(self, tile, tilex, tiley, map):
+        if tile.items and len(tile.items):
+            item = tile.items[0]
+            if not getattr(item, 'seen', False):
+                gl.message('You see %s' % item)
+                item.seen = True
+        if getattr(tile, 'has_hidden', False):
+            self.search_skill.observe(tile)
+
+    @property
+    def fov_xy0(self):
+        """Returns the upper-left corner of player fov"""
+        return max(self.x - self.fov_range, 0), max(self.y - self.fov_range, 0)
+    @property
+    def fov_xy2(self):
+        """Returns the lower-right corner of player fov"""
+        return self.x + self.fov_range, self.y + self.fov_range
+
