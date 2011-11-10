@@ -115,7 +115,10 @@ class LibtcodGui(AbstractGui):
                 else:
                     #if it's in LOS - print and mark as seen
                     libtcod.console_set_fore(self.con, consolex, consoley, tile.color)
-                    libtcod.console_set_back(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
+                    if len(tile.items) > 1:
+                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.desaturated_yellow, libtcod.BKGND_SET)
+                    else:
+                        libtcod.console_set_back(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
                     #if current tile is visible for now - mark as seen
                     tile.seen = True
                 consolex += 1

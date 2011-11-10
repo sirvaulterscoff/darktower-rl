@@ -124,6 +124,7 @@ class Door (DungeonFeature):
 class HiddenDoor (Door):
     def __init__(self, skill=5,feature=None, opened=False):
         super(HiddenDoor, self).__init__(opened)
+        print 'HD %s' % self.items
         if feature is None:
             self.char = '#'
         else:
@@ -134,6 +135,7 @@ class HiddenDoor (Door):
         self.opened = opened
         self.skill = skill
         self.feature = feature
+
 
     def player_move_by(self, player, x, y):
         #todo check for traps and doors skill. now just a coinflip

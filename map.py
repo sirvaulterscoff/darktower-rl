@@ -10,6 +10,8 @@ import util
 from dungeon_generators import MapDef, find_feature, replace_feature_atxy
 from features import DungeonFeature
 from maputils import  xy_in_room, MultilevelRoom
+from collections import Iterable
+from items import Item
 
 FOV_ALGORITHM = libtcod.FOV_PERMISSIVE_8
 FOV_LIGHT_WALLS = True
@@ -33,6 +35,13 @@ class MainView(object):
 class LayerView(MainView):
     def __init__(self, map, map_src):
         super(LayerView, self).__init__(map, map_src)
+
+def _materialize_piece(piece):
+    """Checks if the given object is either callable or is a type
+    and constructs it"""
+    if callable(piece) or isinstance(piece, type):
+        return piece()
+    return piece
 
 class Map(object):
     def __init__(self, map_src):
@@ -58,7 +67,7 @@ class Map(object):
     @property
     def height(self):
         return self.current.height
-    
+
     def prepare_level(self):
         """ This launches preparation on new level.
         1. Checks if a level was already prepared
@@ -70,16 +79,31 @@ class Map(object):
         self.current.inited = True
         #todo - now materialize mobs defined for that level
 
+
     def __materialize(self):
         _map = self.current.map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
                 try:
-                    if callable(_map[y][x]) or isinstance(_map[y][x], type):
-                        _map[y][x] = _map[y][x]()
+                    _map[y][x] = _materialize_piece(_map[y][x])
+                    if isinstance(_map[y][x], Iterable): #we get this case when we have multiple items on one tile
+                        #we need to find a tile first
+                        tile =  filter(lambda x: issubclass(x, DungeonFeature) , _map[y][x])
+                        if len(tile) == 0:
+                            raise RuntimeError('No tile at %d:%d (got only %s)' % (x, y, _map[y][x]))
+                        elif len(tile) > 1:
+                            raise RuntimeError('Got several tiles at %d:%d (%s)' % (x, y, _map[y][x]))
+                        _map[y][x].remove(tile[0])
+                        tile = _materialize_piece(tile[0])
+                        if not isinstance(tile, DungeonFeature):
+                            raise RuntimeError('Failed to initialze tile %s' %tile)
+                        print 'adding items %s to tile %s' %(_map[y][x], tile)
+                        map(lambda i: tile.items.append(i), filter(lambda t: issubclass(t, Item), _map[y][x]))
+                        _map[y][x] = tile
+
                     if not isinstance(_map[y][x], DungeonFeature):
-                        raise RuntimeError('Not a tile at %d:%d (got %s)' % (y, x, _map[y][x]))
+                        raise RuntimeError('Not a tile at %d:%d (got %s)' % (x, y, _map[y][x]))
                     _map[y][x].init()
                 except IndexError:
                     print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)

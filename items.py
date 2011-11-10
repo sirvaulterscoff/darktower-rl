@@ -241,7 +241,7 @@ for var, deff in loc.items():
 def random_type(**args):
     if args.has_key('type'):
         #todo implement
-        return Gold()
+        return Gold
     else:
         return choice(items.values())
 items['irandom'] = random_type

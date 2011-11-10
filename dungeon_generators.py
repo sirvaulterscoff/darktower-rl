@@ -1,3 +1,4 @@
+from collections import Iterable
 import os
 from random import randrange, random, choice, shuffle
 from features import features
@@ -56,9 +57,13 @@ def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
                         if not ft.items:
                             ft.items = []
                         newItem = mapDef.items[char]
-                        ft.items.append(newItem)
-                        newItem.x, newItem.y = x, y
-            #todo remove this check once all dungeon features are parametrized classes
+                        if isinstance(newItem, Iterable):
+                            ft.items.extend(newItem)
+                            for it in newItem:
+                                it.x, y = x, y
+                        else:
+                            ft.items.append(newItem)
+                            newItem.x, newItem.y = x, y
             if getattr(ft, 'invisible', False) and mapDef:
                 ft_delegate = mapDef.floor()
                 if callable(ft):

@@ -127,3 +127,4 @@ if __name__ == "__main__":
     map.place_player(player)
     map.init_fov()
     main_loop()
+

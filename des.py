@@ -67,6 +67,7 @@ def extend_list(l, what):
         l.extend(what)
     else:
         l.append(what)
+    return l
 
 def parse_val(val, where, lookup_dicts):
     """Adjusts the value from des file. There are several ways to do so

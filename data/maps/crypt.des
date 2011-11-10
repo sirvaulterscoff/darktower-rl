@@ -3,7 +3,7 @@ terrain=graveyard city
 ORIENT=NONE
 position=NW
 SUBST=$=>$hidden_door
-ITEMS=g=>$Gold(min: 10, max: 70)
+ITEMS=g=>$Gold(min: 10, max: 70) && Gold(min:10, max: 10)
 SUBST=G=>$trap && Gold(min: 70, max: 100) 
 SUBST=^=>$trap
 MONS=1=>$skeleton
