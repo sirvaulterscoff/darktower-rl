@@ -7,6 +7,8 @@ from game_input import *
 from features import *
 from map import Map
 from dg import DungeonGenerator
+from player import Player
+
 try:
     import psyco ; psyco.full()
 except ImportError:

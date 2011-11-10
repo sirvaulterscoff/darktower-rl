@@ -7,9 +7,9 @@ import gl
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange
 import util
-from dungeon_generators import MapDef, find_feature, replace_feature_atxy
+from dungeon_generators import MapDef
 from features import DungeonFeature
-from maputils import  xy_in_room, MultilevelRoom
+from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy
 from collections import Iterable
 from items import Item
 

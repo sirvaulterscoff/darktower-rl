@@ -225,57 +225,6 @@ class MapDef(object):
         else:
             return self.subst
 
-def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):
-    """ Finds feature from map by id (if specified) or by certain type name (if specified
-    if multiple => True - all matching items will be returned list of tuples. Otherwise
-    only single tuple is returned
-    filter is a lambda expression invoked on each found item
-    returns tuple tile, x, y
-    """
-    res = []
-    x, y = 0,0
-    for line in _map:
-        for char in line:
-            if id:
-                if hasattr(char, 'id') and char.id == id:
-                    if filter and not filter(char): continue
-                    if multiple:
-                        res.append((char, x, y))
-                    else:
-                        return char, x, y
-            elif oftype:
-                if isinstance(oftype, str):
-                    if char.__class__.__name__ == oftype:
-                        if filter and not filter(char): continue
-                        if multiple:
-                            res.append((char, x, y))
-                        else:
-                            return char, x, y
-                elif isinstance(oftype, type):
-                    char_type = char
-                    if not isinstance(char_type, type):
-                        char_type = type(char)
-                    if issubclass(char_type, oftype):
-                        if filter and not filter(char): continue
-                        if multiple:
-                            res.append((char, x, y))
-                        else:
-                            return char, x, y
-            x+=1
-        y+=1
-        x=0
-    if multiple and len(res):
-        return res
-    return None
-
-def replace_feature_atxy(map, x, y, with_what):
-    ft = with_what
-    if callable(with_what):
-        ft = with_what()
-    if isinstance(ft, type):
-        ft = ft()
-
-    map[y][x] = ft
 
 #    def __getattribute__(self, name):
 #        if name == 'levels' or name == 'current_level':
