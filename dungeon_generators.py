@@ -244,12 +244,23 @@ def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):
                     else:
                         return char, x, y
             elif oftype:
-                if char.__class__.__name__ == oftype:
-                    if filter and not filter(char): continue
-                    if multiple:
-                        res.append((char, x, y))
-                    else:
-                        return char, x, y
+                if isinstance(oftype, str):
+                    if char.__class__.__name__ == oftype:
+                        if filter and not filter(char): continue
+                        if multiple:
+                            res.append((char, x, y))
+                        else:
+                            return char, x, y
+                elif isinstance(oftype, type):
+                    char_type = char
+                    if not isinstance(char_type, type):
+                        char_type = type(char)
+                    if issubclass(char_type, oftype):
+                        if filter and not filter(char): continue
+                        if multiple:
+                            res.append((char, x, y))
+                        else:
+                            return char, x, y
             x+=1
         y+=1
         x=0

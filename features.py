@@ -34,7 +34,7 @@ class DungeonFeature(object):
     description = 'Generic feature'
     flags = NONE
     seen = False
-    items = []
+    items = None
     id = None
     def __init__(self, id=None):
         if not hasattr(self, 'flags'):
@@ -69,8 +69,9 @@ class DungeonFeature(object):
         @x, @y - coords of tile
         @map_def - link to the map itself
         """
-        for item in self.items:
-            item.player_move_into(player, x, y, map_def)
+        if self.items:
+            for item in self.items[:]:
+                item.player_move_into(player, x, y, map_def)
         return self.passable(), self.passable(), self.passable()
 
     def player_over(self, player):
@@ -93,9 +94,10 @@ class DungeonFeature(object):
             self.dim_color_back = delegate.dim_color_back
 
     def init(self):
-        for x in xrange(len(self.items)):
-            self.items[x] = self.items[x]()
-            self.items[x].place(self)
+        if self.items:
+            for x in xrange(len(self.items)):
+                self.items[x] = self.items[x]()
+                self.items[x].place(self)
 
 
 def build_type(name, base=DungeonFeature, **args):
@@ -124,7 +126,6 @@ class Door (DungeonFeature):
 class HiddenDoor (Door):
     def __init__(self, skill=5,feature=None, opened=False):
         super(HiddenDoor, self).__init__(opened)
-        print 'HD %s' % self.items
         if feature is None:
             self.char = '#'
         else:
@@ -151,6 +152,10 @@ class HiddenDoor (Door):
         if self.hidden:
             return False, False, False
         return super(HiddenDoor, self).player_move_into(player, x, y, mapdef)
+
+    def __getattribute__(self, name):
+        return super(HiddenDoor, self).__getattribute__(name)
+
 
 class Furniture(DungeonFeature):
     type = ftype.furniture

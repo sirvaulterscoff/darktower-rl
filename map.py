@@ -83,6 +83,8 @@ class Map(object):
     def __materialize(self):
         _map = self.current.map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
+        hd, hdx, hdy = find_feature(_map, oftype=features.HiddenDoor)
+
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
                 try:
@@ -90,7 +92,7 @@ class Map(object):
                     if isinstance(_map[y][x], Iterable): #we get this case when we have multiple items on one tile
                         #we need to find a tile first
                         tile =  filter(lambda x: issubclass(x, DungeonFeature) , _map[y][x])
-                        if len(tile) == 0:
+                        if not len(tile):
                             raise RuntimeError('No tile at %d:%d (got only %s)' % (x, y, _map[y][x]))
                         elif len(tile) > 1:
                             raise RuntimeError('Got several tiles at %d:%d (%s)' % (x, y, _map[y][x]))
@@ -98,8 +100,10 @@ class Map(object):
                         tile = _materialize_piece(tile[0])
                         if not isinstance(tile, DungeonFeature):
                             raise RuntimeError('Failed to initialze tile %s' %tile)
-                        print 'adding items %s to tile %s' %(_map[y][x], tile)
-                        map(lambda i: tile.items.append(i), filter(lambda t: issubclass(t, Item), _map[y][x]))
+                        items = filter(lambda t: issubclass(t, Item), _map[y][x])
+                        tile.items = []
+                        for item in items:
+                            tile.items.append(item)
                         _map[y][x] = tile
 
                     if not isinstance(_map[y][x], DungeonFeature):
