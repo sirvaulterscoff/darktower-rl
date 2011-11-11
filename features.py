@@ -221,9 +221,11 @@ class PreasurePlate(DungeonFeature, HiddenFeature):
         self.char = '^'
 
 class Trap(DungeonFeature, HiddenFeature):
+    name ='trap'
     disarmed = False
     def __init__(self):
         super(Trap, self).__init__()
+        self.level = self.skill
 
     def found(self, player):
         self.has_hidden = False
@@ -233,9 +235,13 @@ class Trap(DungeonFeature, HiddenFeature):
     def player_move_into(self, player, x, y, map_def):
         if self.has_hidden:
             player.search_skill.observe(self)
-        if not self.has_hidden and not self.disarmed:
+        if self.has_hidden and not self.disarmed:
             #todo check if this trap is actualy nasty
-            #todo implement me
+            gl.message('%s step on a trap' % player.pronoun.capitalize())
+            self.found(player)
+            player.take_damage(self, [(util.roll(self.level, 6)) / (self.level / randrange(1, 2))], None)
+        elif not self.disarmed:
+            #todo warn player if he wants to step on the trap if he's low on hp
             pass
         return super(Trap, self).player_move_into(player, x, y, map_def)
 

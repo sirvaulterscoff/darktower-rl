@@ -26,6 +26,7 @@ class SearchSkill(PassiveSkill):
                 
 
 class Player(Critter):
+    pronoun = 'you'
     x, y = 0, 0
     char = '@'
     color = (255, 255, 255)
@@ -90,4 +91,11 @@ class Player(Critter):
     def fov_xy2(self):
         """Returns the lower-right corner of player fov"""
         return self.x + self.fov_range, self.y + self.fov_range
+
+    def take_damage(self, mob, dmgs, attack):
+        super(Player, self).take_damage(mob, dmgs, attack)
+        if self.hp <= self.base_hp * gl.__hp_warning__:
+            gl.message('Low HP!!!', 'WARN')
+
+
 

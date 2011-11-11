@@ -143,23 +143,24 @@ class Critter(object):
                 self.move_towards(player.x, player.y)
 
     def take_damage(self, mob, dmgs, attack):
+        """
+        take_damage(source, [int], attack) => None
+        This method inflicts damage to a creature of amount specified as dmgs list whic was dealt by mob
+        """
         for dmg in dmgs:
             for i in range(0, self.base_ac + 1):
                 if util.coinflip(): dmg -= 1
-                if dmg <= 0: break
+                if dmg <= 0: continue
             if dmg > 0 and self.hp > 0:
                 gl.message(mob.name.capitalize() + ' hits ' + self.name + ' for ' + str(dmg) + ' damage.', 5)
                 self.hp -= dmg
-                if isinstance(self, Player):
-                    if self.hp <= self.base_hp * gl.__hp_warning__:
-                        gl.message('Low HP!!!', 'WARN')
             elif self.hp > 0:
-                gl.message (mob.name.capitalize() + ' fails to harm ' + self.name, 1)
+                gl.message (mob.name.capitalize() + ' fails to harm ' + self.name)
         if self.hp <= 0:
             self.die(mob)
 
     def die(self, killer):
-        gl.message(self.name.capitalize() + ' dies', 1)
+        gl.message(self.name.capitalize() + ' dies')
         if isinstance(killer, Critter):
             killer.earn_exp(self)
         self.map.remove_critter(self)
