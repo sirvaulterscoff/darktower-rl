@@ -1,4 +1,4 @@
-from random import choice, randrange
+from random import choice, randrange, randint
 import gl
 from util import build_type as build_type_
 
@@ -126,7 +126,7 @@ class Door (DungeonFeature):
 class HiddenFeature(object):
     invisible = True
     has_hidden = True
-    skill = 5
+    skill = 2
 
     def found(self, player):
         gl.message('You have found %s' % self)
@@ -234,19 +234,29 @@ class Trap(DungeonFeature, HiddenFeature):
         self.char = '^'
         gl.message('You found a trap')
 
+    def dmg(self):
+        #todo cap?
+        return [(util.roll(self.level, 4)) - randint(self.level / randint(1, 2), self.level)]
+
+    def max_dmg(self):
+        return (self.level * 4) - (self.level / 2)
+
     def player_move_into(self, player, x, y, map_def):
         if self.has_hidden:
             player.search_skill.observe(self)
         if self.has_hidden and not self.disarmed:
-            #todo check if this trap is actualy nasty
             gl.message('%s step on a trap' % player.pronoun.capitalize())
             self.found(player)
-            player.take_damage(self, [(util.roll(self.level, 6)) / (self.level / randrange(1, 2))], None)
+            player.take_damage(self, self.dmg(), None)
         elif not self.disarmed:
-            if gl.render_warn_yn_dialog('Step on the trap (yY/nN)?'):
-                player.take_damage(self, [(util.roll(self.level, 6)) / (self.level / randrange(1, 2))], None)
-            else:
-                return False, False, False
+            max_dm = self.max_dmg()
+            if max_dm > (min(player.hp, player.base_hp * gl.__trap_low_hp_warning__)): #if this trap can be dangerous
+                if gl.render_warn_yn_dialog('Step on the trap (yY/nN)?'): # we ask player
+                    player.take_damage(self, self.dmg(), None)
+                else:
+                    return False, False, False
+            else: #if this is wimpy trap - just pass over
+                player.take_damage(self, self.dmg(), None)
 
         return super(Trap, self).player_move_into(player, x, y, map_def)
 

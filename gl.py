@@ -16,6 +16,7 @@ MSG_WIDTH = 50
 MSG_COUNT = 10
 
 __hp_warning__ = 0.5
+__trap_low_hp_warning__ = 0.3
 
 __show_chapter__ = False
 __chapter_text__ = 'Chapter 1. Departure'

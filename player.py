@@ -3,6 +3,7 @@ import gl
 import util
 search_skill_scale = [x for x in xrange(5, 1000, 17)]
 search_skill_scale.insert(0, 0)
+search_skill_base_chance = 10
 class PassiveSkill(object):
     pass
 
@@ -12,15 +13,15 @@ class SearchSkill(PassiveSkill):
         self.player = player
 
     def observe(self, tile):
-        if self.skill > tile.skill:
+        print 'searching. i %d tile %d' % (self.skill, tile.skill)
+        if self.skill >= tile.skill:
+            total_skill = min(search_skill_base_chance + (self.skill - tile.skill), 25) #cap at 25%
             #if player search level is higher than feature's then we have tile_skill/skill chance of feature veing revealed
-            if util.chance_in(search_skill_scale[tile.skill], search_skill_scale[self.skill]):
-                tile.found(self.player)
-        elif self.skill == tile.skill:
-            if util.one_chance_in(10):
+            if util.chance_in(total_skill, 100):
                 tile.found(self.player)
         else: #player skill is lover
-            if util.chance_in(search_skill_scale[self.skill], search_skill_scale[tile.skill]):
+            total_skill = int(max(1, search_skill_base_chance - ((tile.skill - self.skill) * 1.5)))
+            if util.chance_in(total_skill, 100):
                 tile.found(self.player)
             
                 
@@ -32,7 +33,7 @@ class Player(Critter):
     color = (255, 255, 255)
     skip_register = True
     fov_range = 10
-    base_hp = 10
+    base_hp = 15
     base_mp = 10
     mp = 10
     hitpoints = base_hp
@@ -93,6 +94,7 @@ class Player(Critter):
         return self.x + self.fov_range, self.y + self.fov_range
 
     def take_damage(self, mob, dmgs, attack):
+        #take evasion into account
         super(Player, self).take_damage(mob, dmgs, attack)
         if self.hitpoints <= self.base_hp * gl.__hp_warning__:
             gl.message('Low HP!!!', 'WARN')
