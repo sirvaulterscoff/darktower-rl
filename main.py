@@ -110,9 +110,11 @@ def handle_descend():
 if __name__ == "__main__":
     global map
     gui = LibtcodGui()
+    gl.gui_listener = gui
     player = Player()
     player.camx2 = VIEWPORT_WIDTH -1
     player.camy2 = VIEWPORT_HEIGHT - 1
+    gl.player = player
 
     #dg = CaveGenerator(60, 60)
     #dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)

@@ -35,7 +35,7 @@ class Player(Critter):
     base_hp = 10
     base_mp = 10
     mp = 10
-    hp = base_hp
+    hitpoints = base_hp
     name = 'you'
     xl = 1
     xp = 0
@@ -94,8 +94,18 @@ class Player(Critter):
 
     def take_damage(self, mob, dmgs, attack):
         super(Player, self).take_damage(mob, dmgs, attack)
-        if self.hp <= self.base_hp * gl.__hp_warning__:
+        if self.hitpoints <= self.base_hp * gl.__hp_warning__:
             gl.message('Low HP!!!', 'WARN')
+
+
+    def gethp(self):
+        return self.hitpoints
+
+    def sethp(self, value):
+        self.hitpoints = value
+        gl.require_hud_update()
+
+    hp = property(gethp, sethp)
 
 
 

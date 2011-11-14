@@ -286,6 +286,28 @@ class LibtcodGui(AbstractGui):
             elif key.c != 0:
                 line += chr(key.c)
 
+    def render_yn_dialog(self, title, warn=False):
+        if warn:
+            libtcod.console_set_foreground_color(self.con, libtcod.red)
+        else:
+            libtcod.console_set_foreground_color(self.con, libtcod.white)
+        libtcod.console_set_keyboard_repeat(1000, 500)
+        libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
+        line = ''
+        #todo - adjust the size of window to match line's size
+        while True:
+            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, ' '.rjust(len(line) + 2, ' '))
+            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, line + '_')
+            libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
+            libtcod.console_flush()
+            key = libtcod.console_wait_for_keypress(True)
+            if chr(key.c) == 'y' or chr(key.c) == 'Y' or key.c == 13:
+                game_input.default_rate()
+                return True
+            if chr(key.c) == 'n' or chr(key.c) == 'N' or key.c == 27:
+                game_input.default_rate()
+                return False
+
     def clear_screen(self):
         libtcod.console_clear(self.con)
 

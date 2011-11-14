@@ -66,3 +66,12 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 #add ch to logger
 logger.addHandler(ch)
+gui_listener = None
+player = None
+
+def render_warn_yn_dialog(title):
+    return gui_listener.render_yn_dialog(title, warn=True)
+
+def require_hud_update():
+    if gui_listener:
+        gui_listener.render_ui(player)

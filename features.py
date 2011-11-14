@@ -192,6 +192,7 @@ class Grass(DungeonFeature):
 class PreasurePlate(DungeonFeature, HiddenFeature):
     affected='x'
     action='remove'
+    type = ftype.trap
     def __init__(self):
         super(PreasurePlate, self).__init__()
         self.reacted = False
@@ -223,6 +224,7 @@ class PreasurePlate(DungeonFeature, HiddenFeature):
 class Trap(DungeonFeature, HiddenFeature):
     name ='trap'
     disarmed = False
+    type = ftype.trap
     def __init__(self):
         super(Trap, self).__init__()
         self.level = self.skill
@@ -241,8 +243,11 @@ class Trap(DungeonFeature, HiddenFeature):
             self.found(player)
             player.take_damage(self, [(util.roll(self.level, 6)) / (self.level / randrange(1, 2))], None)
         elif not self.disarmed:
-            #todo warn player if he wants to step on the trap if he's low on hp
-            pass
+            if gl.render_warn_yn_dialog('Step on the trap (yY/nN)?'):
+                player.take_damage(self, [(util.roll(self.level, 6)) / (self.level / randrange(1, 2))], None)
+            else:
+                return False, False, False
+
         return super(Trap, self).player_move_into(player, x, y, map_def)
 
 class Stairs(DungeonFeature):
