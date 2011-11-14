@@ -75,15 +75,17 @@ class Map(object):
         """
         if self.current.inited:
             return
-        self.__materialize()
+        mobs = self.__materialize()
         self.current.inited = True
-        #todo - now materialize mobs defined for that level
+        for mob in mobs:
+            self.place_critter(mob, mob.x, mob.y)
+        del mobs
 
 
     def __materialize(self):
+        mobs = []
         _map = self.current.map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
-        hd, hdx, hdy = find_feature(_map, oftype=features.HiddenDoor)
 
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
@@ -109,10 +111,17 @@ class Map(object):
                     if not isinstance(_map[y][x], DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (x, y, _map[y][x]))
                     _map[y][x].init()
+                    mob = _map[y][x].mob
+                    if mob:
+                        mob = mob()
+                        mob.x, mob.y = x, y
+                        mobs.append(mob)
+                        del _map[y][x].mob
                 except IndexError:
                     print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)
                     break
         self.current.map = _map
+        return mobs
 
     def tile_at(self, x, y):
         return self.current.map[y][x]
@@ -144,11 +153,11 @@ class Map(object):
         except Exception, e:
             print e
 
-    def place_critter(self, crit_level, crit_hd, x, y):
-        crit = util.random_by_level(crit_level, critters.Critter.ALL)
-        if crit is None: return
-        crit = crit()
-        crit.adjust_hd(crit_hd)
+    def place_critter(self, crit, x, y):
+#        crit = util.random_by_level(crit_level, critters.Critter.ALL)
+#        if crit is None: return
+#        crit = crit()
+#        crit.adjust_hd(crit_hd)
         self.map_critters.append(crit)
         self.critter_xy_cache[(x, y)] = crit
         crit.place(x, y, self)

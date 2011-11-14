@@ -16,6 +16,7 @@ DEMON = 1
 SMALL_SIZE = 1
 LARGE_SIZE = 1
 
+#todo remove this shit
 class AutoAdd(type):
 
     def __new__(mcs, name, bases, dict):
@@ -124,22 +125,21 @@ class Critter(object):
         dy = int(round(dy / distance))
         self.move(dx, dy)
 
-    def see_player(self):
-        player = self.map.player
+    def see_player(self, player):
         see_range = self.fov_range
         #if it's intelligent one - let it follow source of light
         if check_flag(self, INTELLIGENT):
             see_range += player.fov_range / 2
-        if libtcod.map_is_in_fov(self.map.fov_map, self.x, self.y):
-            d = util.distance(self.x, self.y, player.x, player.y)
-            if d <= see_range:
-                return d
+#        if libtcod.map_is_in_fov(self.map.fov_map, self.x, self.y):
+#            d = util.distance(self.x, self.y, player.x, player.y)
+#            if d <= see_range:
+#                return d
         return None
 
-    def take_turn(self):
+    def take_turn(self, player):
+        self.player = player
         if self.ai is None:
-            if self.see_player():
-                player = self.map.player
+            if self.see_player(player):
                 self.move_towards(player.x, player.y)
 
     def take_damage(self, mob, dmgs, attack):

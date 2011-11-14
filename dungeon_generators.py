@@ -5,7 +5,6 @@ from features import features
 import thirdparty.libtcod.libtcodpy as libtcod
 import util
 import des
-from copy import deepcopy
 from items import Item, items
 from types import FunctionType
 from critters import mobs
@@ -27,7 +26,7 @@ default_map_chars = {'#': ft.rock_wall,
 	'8' : ft.bed,
     }
 
-def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
+def parse_string(mapBytes, map_chars, mapDef=None):
     new_map = []
     x, y = 0, 0
     if isinstance(mapBytes, list):
@@ -47,23 +46,17 @@ def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
                         ft = mapDef.floor(id='entry_pos')
                     else:
                         ft = mapDef.floor()
-                    if mobs and mobs.has_key(char):
-                        newMob = mobs[char]
-                        newMob.x, newMob.y = x, y
-                        if not mapDef.mobs:
-                            mapDef.mobs = []
-                        mapDef.mobs.append(newMob)
-                    elif items and mapDef.items.has_key(char):
+                    if mapDef.mons.has_key(char):
+                        newMob = mapDef.mons[char]
+                        ft.mob = newMob
+                    elif mapDef.items.has_key(char):
                         if not ft.items:
                             ft.items = []
                         newItem = mapDef.items[char]
                         if isinstance(newItem, Iterable):
                             ft.items.extend(newItem)
-                            for it in newItem:
-                                it.x, y = x, y
                         else:
                             ft.items.append(newItem)
-                            newItem.x, newItem.y = x, y
             if getattr(ft, 'invisible', False) and mapDef:
                 ft_delegate = mapDef.floor()
                 if callable(ft):
@@ -81,7 +74,7 @@ def parse_string(mapBytes, map_chars, mapDef=None, items=None, mobs=None):
 class FeatureRequest(object):
     """ Holds info for dungeon generator about specific feature that should be placed
     on the map during mapgen """
-    def __init__(self, mapdef, params={}):
+    def __init__(self, mapdef, params):
         self.mapdef = mapdef
         self.params = params
         self.mapdef.tune(params)
@@ -89,7 +82,7 @@ class FeatureRequest(object):
 
 class MapRequest(object):
     """Holds info for dungeon generator about specific map to load from des """
-    def __init__(self, type, params={}):
+    def __init__(self, type, params):
         self.type = type
         #available sizes are large, mini?, None
         self.size = None
@@ -114,7 +107,7 @@ class MapDef(object):
         """ Used in multi-layered maps. Holds references to another """
         self.levels = {}
         self.floor = ft.floor
-        self.mobs = {}
+        self.mons = {}
         self.items = {}
         self.map = None
         self.entry_pos = None
@@ -162,7 +155,7 @@ class MapDef(object):
         self.map_chars.update(calc)
         self.mons_chars = {}
         if hasattr(self, 'mons'):
-            for k,v in self.mobs.iteritems():
+            for k,v in self.mons.iteritems():
                 self.mons_chars[k] = self._parse_value(v)
         print 'substs:'
         for k,v in self.map_chars.items():
@@ -187,7 +180,7 @@ class MapDef(object):
             self.level = 0 #disable autoleveling for des parsing
             self.max_levels = len(self.levels)
         self._prepare_subst()
-        self.map = parse_string(self.map, self.map_chars, self, items, mobs)
+        self.map = parse_string(self.map, self.map_chars, self)
         for lvl in self.levels.values():
             lvl.prepare()
         self.height = len(self.map)

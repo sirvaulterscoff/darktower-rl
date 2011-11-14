@@ -29,7 +29,7 @@ def main_loop():
                 if gl.__game_state__ == "died":
                     game_input.readkey()
                     break
-                critter.take_turn()
+                critter.take_turn(player)
         gui.render_messages()
 
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     #map = Map(dg.finish())
     #map.place_monsters()
-    map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt')])
+    map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt', None)])
 
     map = Map(map)
     map.prepare_level()

@@ -36,6 +36,7 @@ class DungeonFeature(object):
     seen = False
     items = None
     id = None
+    mob = None
     def __init__(self, id=None):
         if not hasattr(self, 'flags'):
             self.flags = NONE
@@ -126,7 +127,7 @@ class Door (DungeonFeature):
 class HiddenFeature(object):
     invisible = True
     has_hidden = True
-    skill = 2
+    skill = 1
 
     def found(self, player):
         gl.message('You have found %s' % self)
@@ -295,7 +296,7 @@ bed = build_type('Bed', Furniture, char='8',color=(120, 120, 0), dim_color=(40, 
 stairs_up = build_type('StairsUp', base=Stairs, down=False)
 stairs_down = build_type('StairsDown', base=Stairs, down=True)
 treasure_chest = build_type('TreasureChest_', TreasureChest)
-hidden_door = build_type('HiddenDoor', base=HiddenDoor, skill=50, feature=rock_wall)
+hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall)
 
 altar = build_type('Altar_', base=Altar)
 ph = build_type('PH', DungeonFeature, char=' ', invisible=True)

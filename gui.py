@@ -196,7 +196,9 @@ class LibtcodGui(AbstractGui):
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):
         TEXT_PAD = 8
-        tick_price = int(maximum / total_width)
+        #this is totaly incorrect! should be total_width/maximum instead
+        tick_price = 0.0
+        tick_price = float(total_width) / float(maximum)
 
         #render the background first
         libtcod.console_set_background_color(self.panel, dim_color)
@@ -208,7 +210,7 @@ class LibtcodGui(AbstractGui):
         libtcod.console_print_left(self.panel, x, y, libtcod.BKGND_NONE, formated_str)
         libtcod.console_set_foreground_color(self.panel, self.create_color(bar_color[0]))
         libtcod.console_print_left(self.panel, x2, y, libtcod.BKGND_NONE, '[' + ''.ljust(total_width, '_') + ']')
-        active_ticks = value * tick_price
+        active_ticks = min(int(value * tick_price), total_width)
         severity = 0
         #now choose apropriate color depending on how much value left (compared to maximum)
         for color_lvl in color_lvls:

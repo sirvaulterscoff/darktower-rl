@@ -13,7 +13,6 @@ class SearchSkill(PassiveSkill):
         self.player = player
 
     def observe(self, tile):
-        print 'searching. i %d tile %d' % (self.skill, tile.skill)
         if self.skill >= tile.skill:
             total_skill = min(search_skill_base_chance + (self.skill - tile.skill), 25) #cap at 25%
             #if player search level is higher than feature's then we have tile_skill/skill chance of feature veing revealed
@@ -33,7 +32,7 @@ class Player(Critter):
     color = (255, 255, 255)
     skip_register = True
     fov_range = 10
-    base_hp = 15
+    base_hp = 25
     base_mp = 10
     mp = 10
     hitpoints = base_hp
