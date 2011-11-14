@@ -6,7 +6,7 @@ SUBST=$=>$hidden_door
 ITEMS=g=>$Gold(min: 10, max: 70) && Gold(min:10, max: 10)
 SUBST=G=>$trap && Gold(min: 70, max: 100) 
 SUBST=^=>$trap
-MONS=1=>$skeleton
+MONS=1=>$skeleton(strict_hd: True)
 MONS=2=>$skeleton(hd: -1)
 id=crypt_1
 HD=10

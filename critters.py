@@ -43,14 +43,19 @@ class Critter(object):
     mp = base_mp
     flags = {WALKING}
     xp = 1
+    hd = 0#relative HD (to that of player)
 
     def __init__(self):
         self.map = None
         pass
 
     def adjust_hd(self, new_hd):
+        """ adjust_hd(new_hd) => None
+        Called to update current critter's HD. It is set to a new value + relative HD.
+        Thus base_hd is completly ignored in that case.
+        """
         #TODO implement HD rebasing
-        self.base_hd = new_hd
+        self.base_hd = new_hd + self.hd
         pass
 
     def place(self, x, y, map):

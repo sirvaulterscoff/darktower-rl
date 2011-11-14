@@ -144,12 +144,13 @@ class Map(object):
             1. It sets target monster's HD (=player.xl)
             2. Sets the levels of traps for this level
 
-            HD-adjustment's are not made if strict_hd is specified
+            HD-adjustment's are not made if strict_hd is specified for a critter
         """
-        #todo add some variation to HD? or use the same idea as for hiddens (ie relative HD)
         #first adjust creatures' HDs
         for crit in self.map_critters:
             if not getattr(crit, 'strict_hd', False):
+                #we assume all critters has critter.hd set and we just call adjust_hd which will reset
+                #critter's hd to hd + player.xl
                 crit.adjust_hd(self.player.xl)
         #now configure hiddens
         hiddens = find_feature(self.current.map, oftype=features.HiddenFeature, multiple=True)
