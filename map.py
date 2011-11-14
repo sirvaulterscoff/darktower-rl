@@ -136,6 +136,29 @@ class Map(object):
         self.player = player
         player.map = self
 
+    def configure(self):
+        """
+            configure() => None
+            Invoked after place_player(player) takes place. This method should configure
+            all features/critters dependant on player.
+            1. It sets target monster's HD (=player.xl)
+            2. Sets the levels of traps for this level
+
+            HD-adjustment's are not made if strict_hd is specified
+        """
+        #todo add some variation to HD? or use the same idea as for hiddens (ie relative HD)
+        #first adjust creatures' HDs
+        for crit in self.map_critters:
+            if not getattr(crit, 'strict_hd', False):
+                crit.adjust_hd(self.player.xl)
+        #now configure hiddens
+        hiddens = find_feature(self.current.map, oftype=features.HiddenFeature, multiple=True)
+        #actualy all hiddens should have relative HD. So we add player's HD to that of hidden
+        for hidden_feature, x, y in hiddens:
+            if not(getattr(hidden_feature, 'strict_hd', False)):
+                hidden_feature.skill += self.player.xl
+
+
     def init_fov(self):
         self.fov_map = libtcod.map_new(self.current.width, self.current.height)
         for y in range(self.current.height):

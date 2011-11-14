@@ -136,6 +136,7 @@ if __name__ == "__main__":
     map = Map(map)
     map.prepare_level()
     map.place_player(player)
+    map.configure()
     map.init_fov()
     main_loop()
 

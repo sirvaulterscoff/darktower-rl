@@ -228,7 +228,6 @@ class Trap(DungeonFeature, HiddenFeature):
     type = ftype.trap
     def __init__(self):
         super(Trap, self).__init__()
-        self.level = self.skill
 
     def found(self, player):
         self.has_hidden = False
@@ -237,10 +236,10 @@ class Trap(DungeonFeature, HiddenFeature):
 
     def dmg(self):
         #todo cap?
-        return [(util.roll(self.level, 4)) - randint(self.level / randint(1, 2), self.level)]
+        return [(util.roll(self.skill, 4)) - randint(self.skill / randint(1, 2), self.skill)]
 
     def max_dmg(self):
-        return (self.level * 4) - (self.level / 2)
+        return (self.skill * 4) - (self.skill / 2)
 
     def player_move_into(self, player, x, y, map_def):
         if self.has_hidden:

@@ -16,34 +16,9 @@ DEMON = 1
 SMALL_SIZE = 1
 LARGE_SIZE = 1
 
-#todo remove this shit
-class AutoAdd(type):
-
-    def __new__(mcs, name, bases, dict):
-        cls = type.__new__(mcs, name, bases, dict)
-        if dict.has_key('__meta_dict__'):
-            skip_dict = dict.get('__meta_dict__')
-        else:
-            skip_dict = find_base(cls)
-        if not skip_dict:
-            skip_dict = { 'skip_register' : cls.ALL }
-        for key, value in skip_dict.items():
-            if not dict.get(key):
-                value.append(cls)
-        return cls
-
-def find_base(cls):
-    for bcls in cls.__bases__:
-        if bcls.__dict__.has_key('__meta_dict__'):
-            return bcls.__meta_dict__
-        else:
-            return find_base(bcls)
-    return None
-
 class Critter(object):
     name = 'crit'
     unique_name = None
-    ALL = []
     char = '@'
     color = (255, 255, 255)
     x = 0
@@ -62,10 +37,6 @@ class Critter(object):
     dlvl = 1
     inven = []
     common = 10
-    __metaclass__ = AutoAdd
-    __meta_field__ = ALL
-    __meta_skip__ = "skip_register"
-    skip_register = True
     fov_range = 5
     ai = None
     hp = base_hp
@@ -265,6 +236,14 @@ class Skeleton(Critter):
             #self.char = 'Z'
 
 
+mobs = {}
+skeleton = Skeleton
+
+loc = locals()
+for var, deff in loc.items():
+    if isinstance(deff,type) and issubclass(deff, Critter):
+        mobs[var] = deff
+
 def filter_critters_by_flags(critter, flags=0, not_flags=0):
     result = False
     if flags == 0 and not_flags == 0: return True
@@ -290,10 +269,10 @@ def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags
         ff = lambda x: x.base_hd == hd and filter_critters_by_flags(x, flags)
     else:
         ff = lambda x: x.base_hd >=hd and x.base_hd <= max_hd and filter_critters_by_flags(x, flags, not_flags)
-    hd_match = filter(ff, Critter.ALL)
+    hd_match = filter(ff, mobs)
     if len (hd_match) < 1:#if no such NPC, take any and adjust HD
         ff2 = lambda x: filter_critters_by_flags(x , flags, not_flags)
-        anymob = util.random_from_list_weighted(filter(ff2, Critter.ALL), inverse)()
+        anymob = util.random_from_list_weighted(filter(ff2, mobs), inverse)()
         new_hd = hd
         if not exact:
             new_hd = max_hd
@@ -301,15 +280,6 @@ def random_for_player_hd(hd = 1, inverse = False, exact=True, max_hd=1000, flags
         return anymob
 
     return util.random_from_list_weighted(hd_match, inverse)()
-
-mobs = {}
-skeleton = Skeleton
-
-loc = locals()
-for var, deff in loc.items():
-    if isinstance(deff,type) and issubclass(deff, Critter):
-        mobs[var] = deff
-
 
 
 
