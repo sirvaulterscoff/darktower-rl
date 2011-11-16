@@ -178,46 +178,66 @@ class Map(object):
             print e
 
     def place_critter(self, crit, x, y):
-#        crit = util.random_by_level(crit_level, critters.Critter.ALL)
-#        if crit is None: return
-#        crit = crit()
-#        crit.adjust_hd(crit_hd)
         self.map_critters.append(crit)
         self.critter_xy_cache[(x, y)] = crit
         crit.place(x, y, self)
+
+    def place_random_critter(self, dlvl, hd, x, y):
+        crit = util.random_by_level(dlvl, critters.mobs.values())
+        if crit is None: return
+        crit = crit()
+        crit.hd = dlvl - hd
+#        crit.adjust_hd(hd)
+        self.place_critter(crit, x, y)
 
     # basic algo: take player level (xl), and pick random number between xl - 3 and xl + 3.
     # let it be monster HD. Now take random monsters appropirate for this and prev levels (Critter.dlvl <= __dlvl__)
     # set this monster HD to a value defined earlier
     # for OOD monsters - same HD as previous case, and Critter.dlvl <= random(__dlvl__ + 2, __dlvl +3)
-    def place_monsters(self):
+    def place_random_monsters(self):
+        #todo - maybe we should move this to mapgenerator (check for theme, etc)
         #choose random number of monsters
         #3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
         num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
+        num_monsters -= len(self.map_critters)
         free_squares = -2
         for line in self.map:
             for tile in line:
                 if tile.passable(): free_squares += 1
 
         num_monsters = util.cap(num_monsters, free_squares)
-        #was capped ?!
+        #if it was capped - then map is too small...
         if num_monsters == free_squares:
-            num_monsters = randrange(free_squares /2 , free_squares)
+            num_monsters = randrange(1 , free_squares / 2)
 
+        passes = num_monsters * 5
         for i in range(num_monsters):
+            if passes <= 0: break
+            passes -= 1
             #choose random spot for this monster
             x, y = self.find_random_square(self.has_critter_at)
-            #determining critter level. it may vary from XL - 3 to XL + 3. To let is scale better multiply by 100
+            room = self._find_room(x, y)
+            if room:
+                if room.src.no_mon_gen:
+                    continue
+
+            #determining critter level. it may vary from XL - 3 to XL + 1. To let is scale better multiply by 100
             #cap it to be no lower than 1
-            crit_hd = util.cap_lower(randrange(gl.__xl__ - 3, gl.__xl__ + 3), 1, 1)
-            self.place_critter(gl.__dlvl__, crit_hd, x, y)
+            crit_hd = max(randrange(gl.__xl__ - 3, gl.__xl__ + 1), 1)
+            self.place_random_critter(gl.__dlvl__, crit_hd, x, y)
 
         #check for OOD monster. let's create OOD 10% of the time for now
         if libtcod.random_get_int(0, 0, 100) >= 89:
             crit_level = libtcod.random_get_int(0, gl.__dlvl__ + 2, gl.__dlvl__ + 3)
-            crit_hd = util.cap_lower(randrange(gl.__xl__ - 3, gl.__xl__ + 3), 1, 1)
+            crit_hd = max(randrange(gl.__xl__ - 3, gl.__xl__ + 3), 1)
             x, y = self.find_random_square(self.has_critter_at)
-            self.place_critter(crit_level, crit_hd, x, y)
+
+            room = self._find_room(x, y)
+            if room:
+                if room.src.no_mon_gen:
+                    return
+            
+            self.place_random_critter(crit_level, crit_hd, x, y)
 
     def has_critter_at(self, coords):
         return coords in self.critter_xy_cache
@@ -259,27 +279,32 @@ class Map(object):
             x += 1
         return 1, 1
 
-    def search(self):
-        x0, y0 = self.player.fov_xy0
-        x2, y2 = self.player.fov_xy2
-        x2, y2 = min(x2, self.current.width - 1), min(y2, self.current.height - 1)
-        for x in xrange(x0, x2):
-            for y in xrange(y0, y2):
-                self.player.see(self.current.map[y][x], x, y, self.current)
+
+    def iterate_fov(self, x, y, range, action):
+        xy = util.iterate_fov(x, y, range, self.current.width, self.current.height)
+        for x,y in xy:
+            if libtcod.map_is_in_fov(self.fov_map, x, y):
+                action(self.current.map[y][x], x, y, self.current)
 
     def player_moved(self):
-        self.search()
+#        self.search()
+        pass
+
+    def _find_room(self,x, y):
+        inroom = None
+        for room in self.map_src.rooms.values():
+            if xy_in_room(room, x, y):
+                inroom = room
+                break
+        return inroom
 
     def descend(self):
+        #todo generalize this method removing references to player (any mob can go down)
         tile = self.tile_at(self.player.x, self.player.y)
         if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False): #ft_types.stairs
             #this is stairs square
             #now we need to find a room (if any)
-            inroom = None
-            for room in self.map_src.rooms.values():
-                if xy_in_room(room, self.player.x, self.player.y):
-                    inroom = room
-                    break
+            inroom = self._find_room(self.player.x, self.player.y)
             if inroom and isinstance(inroom, MultilevelRoom):
                 #this is actualy a static room so we go down it's level
                 self._handle_static_descend(inroom)

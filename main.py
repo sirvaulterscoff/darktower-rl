@@ -8,6 +8,7 @@ from features import *
 from map import Map
 from dg import DungeonGenerator
 from player import Player
+from scheduler import Scheduler
 
 try:
     import psyco ; psyco.full()
@@ -24,14 +25,20 @@ def main_loop():
         #gui.clear_all(map.map_critters)
         gui.render_ui(player)
         key = game_input.readkey()
-        if handle_key(key):
+        cost = handle_key(key)
+        if cost:
             for critter in map.map_critters:
                 if gl.__game_state__ == "died":
                     game_input.readkey()
                     break
                 critter.take_turn(player)
+            gl.scheduler.waterline = cost
+            events = gl.scheduler.get_scheduled()
+            for event in events:
+                event()
+                #todo render moving creatures here
+            gl.scheduler.next_turn()
         gui.render_messages()
-
 
 def handle_key(key):
     command = parse_key(key)
@@ -46,13 +53,13 @@ def handle_key(key):
 def handle_move(dx, dy):
     global map
     if gl.__game_state__ == "playing":
-        take_turn, fov_recompute = player.move(dx, dy)
+        take_turn, fov_recompute, cost = player.move(dx, dy)
         map.player_moved()
         if fov_recompute:
             gl.__fov_recompute__ = True
         if take_turn:
             gl.__turn_count__ += 1
-        return take_turn
+        return cost
 
 
 def handle_quit():
@@ -76,7 +83,7 @@ def handle_toggle_map():
         return
     map = Map(_map)
     map.place_player(player)
-    map.place_monsters()
+    map.place_random_monsters()
     map.init_fov()
     gui.viewport = None
     gui.render_map(map,player)
@@ -88,23 +95,24 @@ def handle_kill_all_humans():
     map.map_critters = []
     map.critter_xy_cache = {}
 
-def handle_wait():
-    if gl.__game_state__ == "playing":
-        gl.__turn_count__ += 1
-    return True
 
 def handle_search():
     if gl.__game_state__ == "playing":
+        global map
         gl.message('You check your surroundings')
-        map.search()
+        cost = player.search(map)
+        return cost
 
 def handle_descend():
     if not map:
         return False
-    if map.descend():
+    global map
+    cost = player.descend(map)
+    if cost:
         gl.__fov_recompute__ = True
         gui.reset()
-        return True
+        gl.scheduler.schedule_player_action(player.action_cost.stairsdown / 2, lambda: player.search(map))
+    return cost
 
 
 if __name__ == "__main__":
@@ -115,6 +123,7 @@ if __name__ == "__main__":
     player.camx2 = VIEWPORT_WIDTH -1
     player.camy2 = VIEWPORT_HEIGHT - 1
     gl.player = player
+    gl.scheduler = Scheduler()
 
     #dg = CaveGenerator(60, 60)
     #dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
@@ -137,6 +146,7 @@ if __name__ == "__main__":
     map.prepare_level()
     map.place_player(player)
     map.configure()
+    map.place_random_monsters()
     map.init_fov()
     main_loop()
 

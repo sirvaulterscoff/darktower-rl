@@ -45,7 +45,7 @@ SUBST=!=>$preasure_plate(affected:Y, action:remove)
 SUBST=x=>$fixed_wall(id:x)
 SUBST=Y=>$fixed_wall(id:Y)
 SUBST=S=>$statue
-
+no_mon_gen=True
 MAP="""
 ########################################
 #c$......Y....................Y......$c#

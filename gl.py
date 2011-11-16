@@ -67,8 +67,10 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 #add ch to logger
 logger.addHandler(ch)
+
 gui_listener = None
 player = None
+scheduler = None
 
 def render_warn_yn_dialog(title):
     return gui_listener.render_yn_dialog(title, warn=True)

@@ -1,4 +1,4 @@
-from critters import Critter
+from critters import Critter, ActionCost
 import gl
 import util
 search_skill_scale = [x for x in xrange(5, 1000, 17)]
@@ -24,6 +24,10 @@ class SearchSkill(PassiveSkill):
                 tile.found(self.player)
             
                 
+class PlayerActionCost(ActionCost):
+    search = ActionCost.move
+    def __init__(self, **args):
+        super(PlayerActionCost, self).__init__(**args)
 
 class Player(Critter):
     pronoun = 'you'
@@ -39,6 +43,9 @@ class Player(Critter):
     name = 'you'
     xl = 1
     xp = 0
+    energy = 10.0
+    current_energy = energy
+    action_cost = PlayerActionCost()
 
     def __init__(self):
         self.map = None
@@ -48,18 +55,32 @@ class Player(Critter):
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
         if not self.map.coords_okay(newx, newy):
-            return False, False
+            return False, False, None
         if self.map.has_critter_at((newx, newy)):
-            self.attack(self.map.get_critter_at(newx, newy))
-            return True, False
+            cost = self.attack(self.map.get_critter_at(newx, newy))
+            return True, False, cost
         next_tile = self.map.tile_at(newx, newy)
         move_to, take_turn, fov_recalc = next_tile.player_move_into(self, newx, newy, self.map)
         if move_to:
+            #todo move cost should be changed by the type of tile we're entering
             self.x, self.y = newx, newy
-            return take_turn, fov_recalc
+            self.search(self.map, 2)
+            return take_turn, fov_recalc, self.action_cost.move
         elif next_tile.is_wall():
             gl.message("You bump into wall")
-        return take_turn, fov_recalc
+        return take_turn, fov_recalc, None
+
+    def search(self, map, range=None):
+        if not range:
+            range = self.fov_range
+        map.iterate_fov(self.x, self.y, range, self.see)
+        return self.action_cost.search
+
+    def descend(self, map):
+        if map.descend():
+            return self.action_cost.stairsdown / 2
+        return None
+
 
     def die(self, killer):
         gl.message( 'You die...', 'CRITICAL')
@@ -82,15 +103,6 @@ class Player(Critter):
                 item.seen = True
         if getattr(tile, 'has_hidden', False):
             self.search_skill.observe(tile)
-
-    @property
-    def fov_xy0(self):
-        """Returns the upper-left corner of player fov"""
-        return max(self.x - self.fov_range, 0), max(self.y - self.fov_range, 0)
-    @property
-    def fov_xy2(self):
-        """Returns the lower-right corner of player fov"""
-        return self.x + self.fov_range, self.y + self.fov_range
 
     def take_damage(self, mob, dmgs, attack):
         #take evasion into account

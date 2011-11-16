@@ -147,6 +147,8 @@ class MapDef(object):
         self.position = None
         self.subst = {}
         self.map_chars = default_map_chars.copy()
+        """ Do not allow to randomly place monsters in this room"""
+        self.no_mon_gen = False
 
     def _prepare_subst(self):
         calc = {}

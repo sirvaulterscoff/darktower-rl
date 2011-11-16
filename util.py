@@ -265,3 +265,18 @@ def chance_in(chance, in_what):
 
 def one_chance_in(in_what):
     return chance_in(1, in_what)
+
+def iterate_fov(x, y, radius, maxx, maxy, func=None, **args):
+    """ iterate_fov(x, y, radius, maxx, maxy, func=None, **args) => None or generator
+    Iterates over all x/y in [x,y] - [x+radius, y+radius] range, capping lower value to 0, higher value to maxx, maxy.
+    @func - if function passed it will be called as func(x, y, args)
+     if @func is not specifed this method works as a generator yielding x,y pairs
+    """
+    x0, y0 = max(x - radius, 0), max(y - radius, 0)
+    x2, y2 = min(x + radius, maxx), min(y + radius, maxy)
+    for x in xrange(x0, x2):
+        for y in xrange(y0, y2):
+            if func:
+                func(x, y, args)
+            else:
+                yield x, y

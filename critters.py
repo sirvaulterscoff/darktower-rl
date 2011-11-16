@@ -16,6 +16,32 @@ DEMON = 1
 SMALL_SIZE = 1
 LARGE_SIZE = 1
 
+class ActionCost(object):
+    attack = 10.0
+    move = 10.0
+    flee = 9.0
+    pickup = 20.0
+    stairsdown = 15.0
+    wield = 5.0
+    inven_action = 10.0
+
+    def __init__(self, **args):
+        self.set_params(args)
+
+    def set_params(self, argv):
+        for k, v in argv.items():
+            setattr(self, k, v)
+
+    def modify(self, by):
+        self.attack *= by
+        self.move *= by
+        self.flee *= by
+        self.pickup *= by
+        self.stairsdown *= by
+        self.wield *= by
+        self.inven_action *= by
+
+
 class Critter(object):
     name = 'crit'
     unique_name = None
@@ -43,7 +69,8 @@ class Critter(object):
     mp = base_mp
     flags = {WALKING}
     xp = 1
-    hd = 0#relative HD (to that of player)
+    hd = 0 #relative HD (to that of player)
+    action_cost = ActionCost()
 
     def __init__(self):
         self.map = None
@@ -88,8 +115,10 @@ class Critter(object):
             if util.roll(1, 20, self.base_hd) >= 14:
                 dmgs.append(dmg)
             else:
+                #todo parametrize verb misses - as it's incorrect for player
                 gl.message(self.name.capitalize() + ' misses ' + whom.name, 1)
         whom.take_damage(self, dmgs, attack)
+        return self.action_cost.attack
 
 
     def move_towards(self, target_x, target_y):
@@ -116,7 +145,7 @@ class Critter(object):
         self.player = player
         if self.ai is None:
             if self.see_player(player):
-                self.move_towards(player.x, player.y)
+                gl.scheduler.schedule(self.action_cost.move, lambda : self.move_towards(player.x, player.y))
 
     def take_damage(self, mob, dmgs, attack):
         """
