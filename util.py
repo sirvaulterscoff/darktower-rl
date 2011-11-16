@@ -261,7 +261,7 @@ def chance_in(chance, in_what):
     """
     Returns true if chance chance/in_what happens
     """
-    return randrange(chance, in_what) <= chance
+    return randrange(0, in_what) <= chance
 
 def one_chance_in(in_what):
     return chance_in(1, in_what)

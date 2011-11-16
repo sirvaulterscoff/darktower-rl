@@ -40,8 +40,8 @@ def crypt1_set_param(name, value, des):
             statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
 """
-SUBST=%=>$preasure_plate(affected:x, action:remove)
-SUBST=!=>$preasure_plate(affected:Y, action:remove)
+SUBST=%=>$pressure_plate(affected:x, action:remove)
+SUBST=!=>$pressure_plate(affected:Y, action:remove)
 SUBST=x=>$fixed_wall(id:x)
 SUBST=Y=>$fixed_wall(id:Y)
 SUBST=S=>$statue

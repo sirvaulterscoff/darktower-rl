@@ -134,27 +134,20 @@ class HiddenFeature(object):
         self.has_hidden = False
 
 class HiddenDoor (Door, HiddenFeature):
-    def __init__(self, skill=5,feature=None, opened=False):
-        super(HiddenDoor, self).__init__(opened)
-        if feature is None:
-            self.char = '#'
-        else:
-            self.char = feature.char
-        if opened:
-            self.char = '-'
-        self.hidden = not opened
-        self.opened = opened
-        self.skill = skill
-        self.feature = feature
+    def __init__(self):
+        self.set_params({'color' : (255,255,255), 'dim_color':(128,128,128), 'type':ftype.door, 'flags': BLOCK_LOS | BLOCK_WALK | FIXED})
+        self.opened = False
 
     def found(self, player):
         super(HiddenDoor, self).found(player)
-        self.hidden = False
+        self.has_hidden = False
         self.char = '+'
 
     def player_move_into(self, player, x, y, mapdef):
+        if not self.has_hidden:
+            return Door.player_move_into(self, player, x, y, mapdef)
         player.search_skill.observe(self)
-        if self.hidden:
+        if self.has_hidden:
             gl.message("You bump into wall")
             return False, False, False
         return super(HiddenDoor, self).player_move_into(player, x, y, mapdef)
@@ -190,19 +183,21 @@ class Grass(DungeonFeature):
         self.char = choice(['`', ',', '.'])
         self.color = choice( [ (0, 80, 0),(20, 80, 0), (0,80,20), (20,80,20)])
 
-class PreasurePlate(DungeonFeature, HiddenFeature):
+class PressurePlate(HiddenFeature, DungeonFeature):
     affected='x'
     action='remove'
     type = ftype.trap
+    invisible = True
     def __init__(self):
-        super(PreasurePlate, self).__init__()
+        super(PressurePlate, self).__init__()
         self.reacted = False
 
     def player_move_into(self, player, x, y, map):
         #todo check player is flying (maybe)
         if self.reacted: return True, True, True #already pressed
         self.reacted = True #todo - take skills in account
-        gl.message('You step on the pressure plate')
+        gl.message('%s step on the pressure plate' % player.pronoun.capitalize())
+        self.found(player)
         fts = map.current.find_feature(self.affected, multiple=True)
         if fts:
             for ft, x, y in fts:
@@ -219,13 +214,18 @@ class PreasurePlate(DungeonFeature, HiddenFeature):
         return True, True, True
 
     def found(self, player):
-        super(PreasurePlate, self).found(player)
+        super(PressurePlate, self).found(player)
         self.char = '^'
+
+    def __repr__(self):
+        return 'pressure plate'
+
 
 class Trap(DungeonFeature, HiddenFeature):
     name ='trap'
     disarmed = False
     type = ftype.trap
+    invisible = True
     def __init__(self):
         super(Trap, self).__init__()
 
@@ -271,8 +271,6 @@ class Stairs(DungeonFeature):
 
 
 floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
-preasure_plate = build_type('PreasurePlate_', PreasurePlate, affected='x', type='remove', subst=floor)
-trap = build_type('Trap_', Trap, char='.', dim_color=(0, 0, 100))
 fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)
@@ -295,7 +293,10 @@ bed = build_type('Bed', Furniture, char='8',color=(120, 120, 0), dim_color=(40, 
 stairs_up = build_type('StairsUp', base=Stairs, down=False)
 stairs_down = build_type('StairsDown', base=Stairs, down=True)
 treasure_chest = build_type('TreasureChest_', TreasureChest)
-hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall)
+
+pressure_plate = build_type('PressurePlate_', PressurePlate, affected='x', type='remove', subst=floor)
+trap = build_type('Trap_', Trap, char='.', dim_color=(0, 0, 100))
+hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall, char=fixed_wall.char)
 
 altar = build_type('Altar_', base=Altar)
 ph = build_type('PH', DungeonFeature, char=' ', invisible=True)

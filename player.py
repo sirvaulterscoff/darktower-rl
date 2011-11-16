@@ -14,13 +14,13 @@ class SearchSkill(PassiveSkill):
 
     def observe(self, tile):
         if self.skill >= tile.skill:
-            total_skill = min(search_skill_base_chance + (self.skill - tile.skill), 25) #cap at 25%
+            total_chance = min(search_skill_base_chance + (self.skill - tile.skill), 25) #cap at 25%
             #if player search level is higher than feature's then we have tile_skill/skill chance of feature veing revealed
-            if util.chance_in(total_skill, 100):
+            if util.chance_in(total_chance, 100):
                 tile.found(self.player)
         else: #player skill is lover
-            total_skill = int(max(1, search_skill_base_chance - ((tile.skill - self.skill) * 1.5)))
-            if util.chance_in(total_skill, 100):
+            total_chance = int(max(1, search_skill_base_chance - ((tile.skill - self.skill) * 1.5)))
+            if util.chance_in(total_chance, 100):
                 tile.found(self.player)
             
                 
@@ -64,7 +64,7 @@ class Player(Critter):
         if move_to:
             #todo move cost should be changed by the type of tile we're entering
             self.x, self.y = newx, newy
-            self.search(self.map, 2)
+            self.search(self.map, 4)
             return take_turn, fov_recalc, self.action_cost.move
         elif next_tile.is_wall():
             gl.message("You bump into wall")
