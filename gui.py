@@ -93,8 +93,11 @@ class LibtcodGui(AbstractGui):
             for x in xrange(self.viewport.x, self.viewport.x2):
                 
                 tile = map.tile_at(x, y)
-                seen = tile.seen | gl.__wizard_mode__
-                visible = libtcod.map_is_in_fov(map.current.fov_map, x, y)
+                xy = (x, y)
+                seen = rlfl.has_flag(map.current.fov_map0, xy, rlfl.CELL_MEMO) | gl.__wizard_mode__
+#                visible = libtcod.map_is_in_fov(map.current.fov_map, x, y)
+                visible = rlfl.has_flag(map.current.fov_map0, xy, rlfl.CELL_SEEN)
+                del xy
                 if isinstance(tile.color, tuple):
                     tile.parse_color(self.create_color)
                 #if tile is seen or visible to player - print it
@@ -135,7 +138,8 @@ class LibtcodGui(AbstractGui):
             if critter.last_seen_at and not self.viewport.in_view(*critter.last_seen_at):
                 continue
             x, y = self.viewport.adjust_coords(critter.x, critter.y)
-            if libtcod.map_is_in_fov(map.current.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
+            if rlfl.has_flag(map.current.fov_map0, (critter.x, critter.y), rlfl.CELL_SEEN) or gl.__wizard_mode__:
+#            if libtcod.map_is_in_fov(map.current.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
                 libtcod.console_set_fore(self.con,x, y, cc(critter.color))
                 self.print_critter(x, y, critter.char)
                 critter.last_seen_at = critter.x, critter.y

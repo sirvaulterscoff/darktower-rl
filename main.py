@@ -9,6 +9,7 @@ from map import Map
 from dg import DungeonGenerator
 from player import Player
 from scheduler import Scheduler
+from rlfl import delete_all_maps
 
 try:
     import psyco ; psyco.full()
@@ -115,7 +116,13 @@ def handle_descend():
     return cost
 
 
+def exit():
+    print 'Exiting...'
+    delete_all_maps()
+
 if __name__ == "__main__":
+    from atexit import register
+    register(exit)
     global map
     gui = LibtcodGui()
     gl.gui_listener = gui
@@ -149,4 +156,5 @@ if __name__ == "__main__":
     map.place_random_monsters()
     map.init_fov()
     main_loop()
+
 

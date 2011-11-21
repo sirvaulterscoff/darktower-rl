@@ -165,28 +165,27 @@ class Map(object):
 
     def init_fov(self):
         self.current.fov_map0 = rlfl.create_map(self.current.width, self.current.height)
-        self.current.fov_map = libtcod.map_new(self.current.width, self.current.height)
+#        self.current.fov_map = libtcod.map_new(self.current.width, self.current.height)
         for y in xrange(self.current.height):
             for x in xrange(self.current.width):
                 self.update_fov_for(x, y)
 
 
     def update_fov_for(self, x, y):
-        libtcod.map_set_properties(self.current.fov_map, x, y, not self.tile_at(x, y).flags & features.BLOCK_LOS,
-                                           not self.tile_at(x, y).flags & features.BLOCK_WALK)
+#        libtcod.map_set_properties(self.current.fov_map, x, y, not self.tile_at(x, y).flags & features.BLOCK_LOS,
+#                                           not self.tile_at(x, y).flags & features.BLOCK_WALK)
 
-        flags = rlfl.CELL_OPEN
-        if self.tile_at(x, y).flags & features.BLOCK_LOS:
-            flags = rlfl.CELL_WALK
+#        if self.tile_at(x, y).flags & features.BLOCK_LOS:
+#            flags = rlfl.CELL_WALK
         if self.tile_at(x, y).flags & features.BLOCK_WALK:
             return
-        rlfl.set_flag(self.current.fov_map0, (x, y), flags)
+        rlfl.set_flag(self.current.fov_map0, (x, y), rlfl.CELL_OPEN)
 
     def recompute_fov(self):
         try:
-            rlfl.fov(self.current.fov_map0, (self.player.x, self.player.y), self.player.fov_range, rlfl.FOV_PERMISSIVE, True)
-            libtcod.map_compute_fov(self.current.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
-                                FOV_ALGORITHM)
+            rlfl.fov(self.current.fov_map0, (self.player.x, self.player.y), self.player.fov_range, rlfl.FOV_PERMISSIVE, True, True)
+#            libtcod.map_compute_fov(self.current.fov_map, self.player.x, self.player.y, self.player.fov_range, FOV_LIGHT_WALLS,
+#                                FOV_ALGORITHM)
         except Exception, e:
             print e
 
@@ -296,8 +295,8 @@ class Map(object):
     def iterate_fov(self, x, y, range, action):
         xy = util.iterate_fov(x, y, range, self.current.width, self.current.height)
         for x,y in xy:
-            if libtcod.map_is_in_fov(self.current.fov_map, x, y):
-            #if rlfl.has_flag(self.current.fov_map, (x, y), rlfl.CELL_SEEN):
+#            if libtcod.map_is_in_fov(self.current.fov_map, x, y):
+            if rlfl.has_flag(self.current.fov_map0, (x, y), rlfl.CELL_SEEN):
                 action(self.current.map[y][x], x, y, self.current)
 
     def player_moved(self):
