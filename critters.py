@@ -4,6 +4,8 @@ import util
 from thirdparty.libtcod import libtcodpy as libtcod
 from collections import Iterable
 from util import build_type
+from maputils import find_feature
+from collections import deque
 
 WALKING = 1
 FLYING = 1
@@ -42,6 +44,68 @@ class ActionCost(object):
         self.inven_action *= by
 
 
+class BasicAI(object):
+    pass
+class ActiveAI(BasicAI):
+
+    def __init__(self):
+        super(ActiveAI, self).__init__()
+        self.patroling = True
+
+    def _nexttoplayer(self, crit, player, map):
+        xyz = util.iterate_fov(crit.x, crit.y, 1, map.current.width, map.current.height)
+        for xy in xyz:
+            if xy == (player.x, player.y):
+                return True
+        return False
+
+    def decide(self, crit, player, _map):
+        if not crit.is_awake:
+            return
+        if self._nexttoplayer(crit, player, _map):
+            if crit.can_melee(player):
+                gl.scheduler.schedule(crit.action_cost.attack, lambda: crit.attack(player))
+#                crit.attack(player)
+            else:
+                crit.find_shooting_point(player, _map)
+            return
+        #check if player in los
+        if util.has_los(crit.x, crit.y, player.x, player.y, _map.current.fov_map0):
+            #this will actualy check if this creature is in player's los, not vice-versa
+            #todo add pathfinding here
+            if crit.can_range(player):
+                crit.attack_range(player)
+            else:
+                gl.scheduler.schedule(crit.action_cost.move, lambda : crit.move_towards(player.x, player.y))
+        elif self.patroling:
+            if not crit.path:
+                points = []
+                #finding something of interest
+                altars = _map.current.find_feature(oftype='Altar', multiple=True)
+                if altars:
+                    map(lambda x: util.do_if_one_chance_in(3, lambda : points.append( (x[1], x[2]) ) ), altars)
+                stairs = _map.current.find_feature(oftype='StairsDown', multiple=True)
+                if stairs:
+                    map(lambda x: util.do_if_one_chance_in(3, lambda : points.append( (x[1], x[2]) ) ), stairs)
+                path = deque()
+                path.append((crit.x, crit.y))
+                prev_point = path[0]
+                if len(points) > 0:
+                    for point in points:
+                        path.extend(util.create_path(_map.current.fov_map0, prev_point[0], prev_point[1], *point))
+                        prev_point = point
+                    crit.path = path
+
+                    newxy = crit.path[0]
+#                    crit.move_towards(*newxy)
+                    gl.scheduler.schedule(crit.action_cost.move, lambda : crit.move_towards(*newxy))
+                    crit.path.rotate(-1)
+            else:
+                newxy = crit.path[0]
+                gl.scheduler.schedule(crit.action_cost.move, lambda : crit.move_towards(*newxy))
+#                crit.move_towards(*newxy)
+                crit.path.rotate(-1)
+
 class Critter(object):
     name = 'crit'
     unique_name = None
@@ -64,13 +128,15 @@ class Critter(object):
     inven = []
     common = 10
     fov_range = 5
-    ai = None
+    ai = ActiveAI()
     hp = base_hp
     mp = base_mp
     flags = {WALKING}
     xp = 1
     hd = 0 #relative HD (to that of player)
     action_cost = ActionCost()
+    path = None
+    is_awake = True
 
     def __init__(self):
         self.map = None
@@ -92,17 +158,19 @@ class Critter(object):
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
         if self.map.has_critter_at((newx, newy)):
-            return
+            return False
         player = self.map.player
         if player.x == newx and player.y == newy:
-            self.attack(player)
-            return
+            assert 'This should not happen here'
+            return True
 
-        next_tile = self.map[newy][newx]
+        next_tile = self.map.tile_at(newx, newy)
         if next_tile.passable():
             self.map.critter_xy_cache.pop((self.x, self.y))
             self.x, self.y = newx, newy
             self.map.critter_xy_cache[(self.x, self.y)] = self
+            return True
+        return False
 
     def attack(self, whom):
         dmgs = []
@@ -116,8 +184,8 @@ class Critter(object):
                 dmgs.append(dmg)
             else:
                 #todo parametrize verb misses - as it's incorrect for player
-                gl.message(self.name.capitalize() + ' misses ' + whom.name, 1)
-        whom.take_damage(self, dmgs, attack)
+                gl.message(self.name.capitalize() + ' misses ' + whom.name)
+            whom.take_damage(self, dmgs, attack)
         return self.action_cost.attack
 
 
@@ -125,10 +193,12 @@ class Critter(object):
         dx = target_x - self.x
         dy = target_y - self.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
+        if not distance:
+            return False
 
         dx = int(round(dx / distance))
         dy = int(round(dy / distance))
-        self.move(dx, dy)
+        return self.move(dx, dy)
 
     def see_player(self, player):
         see_range = self.fov_range
@@ -142,10 +212,11 @@ class Critter(object):
         return None
 
     def take_turn(self, player):
-        self.player = player
         if self.ai is None:
             if self.see_player(player):
                 gl.scheduler.schedule(self.action_cost.move, lambda : self.move_towards(player.x, player.y))
+        else:
+            self.ai.decide(self, player, self.map)
 
     def take_damage(self, mob, dmgs, attack):
         """
@@ -185,6 +256,23 @@ class Critter(object):
 
     def is_intelligent(self):
         return self.check_flag(INTELLIGENT)
+
+    def can_range(self, player):
+        """ can_range(Player) => boolean
+        Returns True if this creature can range-attack player (by means of bow/xbow or magic)
+        """
+        return False
+
+    def attack_range(self, player):
+        """ attack_range(Player) => boolean?
+        """
+        return False
+
+    def can_melee(self, player):
+        """ can_melee(Player) => boolean
+        Returns True if this creature can melee player
+        """
+        return True
 
 def check_flag(critter, flag):
     if isinstance(flag, Iterable):
@@ -258,7 +346,8 @@ class Skeleton(Critter):
     char = 'z'
 
     def __init__(self, name = None, base_hd_adjust=0):
-        pass
+        super(Skeleton, self).__init__()
+        self.action_cost.move = 20
         #if name is None:
             #self.name = creature.name + ' skeleton'
         #else:

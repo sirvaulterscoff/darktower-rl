@@ -120,41 +120,47 @@ def exit():
     print 'Exiting...'
     delete_all_maps()
 
-if __name__ == "__main__":
-    from atexit import register
-    register(exit)
-    global map
-    gui = LibtcodGui()
-    gl.gui_listener = gui
-    player = Player()
-    player.camx2 = VIEWPORT_WIDTH -1
-    player.camy2 = VIEWPORT_HEIGHT - 1
-    gl.player = player
-    gl.scheduler = Scheduler()
+from atexit import register
+register(exit)
+global map
+gui = LibtcodGui()
+gl.gui_listener = gui
+player = Player()
+player.camx2 = VIEWPORT_WIDTH -1
+player.camy2 = VIEWPORT_HEIGHT - 1
+gl.player = player
+gl.scheduler = Scheduler()
 
-    #dg = CaveGenerator(60, 60)
-    #dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
-    #dg = CityGenerator('',80, 40, 5, break_road=5, room_placer=CityGenerator.generate_rooms_along_road)
-    #dg = CityGenerator('',80, 40, 2, break_road=5)
-    #map = dg.finish()
-    #map = Map(dg.finish())
+#dg = CaveGenerator(60, 60)
+#dg = CityGenerator('',80, 40, 3, break_road=1000, room_placer=CityGenerator.generate_rooms_along_road)
+#dg = CityGenerator('',80, 40, 5, break_road=5, room_placer=CityGenerator.generate_rooms_along_road)
+#dg = CityGenerator('',80, 40, 2, break_road=5)
+#map = dg.finish()
+#map = Map(dg.finish())
 
-    #    dg = RoomsCoridorsGenerator(80, 40)
-    #    dg.generate()
-    #    map = Map(dg.finish())
-    #dg = StaticRoomGenerator(type='')
-    #dg.generate()
+#    dg = RoomsCoridorsGenerator(80, 40)
+#    dg.generate()
+#    map = Map(dg.finish())
+#dg = StaticRoomGenerator(type='')
+#dg.generate()
 
-    #map = Map(dg.finish())
-    #map.place_monsters()
-    map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt', None)])
+#map = Map(dg.finish())
+#map.place_monsters()
+map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt', None)])
 
-    map = Map(map)
-    map.prepare_level()
-    map.place_player(player)
-    map.configure()
-    map.place_random_monsters()
-    map.init_fov()
+map = Map(map)
+map.prepare_level()
+map.place_player(player)
+map.configure()
+map.place_random_monsters()
+map.init_fov()
+
+def main():
     main_loop()
 
+
+import cProfile
+cProfile.run('main()')
+#if __name__ == "__main__":
+#    main()
 

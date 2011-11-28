@@ -17,7 +17,7 @@ class PartitionedQueue:
             according to its priority.
         """
 
-        tuple = (cost, value)
+        tuple = [cost, value]
 
         # Insert the tuple in sorted position in the queue.  If a
         # tuple with equal priority is encountered, the new tuple is

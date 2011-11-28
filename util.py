@@ -4,6 +4,7 @@ import os
 import random
 from thirdparty.libtcod import libtcodpy as libtcod
 from random import randrange, choice
+import rlfl
 
 import logging
 
@@ -266,6 +267,10 @@ def chance_in(chance, in_what):
 def one_chance_in(in_what):
     return chance_in(1, in_what)
 
+def do_if_one_chance_in(in_what, action):
+    if chance_in(1, in_what):
+        action()
+
 def iterate_fov(x, y, radius, maxx, maxy, func=None, **args):
     """ iterate_fov(x, y, radius, maxx, maxy, func=None, **args) => None or generator
     Iterates over all x/y in [x,y] - [x+radius, y+radius] range, capping lower value to 0, higher value to maxx, maxy.
@@ -280,3 +285,10 @@ def iterate_fov(x, y, radius, maxx, maxy, func=None, **args):
                 func(x, y, args)
             else:
                 yield x, y
+
+def has_los(x, y, tx, ty, fov_map):
+    return rlfl.los(fov_map, (x, y), (tx, ty))
+
+def create_path(fov_map, x, y, tx, ty):
+    return rlfl.path(fov_map, (x, y), (tx, ty), rlfl.PATH_BASIC)
+

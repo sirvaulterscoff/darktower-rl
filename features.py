@@ -162,34 +162,34 @@ class Furniture(DungeonFeature):
     type = ftype.furniture
     flags = BLOCK_WALK
 
-class TreasureChest(Furniture):
+class _TreasureChest(Furniture):
     '''A chest, contatining treasures'''
     def __init__(self):
-        super(TreasureChest, self).__init__()
+        super(_TreasureChest, self).__init__()
         self.set_params({'char':'8', 'color': (203,203,203), 'dim_color':(203,203,203), 'type':6, 'flags':NONE})
 
     def player_move_into(self, player, x, y, mapdef):
-        super(TreasureChest, self).player_move_into(player, x, y, mapdef)
+        super(_TreasureChest, self).player_move_into(player, x, y, mapdef)
         print 'You found treasure chest'
 
-class Altar(DungeonFeature):
+class _Altar(DungeonFeature):
     def __init__(self):
-        super(Altar, self).__init__()
+        super(_Altar, self).__init__()
         self.set_params({'char':'_', 'color':(255,255,255), 'dim_color':(128,128,128), 'type':7, 'flags':NONE, 'id':id})
 
-class Grass(DungeonFeature):
+class _Grass(DungeonFeature):
     def __init__(self):
-        super(Grass, self).__init__()
+        super(_Grass, self).__init__()
         self.char = choice(['`', ',', '.'])
         self.color = choice( [ (0, 80, 0),(20, 80, 0), (0,80,20), (20,80,20)])
 
-class PressurePlate(HiddenFeature, DungeonFeature):
+class _PressurePlate(HiddenFeature, DungeonFeature):
     affected='x'
     action='remove'
     type = ftype.trap
     invisible = True
     def __init__(self):
-        super(PressurePlate, self).__init__()
+        super(_PressurePlate, self).__init__()
         self.reacted = False
 
     def player_move_into(self, player, x, y, map):
@@ -214,20 +214,20 @@ class PressurePlate(HiddenFeature, DungeonFeature):
         return True, True, True
 
     def found(self, player):
-        super(PressurePlate, self).found(player)
+        super(_PressurePlate, self).found(player)
         self.char = '^'
 
     def __repr__(self):
         return 'pressure plate'
 
 
-class Trap(DungeonFeature, HiddenFeature):
+class _Trap(DungeonFeature, HiddenFeature):
     name ='trap'
     disarmed = False
     type = ftype.trap
     invisible = True
     def __init__(self):
-        super(Trap, self).__init__()
+        super(_Trap, self).__init__()
 
     def found(self, player):
         self.has_hidden = False
@@ -258,7 +258,7 @@ class Trap(DungeonFeature, HiddenFeature):
             else: #if this is wimpy trap - just pass over
                 player.take_damage(self, self.dmg(), None)
 
-        return super(Trap, self).player_move_into(player, x, y, map_def)
+        return super(_Trap, self).player_move_into(player, x, y, map_def)
 
 class Stairs(DungeonFeature):
     def __init__(self, id=None, down=True):
@@ -283,7 +283,7 @@ pool = build_type('Pool', char='{', color=(20, 60, 200), dim_color=(10, 30, 100)
 bush = build_type('Bush', char='*', color=(0, 90, 0), dim_color=(0, 40, 0), type=ftype.furniture, flags=BLOCK_WALK)
 road = build_type('Road', char=' ', color=(0, 0, 0), dim_color=(0, 0, 0), type=ftype.road, color_back=(128,128,128), dim_color_back=(50,50,50))
 carpet = build_type('Carpet', char='.', color=(0,0,0), dim_color=(0,0,0), type=ftype.floor, color_back=(128,128,128), dim_color_back=(50,50,50))
-grass = build_type('Grass_', base=Grass, dim_color =(0, 30, 10), type=ftype.floor)
+grass = build_type('Grass', base=_Grass, dim_color =(0, 30, 10), type=ftype.floor)
 
 door = build_type('ClosedDoor', base=Door, opened=False)
 chair = build_type('Chair', base=Furniture, char='h', color=(120, 120, 0), dim_color=(40, 40, 0))
@@ -292,14 +292,14 @@ bed = build_type('Bed', Furniture, char='8',color=(120, 120, 0), dim_color=(40, 
 
 stairs_up = build_type('StairsUp', base=Stairs, down=False)
 stairs_down = build_type('StairsDown', base=Stairs, down=True)
-treasure_chest = build_type('TreasureChest_', TreasureChest)
+treasure_chest = build_type('TreasureChest', _TreasureChest)
 
-pressure_plate = build_type('PressurePlate_', PressurePlate, affected='x', type='remove', subst=floor)
-trap = build_type('Trap_', Trap, char='.', dim_color=(0, 0, 100))
+pressure_plate = build_type('PressurePlate', _PressurePlate, affected='x', type='remove', subst=floor)
+trap = build_type('Trap', _Trap, char='.', dim_color=(0, 0, 100))
 hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall, char=fixed_wall.char)
 
-altar = build_type('Altar_', base=Altar)
-ph = build_type('PH', DungeonFeature, char=' ', invisible=True)
+altar = build_type('Altar', base=_Altar)
+ph = build_type('PH', char=' ', invisible=True)
 
 
 features = {}
