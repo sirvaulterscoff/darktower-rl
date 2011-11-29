@@ -33,7 +33,6 @@ class DungeonFeature(object):
     dim_color = (128, 128, 128)
     description = 'Generic feature'
     flags = NONE
-    seen = False
     items = None
     id = None
     mob = None
@@ -77,12 +76,6 @@ class DungeonFeature(object):
 
     def player_over(self, player):
         pass
-
-    def parse_color(self, parser):
-        self.color = parser(self.color)
-        self.dim_color = parser(self.dim_color)
-        self.color_back = parser(self.color_back)
-        self.dim_color_back = parser(self.dim_color_back)
 
     def set_target(self, delegate):
         self.delegate = delegate

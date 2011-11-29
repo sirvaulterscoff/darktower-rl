@@ -35,6 +35,7 @@ MSG_SEVERITY = { 1 : MSG_NEW_COLOR,
                  0 : MSG_OLD_COLOR}
 
 parsed_colors = {}
+BLACK = (0,0,0)
 class AbstractGui(object):
     def __init__(self):
         pass
@@ -46,6 +47,8 @@ class AbstractGui(object):
 class LibtcodGui(AbstractGui):
     message_colours = {}
     def __init__(self):
+        self.key = libtcod.Key()
+        self.mouse = libtcod.Mouse()
         libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
                                         libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
         libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False, renderer=libtcod.RENDERER_OPENGL)
@@ -68,19 +71,10 @@ class LibtcodGui(AbstractGui):
         libtcod.console_set_char(self.con, x, y, char)
 
 
-    def clear_critter(self, x, y):
-        #libtcod.console_set_back(self.con, x, consoley, libtcod.black, libtcod.BKGND_SET)
-        libtcod.console_set_char(self.con, x, y, ' ')
-
-
     def render_map(self, map, player):
         #todo optimize (see http://umbrarumregnum.110mb.com/cookbook/node/24)
         if not self.viewport:
-            cc = self.create_color
             self.viewport = Viewport(VIEWPORT_WIDTH, VIEWPORT_HEIGHT, map)
-            for y in range(0, map.height):
-                for x in range(0, map.width):
-                    map.tile_at(x, y).parse_color(cc)
         if gl.__fov_recompute__:
             gl.logger.debug('Recomputing fov')
             gl.__fov_recompute__ = False
@@ -89,72 +83,63 @@ class LibtcodGui(AbstractGui):
         consolex, consoley, xx = 0,0, 0
         self.viewport.update_coords(player.x, player.y)
         gl.logger.debug('Diplaying viewport from %d:%d to %d:%d' % (self.viewport.x, self.viewport.y, self.viewport.x2, self.viewport.y2))
+        buffer = libtcod.ConsoleBuffer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
         for y in xrange(self.viewport.y, self.viewport.y2):
             for x in xrange(self.viewport.x, self.viewport.x2):
-                
+
                 tile = map.tile_at(x, y)
                 xy = (x, y)
                 seen = rlfl.has_flag(map.current.fov_map0, xy, rlfl.CELL_MEMO) | gl.__wizard_mode__
-#                visible = libtcod.map_is_in_fov(map.current.fov_map, x, y)
+                #                visible = libtcod.map_is_in_fov(map.current.fov_map, x, y)
                 visible = rlfl.has_flag(map.current.fov_map0, xy, rlfl.CELL_SEEN)
                 del xy
-                if isinstance(tile.color, tuple):
-                    tile.parse_color(self.create_color)
                 #if tile is seen or visible to player - print it
+                char = None
                 if seen or visible:
                     if tile.items and len(tile.items):
                         char = tile.items[-1].char
                     else:
                         char = tile.char
-                    libtcod.console_set_char(self.con, consolex, consoley, char)
+                    #                    libtcod.console_set_char(self.con, consolex, consoley, char)
                     #if it's not in LOS, but seen - print in dim color
                 else:
-                    libtcod.console_set_char(self.con, consolex, consoley, ' ')
-                if not visible:
-                    if seen:
-                        libtcod.console_set_char_foreground(self.con, consolex, consoley, tile.dim_color)
-                        libtcod.console_set_char_background(self.con, consolex, consoley, tile.dim_color_back, libtcod.BKGND_SET)
-                    else:
-                        libtcod.console_set_char_background(self.con, consolex, consoley, libtcod.black, libtcod.BKGND_SET)
+                    char = ' '
+                fc = tile.dim_color
+                bc = None
+                if not visible and not seen:
+                    bc = BLACK
                 else:
-                    #if it's in LOS - print and mark as seen
-                    libtcod.console_set_fore(self.con, consolex, consoley, tile.color)
+                    #if it's in LOS - print
+                    fc = tile.color
                     if tile.items and len(tile.items) > 1:
-                        libtcod.console_set_back(self.con, consolex, consoley, libtcod.desaturated_yellow, libtcod.BKGND_SET)
+                        bc = libtcod.desaturated_yellow
                     else:
-                        libtcod.console_set_back(self.con, consolex, consoley, tile.color_back, libtcod.BKGND_SET)
-                    #if current tile is visible for now - mark as seen
-                    tile.seen = True
+                        bc = tile.color_back
+                buffer.set(consolex, consoley, bc[0], bc[1], bc[2], fc[0], fc[1], fc[2], char)
                 consolex += 1
             xx = consolex
             consolex = 0
             consoley += 1
 
         gl.logger.debug('Printing critters')
-        cc = self.create_color
         for critter in map.map_critters:
             if not self.viewport.in_view(critter.x, critter.y):
                 continue
             if critter.last_seen_at and not self.viewport.in_view(*critter.last_seen_at):
                 continue
+            fc = critter.color
             x, y = self.viewport.adjust_coords(critter.x, critter.y)
             if rlfl.has_flag(map.current.fov_map0, (critter.x, critter.y), rlfl.CELL_SEEN) or gl.__wizard_mode__:
-#            if libtcod.map_is_in_fov(map.current.fov_map, critter.x, critter.y) or gl.__wizard_mode__:
-                libtcod.console_set_fore(self.con,x, y, cc(critter.color))
-                self.print_critter(x, y, critter.char)
                 critter.last_seen_at = critter.x, critter.y
+                buffer.set_fore(x, y, fc[0], fc[1], fc[2], critter.char)
             elif critter.last_seen_at is not None:
-                color = cc(critter.color)
-                color = dim_color(color)
-                libtcod.console_set_fore(self.con, x, y, color)
-                self.print_critter(x, y, critter.char)
-
+                color = dim_color(critter.color)
+                fc = color
+                buffer.set_fore(x, y, fc[0], fc[1], fc[2], critter.char)
 
         gl.logger.debug('Printing player')
         x, y = self.viewport.adjust_coords(player.x, player.y)
-        libtcod.console_set_fore(self.con ,x, y, cc(player.color))
-        self.print_critter(x, y, player.char)
-
+        buffer.set_fore(x, y, player.color[0], player.color[1], player.color[2], player.char)
 
         if gl.__wizard_mode__:
             libtcod.console_print(self.con, 0, VIEWPORT_HEIGHT - 1, 'WIZ MODE')
@@ -162,11 +147,13 @@ class LibtcodGui(AbstractGui):
         for x in xrange(0, VIEWPORT_WIDTH):
             for y in xrange(0, VIEWPORT_HEIGHT):
                 if x >= xx:
-                    self.clear_critter(x, y)
-                #if y > consoley:
-                #    self.clear_critter(x, y)
+                    buffer.set_fore(x, y, 0, 0, 0, ' ')
+        buffer.blit(self.con)
         libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
+
+    def clear_critter(self, x, y):
+        libtcod.console_set_char(self.con, x, y, ' ')
 
     def render_messages(self):
         #print the game messages, one line at a time
@@ -208,12 +195,12 @@ class LibtcodGui(AbstractGui):
         libtcod.console_set_default_background(self.panel, dim_color)
         formated_str = "HP: %i/%i" % (value, maximum)
         #if displayed value == 0 - skip rendering bar
-        if maximum == 0:
+        if not maximum:
             return
-        libtcod.console_set_foreground_color(self.panel, text_color)
-        libtcod.console_print_left(self.panel, x, y, libtcod.BKGND_NONE, formated_str)
-        libtcod.console_set_foreground_color(self.panel, self.create_color(bar_color[0]))
-        libtcod.console_print_left(self.panel, x2, y, libtcod.BKGND_NONE, '[' + ''.ljust(total_width, '_') + ']')
+        libtcod.console_set_default_foreground(self.panel, text_color)
+        libtcod.console_print(self.panel, x, y, formated_str)
+        libtcod.console_set_default_foreground(self.panel, self.create_color(bar_color[0]))
+        libtcod.console_print(self.panel, x2, y, '[' + ''.ljust(total_width, '_') + ']')
         active_ticks = min(int(value * tick_price), total_width)
         severity = 0
         #now choose apropriate color depending on how much value left (compared to maximum)
@@ -240,7 +227,7 @@ class LibtcodGui(AbstractGui):
             libtcod.console_blit(self.con2, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0, i / 128.0,
                                  i / 128.0) # renders the second screen (transparent)
             libtcod.console_flush()
-        libtcod.console_wait_for_keypress(True)
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS, self.key, self.mouse)
         for i in range(1, 128):
             libtcod.console_blit(self.con2, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0) # renders the first screen (opaque)
             libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0, i / 128.0,
@@ -280,7 +267,8 @@ class LibtcodGui(AbstractGui):
             libtcod.console_print(self.con, 11, 11, line + '_')
             libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
             libtcod.console_flush()
-            key = libtcod.console_wait_for_keypress(True)
+            libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS, self.key, self.mouse)
+            key = self.key
             if key.c == 27:
                 game_input.default_rate()
                 return None
@@ -294,19 +282,20 @@ class LibtcodGui(AbstractGui):
 
     def render_yn_dialog(self, title, warn=False):
         if warn:
-            libtcod.console_set_foreground_color(self.con, libtcod.red)
+            libtcod.console_set_default_foreground(self.con, libtcod.red)
         else:
-            libtcod.console_set_foreground_color(self.con, libtcod.white)
+            libtcod.console_set_default_foreground(self.con, libtcod.white)
         libtcod.console_set_keyboard_repeat(1000, 500)
         libtcod.console_print_frame(self.con, 10, 10, 30, 3, True, libtcod.BKGND_NONE, title)
         line = ''
         #todo - adjust the size of window to match line's size
         while True:
-            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, ' '.rjust(len(line) + 2, ' '))
-            libtcod.console_print_left(self.con, 11, 11, libtcod.BKGND_NONE, line + '_')
+            libtcod.console_print_ex(self.con, 11, 11, libtcod.BKGND_NONE, libtcod.LEFT, ' '.rjust(len(line) + 2, ' '))
+            libtcod.console_print_ex(self.con, 11, 11, libtcod.BKGND_NONE, libtcod.LEFT, line + '_')
             libtcod.console_blit(self.con, 10, 10, 30, 3, 0, 10, 10)
             libtcod.console_flush()
-            key = libtcod.console_wait_for_keypress(True)
+            libtcod.sys_check_for_event(libtcod.KEY_PRESSED, self.key, self.mouse)
+            key = self.key
             if chr(key.c) == 'y' or chr(key.c) == 'Y' or key.c == 13:
                 game_input.default_rate()
                 return True

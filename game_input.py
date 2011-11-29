@@ -40,9 +40,12 @@ def readLine():
             return line
         line += chr(key.c)
 
+key = libtcod.Key()
+mouse = libtcod.Mouse()
 def readkey():
+    global  key
     while True:
-        key = libtcod.console_wait_for_keypress(False)
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS, key, mouse)
         #No need to react on service keys
         if key.vk == libtcod.KEY_ENTER and libtcod.KEY_ALT:
             #Alt+Enter: toggle fullscreen
