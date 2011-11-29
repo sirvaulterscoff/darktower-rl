@@ -271,6 +271,7 @@ class Stairs(DungeonFeature):
 
 
 floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
+none = build_type('None', char=' ')
 fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)

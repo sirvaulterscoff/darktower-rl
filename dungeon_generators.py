@@ -12,8 +12,9 @@ from critters import mobs
 logger = util.create_logger('DG')
 ft = util.NamedMap(features)
 
-default_map_chars = {'#': ft.rock_wall,
-	' ': ft.floor,
+default_map_chars = {
+    '#': ft.rock_wall,
+	' ': ft.none,
 	'.': ft.floor,
 	',': ft.grass,
 	'+': ft.door,
@@ -33,6 +34,8 @@ def parse_string(mapBytes, map_chars, mapDef=None):
         iterable = mapBytes
     elif isinstance(mapBytes, str):
         iterable = mapBytes.splitlines()
+    else:
+        raise RuntimeError('Invalid mapBytes type %s' % type(mapBytes))
 
     for line in iterable:
         if len(line) < 1 :continue
@@ -113,7 +116,7 @@ class MapDef(object):
         self.entry_pos = None
         """ There is several available modes
         include = places a map over already generated map (i.e. place a house in forest)
-        overflow = place a map over generated map, possibly morphing it into original map 
+        overflow = place a map over generated map, possibly morphing it into original map
         (i.e. can remove some walls or features)
         asis = this map is already a fully functional map - similar to include but will not generate
         neither monsters nor traps/items on that map

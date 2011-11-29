@@ -146,7 +146,10 @@ gl.scheduler = Scheduler()
 
 #map = Map(dg.finish())
 #map.place_monsters()
-map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=[MapRequest('crypt', None)])
+requests=[MapRequest('crypt', None)]
+requests.append(MapRequest('tower' , None))
+map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=requests )
+
 
 map = Map(map)
 map.prepare_level()
