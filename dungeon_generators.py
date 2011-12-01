@@ -8,6 +8,7 @@ import des
 from items import Item, items
 from types import FunctionType
 from critters import mobs
+from maputils import replace_feature, replace_feature_atxy, find_feature
 
 logger = util.create_logger('DG')
 ft = util.NamedMap(features)
@@ -28,6 +29,9 @@ default_map_chars = {
     }
 
 def parse_string(mapBytes, map_chars, mapDef=None):
+    """
+    parse_string(str | list, {}, MapDef) => [][]
+    """
     new_map = []
     x, y = 0, 0
     if isinstance(mapBytes, list):
@@ -89,7 +93,7 @@ class MapRequest(object):
         self.type = type
         #available sizes are large, mini?, None
         self.size = None
-        self.params = {}
+        self.params = params
 
     def __repr__(self):
         return "MapRequest type=%s size=%s params=%s" % (self.type, self.size, self.params)
@@ -178,7 +182,7 @@ class MapDef(object):
             return res()
         return res
 
-    def prepare(self):
+    def prepare(self, params):
         if self.prepared:
             return
         if not self.parent:
@@ -187,9 +191,12 @@ class MapDef(object):
         self._prepare_subst()
         self.map = parse_string(self.map, self.map_chars, self)
         for lvl in self.levels.values():
-            lvl.prepare()
+            lvl.prepare(params)
         self.height = len(self.map)
         self.width = len(self.map[0])
+        if hasattr(self, 'on_param_set') and params:
+            for k,v in params.items():
+                self.on_param_set(k, v, self)
         self.prepared = True
 
     def tune(self, params = {}):
@@ -238,6 +245,20 @@ class MapDef(object):
 #                return object.__getattribute__(self, name)
 #        else:
 #            return object.__getattribute__(self, name)
+
+    def replace_feature_atxy(self, x, y, with_what):
+        replace_feature_atxy(self.map, x, y, with_what)
+
+    def replace_feature(self, type, id, with_what):
+        replace_feature(self.map, type, id, with_what)
+
+    def create_feature(self, type, **params):
+        type = features[type]()
+        type.set_params(params)
+        return type
+
+    def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
+        return find_feature(self.map, id, oftype, multiple, filter)
 
 class Rect:
     def __init__(self, x, y, width, heigh):

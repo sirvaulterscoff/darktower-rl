@@ -143,3 +143,9 @@ def replace_feature_atxy(map, x, y, with_what):
         ft = ft()
 
     map[y][x] = ft
+
+def replace_feature(map, type, id, with_what):
+    features = find_feature(map, id=id, oftype=type, multiple=True)
+    if features:
+        for nouse, x, y in features:
+            replace_feature_atxy(map, x, y, with_what)

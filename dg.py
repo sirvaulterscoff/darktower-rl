@@ -105,7 +105,7 @@ def _choose_map(generator_type, params, player_hd, theme, size):
             break
     unique_maps_already_generated[tmap.id] = 1
     #prepare a map
-    tmap.prepare()
+    tmap.prepare(params)
     return tmap
 
 
@@ -191,7 +191,7 @@ def null_generator(map_draft, player_hd, generator_type, requests, params, theme
     """
     mapsrc= [ ['.' for y in xrange(map_draft.width)] for x in xrange(map_draft.height)]
     map_draft.map = mapsrc
-    map_draft.prepare()
+    map_draft.prepare(None)
     return map_draft
 
 generators['null'] = null_generator
@@ -233,7 +233,7 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
     #first let's see what requests we skipped in _static_request_processor
     for request in filter(lambda x: isinstance(x, MapRequest), requests):
         if request.map: #that was already generated - just add to collection
-            request.map.prepare()
+            request.map.prepare(request.params)
             result.append(request.map)
             continue
         tparams = {}
@@ -243,7 +243,7 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
             tparams.update(request.params)
         tmap =  _choose_map(generator_type, tparams, player_hd, request.type, request.size)
         result.append(tmap)
-        tmap.prepare()
+        tmap.prepare(tparams)
 
     mini_map_count = randrange(*small_theme_maps_count)
     logger.debug('Generating %d mini-maps for current map' % mini_map_count)
@@ -253,7 +253,7 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
             tmap = _choose_map(generator_type, params, player_hd, theme, 'mini')
             if tmap:
                 result.append(tmap)
-                tmap.prepare()
+                tmap.prepare(params)
 
     logger.debug('Total of %d static maps selected for current map generation' % len(result))
     return result

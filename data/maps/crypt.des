@@ -28,16 +28,19 @@ SUBST={=>$pool
 SUBST=}=>$pool
 mode=asis
 on_param_set="""%
-def crypt1_set_param(name, value, des):
+def crypt1_set_param(name, value, map_def):
     if name == 'corpse':
-        des.replace_feature(PH, 'CORPSE', FT_TOMB('Tomb of ' + value.name ))
+        tomb = map_def.create_feature('tomb', name = 'Tomb of ' + value.name)
+        map_def.replace_feature('PH', 'CORPSE', tomb)
         if hasattr(value, 'deity'):
-            altars = des.find_feature(FT_ALTAR)
-            for altar in altars:
-                altar.name = value.deity.altar_name
-        statues = des.find_feature(FT_STATUE)
-        for statue in statues:
-            statue.name = 'Statue of ' + value.name
+            altars = map_def.find_feature(oftype='FT_ALTAR')
+            if altars:
+                for altar in altars:
+                    altar.name = value.deity.altar_name
+        statues = map_def.find_feature(oftype='FT_STATUE')
+        if statues
+            for statue in statues:
+                statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
 """
 SUBST=%=>$pressure_plate(affected:x, action:remove)
