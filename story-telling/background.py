@@ -81,11 +81,7 @@ def create_city(birth = False, city=False, depart = False):
             world.birth_place_rank = util.roll(1, 3, 1)
     if depart:
         world.depart_place = name
-	world.current_city = name
-        if city:
-            world.depart_place_rank = util.roll(1, 3, 3)
-        else:
-            world.depart_place_rank = util.roll(1, 3)
+        world.current_city = name
         if city:
             world.depart_place_rank = util.roll(1, 3, 3)
         else:
