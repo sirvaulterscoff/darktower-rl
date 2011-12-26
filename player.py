@@ -22,8 +22,8 @@ class SearchSkill(PassiveSkill):
             total_chance = int(max(1, search_skill_base_chance - ((tile.skill - self.skill) * 1.5)))
             if util.chance_in(total_chance, 100):
                 tile.found(self.player)
-            
-                
+
+
 class PlayerActionCost(ActionCost):
     search = ActionCost.move
     def __init__(self, **args):
@@ -36,7 +36,7 @@ class Player(Critter):
     color = (255, 255, 255)
     skip_register = True
     fov_range = 10
-    base_hp = 25
+    base_hp = 155
     base_mp = 10
     mp = 10
     hitpoints = base_hp

@@ -91,7 +91,7 @@ def flood_fill(startx, starty, tile_check_callback, tile_create_callback,
                             (0,1), (1,1), (2,1),
                             (0,2), (1, 2), (2, 2)],
                passed = None):
-    #todo move to separate module 
+    #todo move to separate module
     #means it's topmost run
     if passed == None:
         passed = []

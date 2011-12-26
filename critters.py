@@ -6,6 +6,7 @@ from collections import Iterable
 from util import build_type
 from maputils import find_feature
 from collections import deque
+from math import ceil, floor
 
 WALKING = 1
 FLYING = 1
@@ -20,7 +21,7 @@ LARGE_SIZE = 1
 
 class ActionCost(object):
     attack = 10.0
-    move = 10.0
+    move = 20.0
     flee = 9.0
     pickup = 20.0
     stairsdown = 15.0
@@ -63,20 +64,38 @@ class ActiveAI(BasicAI):
         if not crit.is_awake:
             return
         if self._nexttoplayer(crit, player, _map):
+            crit.path = None #we reset path here
+            crit.seen_player = (player.x, player.y)
             if crit.can_melee(player):
                 gl.scheduler.schedule(crit.action_cost.attack, lambda: crit.attack(player))
-#                crit.attack(player)
             else:
                 crit.find_shooting_point(player, _map)
             return
         #check if player in los
         if util.has_los(crit.x, crit.y, player.x, player.y, _map.current.fov_map0):
             #this will actualy check if this creature is in player's los, not vice-versa
-            #todo add pathfinding here
+            crit.path = None #we reset path here
+            crit.seen_player = (player.x, player.y)
             if crit.can_range(player):
                 crit.attack_range(player)
             else:
                 gl.scheduler.schedule(crit.action_cost.move, lambda : crit.move_towards(player.x, player.y))
+        #if critter saw player - it will check this position
+        elif crit.seen_player:
+            if not crit.path: # we should make a path towards player
+                crit.path = deque()
+                crit.path.extend(util.create_path(_map.current.fov_map0, crit.x, crit.y, player.x, player.y))
+            newxy = crit.path.popleft()
+            #lets make a last check before we giveup on chasing player.
+            #We should check if we have player in los, cause player can move away next turn
+            #making us loose trails
+            if not crit.path:
+                if util.has_los(crit.x, crit.y, player.x, player.y, _map.current.fov_map0):
+                    crit.seen_player(player.x, player.y)
+                else: #we lost track of player - give up
+                    #todo - if not patroling - then what?
+                    crit.seen_player = False
+            gl.scheduler.schedule(crit.action_cost.move, lambda : crit.move_towards(*newxy))
         elif self.patroling:
             if not crit.path:
                 points = []
@@ -137,6 +156,7 @@ class Critter(object):
     action_cost = ActionCost()
     path = None
     is_awake = True
+    seen_player = None
 
     def __init__(self):
         self.map = None
@@ -196,9 +216,24 @@ class Critter(object):
         if not distance:
             return False
 
-        dx = int(round(dx / distance))
-        dy = int(round(dy / distance))
-        return self.move(dx, dy)
+        if dx < 0:
+            dx = int(floor(dx / distance))
+        else:
+            dx = int(ceil(dx / distance))
+        if dy < 0:
+            dy = int(floor(dy / distance))
+        else:
+            dy = int(ceil(dy / distance))
+
+#        if (dx, dy) == (self.x, self.y):
+            #not moving at all
+            
+        res = self.move(dx, dy) #we faced a wall probably
+        if not res:
+            res = self.move(dx, 0)
+            if not res:
+                res = self.move(0, dy)
+        return res
 
     def see_player(self, player):
         see_range = self.fov_range

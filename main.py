@@ -147,7 +147,7 @@ gl.scheduler = Scheduler()
 #map = Map(dg.finish())
 #map.place_monsters()
 requests=[MapRequest('crypt', None)]
-requests.append(MapRequest('tower' , None))
+#requests.append(MapRequest('tower' , None))
 map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=requests )
 
 
@@ -155,7 +155,7 @@ map = Map(map)
 map.prepare_level()
 map.place_player(player)
 map.configure()
-map.place_random_monsters()
+#map.place_random_monsters()
 map.init_fov()
 
 def main():
