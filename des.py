@@ -69,7 +69,7 @@ def extend_list(l, what):
         l.append(what)
     return l
 
-def parse_val(val, where, lookup_dicts):
+def parse_val(_val, where, lookup_dicts):
     """Adjusts the value from des file. There are several ways to do so
     1) string.Template substitution when ${ is replaced with attribute of object
     2) $-values. Values that starts with $-sign will be parsed using eval
@@ -77,7 +77,10 @@ def parse_val(val, where, lookup_dicts):
     we expect that such a block defines local named 'out'
     lookup_dicts stores dicts that holds available classes for that type of parsing
     """
-    val = string.Template(val).safe_substitute(where.__dict__)
+    if _val.find('${') != -1:
+        val = string.Template(_val).safe_substitute(where.__dict__)
+    else:
+        val = _val
     if val.startswith('$') and not val.startswith('${'):
         val = val[1:]
         if val.find('&&') > -1:
