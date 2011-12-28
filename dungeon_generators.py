@@ -111,7 +111,7 @@ class MapDef(object):
         self.parent = parent
         self.id = ''
         self.max_levels = 0
-        """ Used in multi-layered maps. Holds references to another """
+        """ Used in multi-layered maps. Holds references to another MapDef"""
         self.levels = {}
         self.floor = ft.floor
         self.mons = {}
@@ -156,25 +156,31 @@ class MapDef(object):
         self.map_chars = default_map_chars.copy()
         """ Do not allow to randomly place monsters in this room"""
         self.no_mon_gen = False
+        """ defines the alignment of layerd maps. Possible options:
+            -base - upper maps will be aligned against main map
+            -stairs - upper maps will match downstairs with upstairs position
+            -none - do not align"""
+        self.align = 'base'
+
 
     def _prepare_subst(self):
         calc = {}
         for k,v in self.subst.iteritems():
-            calc[k] = self._parse_value(v)
+            calc[k] = self._parse_value(v, features)
         self.map_chars.update(calc)
         self.mons_chars = {}
         if hasattr(self, 'mons'):
             for k,v in self.mons.iteritems():
-                self.mons_chars[k] = self._parse_value(v)
+                self.mons_chars[k] = self._parse_value(v, mobs)
         print 'substs:'
         for k,v in self.map_chars.items():
             print '%s => %s ' %(k, v)
 
-    def _parse_value(self, v):
+    def _parse_value(self, v, lookup):
         #todo delete this
         """Parses value from SUBST or MONS tags. if it starts as $ - it's a script"""
         if isinstance(v, str):
-            res = globals()[v.strip()]
+            res = lookup[v.strip()]
         else:
             res = v
         #now check if it's type
@@ -210,9 +216,9 @@ class MapDef(object):
             return
         if name == 'level': #here we switch level
             if value > 0:
-                self.current_level = value
-                self.levels[value] = MapDef(self)
+                self.levels[value] = MapDef(self) #set parent
                 self.levels[value].current_level = value
+                object.__setattr__(self, 'current_level', value)
             else:
                 object.__setattr__(self, 'current_level', value)
             return

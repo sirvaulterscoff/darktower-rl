@@ -1,6 +1,6 @@
 from dungeon_generators import MapDef, MapRequest, get_map_file, parse_file
 from random import choice, randrange, randint
-from features import FIXED
+from features import FIXED, none
 from util import random_from_list_weighted, roll
 from maputils import *
 from map import *
@@ -286,16 +286,23 @@ def __find_random_mergepoint(map_draft, room, position):
         return x, y
 
 
-def __merge_leveled(map_draft, child_map, level, parent_map):
-    """Adds non-base level map to a room which will hold base level map"""
+def __merge_leveled(map_draft, child_map_bytes, child, level):
+    """Adds non-base level map to a room which will hold base level map
+    @map_draft - map being generated
+    @child_map_bytes - map bytes [][] after applying orientation
+    @child - MapDef of child level
+    @level - level number
+    """
     #check if rooms already exists
-    if map_draft.rooms.has_key(parent_map.id):
-        room = map_draft.rooms[parent_map.id]
+    map_id = child.parent_map.id
+    if map_draft.rooms.has_key(map_id):
+        room = map_draft.rooms[map_id]
     else:
         room = MultilevelRoom()
-        map_draft.rooms[parent_map.id] = room
-    room.levels[level] = child_map
-    room.src = parent_map
+        map_draft.rooms[map_id] = room
+    room.levels[level] = child_map_bytes
+    room.levels_src[level] = child
+    room.src = child.parent
 
 def __create_room(map_draft, newmap, map_src):
         #check if rooms already exists
@@ -321,6 +328,9 @@ def __merge_room(map_draft, room, params):
     try:
         for line in room.map:
             for tile in line:
+                if type(tile) == none: #special tile type - don't merge onto map
+                    x+=1
+                    continue
                 dest_tile = map_draft.map[y][x]
                 if mode == 'overflow':
                     if dest_tile.flags & FIXED: continue #in overflow mode we don't rewrite underlying pixels
@@ -331,7 +341,7 @@ def __merge_room(map_draft, room, params):
                         continue
                     else:
                         map_draft.map[y][x] = tile
-                elif mode == 'include' or mode == 'asis':
+                elif mode == 'include' or mode == 'asis': #in both modes we just
                     map_draft.map[y][x] = tile
                 else:
                     raise RuntimeError('Invalid merge mode [%s] specified for map [%s]' % (mode, room.src.id))
@@ -366,12 +376,12 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
         else:
             newmap, rotate_params = map.map, None
         for level, child in map.levels.items(): # now we transform all submaps
-            child_map = None
+            child_map_bytes = None
             if child.orient: #if child redefines orient - let's use it
-                child_map, ignored = random_rotate(child.map, child.orient)
+                child_map_bytes, ignored = random_rotate(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
-                child_map, ignored = random_rotate(child.map, map.orient, params=rotate_params)
-            __merge_leveled(map_draft, child_map, level, map)
+                child_map_bytes, ignored = random_rotate(child.map, map.orient, params=rotate_params)
+            __merge_leveled(map_draft, child_map_bytes, child, level)
 
         rooms.append(__create_room(map_draft, newmap, map))
     for room in rooms:

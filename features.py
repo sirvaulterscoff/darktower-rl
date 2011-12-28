@@ -97,6 +97,12 @@ class DungeonFeature(object):
 def build_type(name, base=DungeonFeature, **args):
     return build_type_(name, base, **args)
 
+class NoneFeature(DungeonFeature):
+    invisible = True
+    def __init__(self):
+        super(NoneFeature, self).init()
+
+
 class Door (DungeonFeature):
     def __init__(self, opened=False):
         super(Door, self).__init__()
@@ -254,17 +260,26 @@ class _Trap(DungeonFeature, HiddenFeature):
         return super(_Trap, self).player_move_into(player, x, y, map_def)
 
 class Stairs(DungeonFeature):
-    def __init__(self, id=None, down=True):
+    def __init__(self):
         char = '>'
-        if not down:
+        if not getattr(self, 'down', True):
             char = '<'
         super(Stairs, self).__init__()
         self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ftype.stairs, 'id':id, 'flags': FIXED})
-        self.can_go_down = down
+        self.can_go_down = getattr(self, 'down', True)
+
+    def set_down(self, value):
+        self.char = '<' if value else '>'
+        self.can_go_down = True
+
+    def get_down(self):
+        return self.can_go_down
+
+    down = property(fget=get_down, fset=set_down)
 
 
 floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
-none = build_type('None', char=' ')
+none = NoneFeature
 fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)
