@@ -38,7 +38,7 @@ def crypt1_set_param(name, value, map_def):
                 for altar in altars:
                     altar.name = value.deity.altar_name
         statues = map_def.find_feature(oftype='FT_STATUE')
-        if statues
+        if statues:
             for statue in statues:
                 statue.name = 'Statue of ' + value.name
 out = crypt1_set_param
