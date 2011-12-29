@@ -294,7 +294,7 @@ def __merge_leveled(map_draft, child_map_bytes, child, level):
     @level - level number
     """
     #check if rooms already exists
-    map_id = child.parent_map.id
+    map_id = child.parent.id
     if map_draft.rooms.has_key(map_id):
         room = map_draft.rooms[map_id]
     else:
@@ -337,6 +337,7 @@ def __merge_room(map_draft, room, params):
                     if tile.flags & FIXED: #we should rewrite if room's fixel is fixed
                         map_draft.map[y][x] = tile
                     elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
+                        #todo let's actualy make clustered ruins - i.e. skip merge for a 3x3 or large square
                         x+=1
                         continue
                     else:
@@ -377,7 +378,7 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
             newmap, rotate_params = map.map, None
         for level, child in map.levels.items(): # now we transform all submaps
             child_map_bytes = None
-            if child.orient: #if child redefines orient - let's use it
+            if child.orient and child.orient != 'NONE': #if child redefines orient - let's use it
                 child_map_bytes, ignored = random_rotate(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
                 child_map_bytes, ignored = random_rotate(child.map, map.orient, params=rotate_params)

@@ -122,7 +122,7 @@ class LibtcodGui(AbstractGui):
             consoley += 1
 
         gl.logger.debug('Printing critters')
-        for critter in map.map_critters:
+        for critter in map.critters:
             if not self.viewport.in_view(critter.x, critter.y):
                 continue
             if critter.last_seen_at and not self.viewport.in_view(*critter.last_seen_at):

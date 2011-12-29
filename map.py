@@ -9,7 +9,7 @@ from random import randrange
 import util
 from dungeon_generators import MapDef
 from features import DungeonFeature
-from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy
+from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy, Room
 from collections import Iterable
 from items import Item
 import rlfl
@@ -21,27 +21,80 @@ logger = util.create_logger('DG')
 
 class MainView(object):
     def __init__(self, map, map_src):
-        self.map = map
+        self._map = map
         self.map_src = map_src
         self.inited = False
         self.height = len(map)
         self.width = len(map[0])
         self.fov_map = None
         self.fov_map0 = None
+        self.map_critters = []
+        self.critter_xy_cache = {}
 
     def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
-        return find_feature(self.map, id, oftype, multiple, filter)
+        return find_feature(self._map, id, oftype, multiple, filter)
 
     def replace_feature_atxy(self, x, y, with_what):
-        return replace_feature_atxy(self.map, x, y, with_what)
+        return replace_feature_atxy(self._map, x, y, with_what)
+
+    def tile_at(self, x, y):
+        return self._map[y][x]
 
 class LayerView(MainView):
-    def __init__(self, map, map_src):
-        super(LayerView, self).__init__(map, map_src)
+    """Represent's layered view. It can be displayed above main view or below.
+    Main goal of LayerView is to correct coords - i.e. when you go upstairs in a building
+    you should appear at the same position on screen you were before ascending"""
+    def __init__(self):
+        self.main = None
+        self.rooms = []
+        self._map = []
+        self.inited = False
+
+    def set_base_view(self, main):
+        self.main = main
+        super(LayerView, self).__init__(main._map, main.map_src)
+        self._map = [[None for x in xrange(main.width)] for y in xrange(main.height)]
+
+    def add_room(self, room, level_map, xy):
+        """ Adds new room to current view.
+        add_room (Room, MapDef, (xy) )
+        """
+        x,y = xy
+        nr = Room()
+        nr.x, nr.y= xy
+        nr.map = level_map
+        nr.room_src = room
+        self.rooms.append(nr)
+        for line in level_map:
+            for tile in line:
+                if not isinstance(tile, features.NoneFeature):
+                    self._map[y][x] = tile
+                x+=1
+            y += 1
+            x = xy[0]
+
+    def find_room(self, x, y):
+        for room in self.rooms:
+            if xy_in_room(room, x, y):
+                return room.room_src
+
+
+    def tile_at(self, x, y):
+        tile = self._map[y][x]
+        if tile:
+            return tile
+        tile = self.main._map[y][x]
+        return self.thumb_tile(tile)
+
+    def thumb_tile(self, tile):
+        return features.Thumb(tile.color, tile.dim_color)
+
 
 def _materialize_piece(piece):
     """Checks if the given object is either callable or is a type
     and constructs it"""
+    if not piece:
+        return None
     if callable(piece) or isinstance(piece, type):
         return piece()
     return piece
@@ -51,8 +104,7 @@ class Map(object):
         self.init(map_src)
 
     def init(self, map_src):
-        self.map_critters = []
-        self.critter_xy_cache = {}
+#        self.map_critters = []
         self.map_src = map_src
         self.fov_map = None
         self.map = map_src.map
@@ -63,6 +115,7 @@ class Map(object):
         """ Current layer of the map. All operations are done on current layer"""
         self.current = self.main
         self.square = self.current.height * self.current.width
+        self.current_level = 0
 
     @property
     def width(self):
@@ -70,6 +123,14 @@ class Map(object):
     @property
     def height(self):
         return self.current.height
+
+    @property
+    def critters(self):
+        return self.current.map_critters
+
+    @property
+    def critter_xy_cache(self):
+        return self.current.critter_xy_cache
 
     def prepare_level(self):
         """ This launches preparation on new level.
@@ -87,13 +148,16 @@ class Map(object):
 
     def __materialize(self):
         mobs = []
-        _map = self.current.map
+        _map = self.current._map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
 
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
                 try:
-                    _map[y][x] = _materialize_piece(_map[y][x])
+                    tile = _materialize_piece(_map[y][x])
+                    _map[y][x] = tile
+                    if not tile:
+                        continue
                     if isinstance(_map[y][x], Iterable): #we get this case when we have multiple items on one tile
                         #we need to find a tile first
                         tile =  filter(lambda x: issubclass(x, DungeonFeature) , _map[y][x])
@@ -123,11 +187,11 @@ class Map(object):
                 except IndexError:
                     print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)
                     break
-        self.current.map = _map
+        self.current._map = _map
         return mobs
 
     def tile_at(self, x, y):
-        return self.current.map[y][x]
+        return self.current.tile_at(x, y)
 
     def place_player(self, player):
         pos_set = False
@@ -150,21 +214,23 @@ class Map(object):
             HD-adjustment's are not made if strict_hd is specified for a critter
         """
         #first adjust creatures' HDs
-        for crit in self.map_critters:
+        for crit in self.critters:
             if not getattr(crit, 'strict_hd', False):
                 #we assume all critters has critter.hd set and we just call adjust_hd which will reset
                 #critter's hd to hd + player.xl
                 crit.adjust_hd(self.player.xl)
         #now configure hiddens
-        hiddens = find_feature(self.current.map, oftype=features.HiddenFeature, multiple=True)
+        hiddens = find_feature(self.current._map, oftype=features.HiddenFeature, multiple=True)
         #actualy all hiddens should have relative HD. So we add player's HD to that of hidden
-        for hidden_feature, x, y in hiddens:
-            if not(getattr(hidden_feature, 'strict_hd', False)):
-                hidden_feature.skill += self.player.xl
+        if hiddens:
+            for hidden_feature, x, y in hiddens:
+                if not(getattr(hidden_feature, 'strict_hd', False)):
+                    hidden_feature.skill += self.player.xl
 
 
     def init_fov(self):
-        self.current.fov_map0 = rlfl.create_map(self.current.width, self.current.height)
+        if self.current.fov_map0 is None:
+            self.current.fov_map0 = rlfl.create_map(self.current.width, self.current.height)
 #        self.current.fov_map = libtcod.map_new(self.current.width, self.current.height)
         for y in xrange(self.current.height):
             for x in xrange(self.current.width):
@@ -177,9 +243,16 @@ class Map(object):
 
 #        if self.tile_at(x, y).flags & features.BLOCK_LOS:
 #            flags = rlfl.CELL_WALK
-        if self.tile_at(x, y).flags & features.BLOCK_WALK:
-            return
-        rlfl.set_flag(self.current.fov_map0, (x, y), rlfl.CELL_OPEN)
+        xy = (x, y)
+        fov_map_ = self.current.fov_map0
+        tile = self.tile_at(*xy)
+        if tile.flags & features.BLOCK_WALK:
+            if tile.flags & features.BLOCK_LOS == features.BLOCK_LOS:
+                return
+
+        flags = rlfl.get_flags(fov_map_, xy)
+        flags |= rlfl.CELL_OPEN | rlfl.CELL_WALK
+        rlfl.set_flag(fov_map_, xy, flags)
 
     def recompute_fov(self):
         try:
@@ -190,7 +263,7 @@ class Map(object):
             print e
 
     def place_critter(self, crit, x, y):
-        self.map_critters.append(crit)
+        self.critters.append(crit)
         self.critter_xy_cache[(x, y)] = crit
         crit.place(x, y, self)
 
@@ -211,7 +284,7 @@ class Map(object):
         #choose random number of monsters
         #3d(dlvl) + 3d2 + 7 monsters total - at least 11 monsters on d1 and up-to 40 on d27
         num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
-        num_monsters -= len(self.map_critters)
+        num_monsters -= len(self.critters)
         free_squares = -2
         for line in self.map:
             for tile in line:
@@ -248,7 +321,7 @@ class Map(object):
             if room:
                 if room.src.no_mon_gen:
                     return
-            
+
             self.place_random_critter(crit_level, crit_hd, x, y)
 
     def has_critter_at(self, coords):
@@ -259,7 +332,7 @@ class Map(object):
 
     def remove_critter(self, critter):
         self.critter_xy_cache.pop((critter.x, critter.y))
-        self.map_critters.remove(critter)
+        self.critters.remove(critter)
 
     def find_random_square(self, occupied):
         startx = libtcod.random_get_int(0, 0, self.current.width)
@@ -283,7 +356,7 @@ class Map(object):
 
     def find_passable_square(self):
         x, y = 0, 0
-        for row in self.current.map:
+        for row in self.current._map:
             for item in row:
                 if not item.passable(): y += 1
                 else: return y, x
@@ -297,13 +370,22 @@ class Map(object):
         for x,y in xy:
 #            if libtcod.map_is_in_fov(self.current.fov_map, x, y):
             if rlfl.has_flag(self.current.fov_map0, (x, y), rlfl.CELL_SEEN):
-                action(self.current.map[y][x], x, y, self.current)
+                tile = self.current._map[y][x]
+                if tile:
+                    action(tile, x, y, self.current)
 
     def player_moved(self):
 #        self.search()
         pass
 
     def _find_room(self,x, y):
+        """
+        Returns MapDef for a room at specified location. Returns None if no room found
+        """
+        if isinstance(self.current, LayerView):
+            inroom = self.current.find_room(x, y)
+            if inroom:
+                return inroom
         inroom = None
         for room in self.map_src.rooms.values():
             if xy_in_room(room, x, y):
@@ -311,43 +393,112 @@ class Map(object):
                 break
         return inroom
 
-    def descend(self):
+    def descend_or_ascend(self, descend):
         #todo generalize this method removing references to player (any mob can go down)
         tile = self.tile_at(self.player.x, self.player.y)
-        if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False): #ft_types.stairs
+        if getattr(tile, 'type', 0) == 4 and getattr(tile, 'can_go_down', False) == descend: #descend
             #this is stairs square
             #now we need to find a room (if any)
             inroom = self._find_room(self.player.x, self.player.y)
             if inroom and isinstance(inroom, MultilevelRoom):
                 #this is actualy a static room so we go down it's level
-                self._handle_static_descend(inroom)
+                self._handle_static_descend(inroom, descend, tile)
             else:
                 #this is actualy a dungeon - fire event to generate next dungeon level
-                self._handle_dungeon_descend()
-            stairs_up = find_feature(self.current.map, oftype='StairsUp', multiple=True)
-            if not stairs_up:
+                self._handle_dungeon_descend(descend)
+            if descend:
+                stairs = find_feature(self.current._map, oftype='StairsUp', multiple=True)
+            else:
+                stairs = find_feature(self.current._map, oftype='StairsDown', multiple=True)
+            if not stairs:
                 raise RuntimeError('No upstairs found on the level below')
             #okay, lets have just the first stairs. TODO - link stairs while parsing the map
-            self.player.x, self.player.y = stairs_up[0][1], stairs_up[0][2]
+            self.player.x, self.player.y = stairs[0][1], stairs[0][2]
             self.init_fov()
             return True
 
-    def _handle_static_descend(self, inroom):
+    def _handle_static_descend(self, inroom, descend, current_stairs):
         """ Descends to a static room
         """
-        next_level = str(-1)
-        level = inroom.levels[next_level]
-        if not level:
-            raise RuntimeError('No level %s in room %s' % (next_level, inroom))
+        self.current_level += -1 if descend else 1
+        if self.current_level == 0:
+            self.current = self.main
+            return
+        if descend:
+            next_level = str(self.current_level)
+        else:
+            next_level = str(self.current_level)
+
+        #first we check if this is standalone room (so no LayerView)
+        if inroom.src.align == 'none': #this is not aligned level
+            #since none-aligned rooms will have their own 'views' we use room_id+level as id here
+            id = inroom.src.id + next_level
+            if self.layers.has_key(id):
+                self.current = self.layers[id]
+            else:
+                layer = MainView(inroom.levels[next_level], inroom.levels_src[next_level])
+                self.layers[id] = layer
+                self.current = layer
+                self.prepare_level()
+            return
+
+        #Now the LayerView case
         if not self.layers.has_key(next_level):
-            layer = LayerView(level, inroom.src)
+            #We don't have such layer - time to build one
+            layer = LayerView()
             self.current = layer
             self.layers[next_level] = layer
+            #now we iterate over all rooms on this layer and add them to layer
+            layer.set_base_view(self.main)
+            for room in self.map_src.rooms.values():
+                if room.levels and room.levels.has_key(next_level):
+                    if room.src.align != 'base' and room.src.align != 'stairs':
+                    #we handle only non-standalone rooms (align != none)
+                        continue
+                    #align the edges of upper levels agains base room coords
+                    layer.add_room(room, room.levels[next_level], self.adjust_room_coords(room, next_level, current_stairs))
             self.prepare_level()
         else:
             self.current = self.layers[next_level]
 
-    def _handle_dungeon_descend(self):
+    def _handle_dungeon_descend(self, descend):
         pass
+
+    def adjust_room_coords(self, inroom, next_level, current_stairs):
+        """
+        Calculates new room coords based on current player location and map align param
+        @inroom - MultilevelRoom
+        @nextlevel - level number
+        @current stairs = features.Stairs
+        """
+        if inroom.src.align == 'base':
+            return inroom.x, inroom.y
+        elif inroom.src.align == 'stairs':
+            xy = self.find_stairs_pair(inroom, next_level, current_stairs)
+            if not xy:
+                logger.warn('Failed to map stairs for room %s' % inroom.id)
+                return inroom.x, inroom.y
+            x, y = max(self.player.x - xy[0], 0), max(self.player.y - xy[1], 0)
+            if x > self.main.width:
+                x = self.main.width - inroom.levels_src[next_level].width - 2
+            if y > self.main.height:
+                y = self.main.height - inroom.levels_src[next_level].height - 2
+            return x, y
+
+    def find_stairs_pair(self, inroom, next_level, current_stairs):
+        if current_stairs.down:
+            stairs = find_feature(inroom.levels[next_level], oftype='StairsUp', multiple=True)
+        else:
+            stairs = find_feature(inroom.levels[next_level], oftype='StairsDown', multiple=True)
+        if not stairs:
+            return None
+        if current_stairs.id:
+            variant = filter(lambda x: x[0].id == current_stairs.id, stairs)
+            if variant:
+                return variant[0][1], variant[0][2]
+        return stairs[0][1], stairs[0][2]
+
+
+
 
 

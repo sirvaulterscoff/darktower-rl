@@ -97,10 +97,19 @@ class DungeonFeature(object):
 def build_type(name, base=DungeonFeature, **args):
     return build_type_(name, base, **args)
 
+class Thumb(DungeonFeature):
+    char = '.'
+
+    def __init__(self, color, dim_color):
+        super(Thumb, self).__init__()
+        self.color = color
+        self.dim_color = dim_color
+
+
 class NoneFeature(DungeonFeature):
     invisible = True
     def __init__(self):
-        super(NoneFeature, self).init()
+        super(NoneFeature, self).__init__()
 
 
 class Door (DungeonFeature):
@@ -282,8 +291,8 @@ floor = build_type('Floor', char='.', color=(255, 255, 255), dim_color=(0, 0, 10
 none = NoneFeature
 fixed_wall = build_type('FixedWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 rock_wall  = build_type('RockWall', char='#', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
-glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK)
-window = build_type('Window', char='0', color=(128, 128, 160), dim_color=(0, 0, 60), flags=BLOCK_WALK)
+glass_wall = build_type('GlassWall', char='#', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK, type=ftype.wall)
+window = build_type('Window', char='0', color=(128, 128, 160), dim_color=(0, 0, 60), flags=BLOCK_WALK, type=ftype.wall)
 well = build_type('Well', char='o', color=(255, 255, 255), dim_color=(0, 0, 60), type=ftype.furniture, flags=BLOCK_WALK)
 tree = build_type('Tree', char='T', color=(0, 90, 0), dim_color=(0, 40, 0), type=ftype.furniture, flags=BLOCK_WALK | BLOCK_LOS)
 statue = build_type('Statue', char='T', color=(100, 100, 100), dim_color=(80, 80, 80), type=ftype.furniture, flags=BLOCK_WALK | BLOCK_LOS)
@@ -300,16 +309,16 @@ chair = build_type('Chair', base=Furniture, char='h', color=(120, 120, 0), dim_c
 table = build_type('Table', base=Furniture, char='T', color=(120, 120, 0), dim_color=(40, 40, 0))
 bed = build_type('Bed', Furniture, char='8',color=(120, 120, 0), dim_color=(40, 40, 0))
 
-stairs_up = build_type('StairsUp', base=Stairs, down=False)
-stairs_down = build_type('StairsDown', base=Stairs, down=True)
-treasure_chest = build_type('TreasureChest', _TreasureChest)
+stairs_up = build_type('StairsUp', base=Stairs, down=False, flags=FIXED)
+stairs_down = build_type('StairsDown', base=Stairs, down=True, flags=FIXED)
+treasure_chest = build_type('TreasureChest', _TreasureChest, flags=FIXED)
 
-pressure_plate = build_type('PressurePlate', _PressurePlate, affected='x', type='remove', subst=floor)
+pressure_plate = build_type('PressurePlate', _PressurePlate, affected='x', type='remove', subst=floor, flags=FIXED)
 trap = build_type('Trap', _Trap, char='.', dim_color=(0, 0, 100))
 hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall, char=fixed_wall.char)
 
-altar = build_type('Altar', base=_Altar)
-ph = build_type('PH', char=' ', invisible=True)
+altar = build_type('Altar', base=_Altar, flags=FIXED)
+ph = build_type('PH', char=' ', invisible=True, flags=FIXED)
 
 
 features = {}

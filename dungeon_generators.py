@@ -146,7 +146,8 @@ class MapDef(object):
         self.rooms = {}
         self.width = 0
         self.height = 0
-        self.orient = 'RANDOM'
+        """ Valid variants are: RANDOM, NONE """
+        self.orient = 'NONE'
         self.prepared = False
         """ Speicifes where dungeon generator should place this room, valid option are:
             -SW, SE, NW, NE, CENTER, NONE
@@ -194,6 +195,9 @@ class MapDef(object):
         if not self.parent:
             self.level = 0 #disable autoleveling for des parsing
             self.max_levels = len(self.levels)
+        else:
+            # we inherit parent's subst definition
+            self.map_chars = dict(self.parent.map_chars)
         self._prepare_subst()
         self.map = parse_string(self.map, self.map_chars, self)
         for lvl in self.levels.values():

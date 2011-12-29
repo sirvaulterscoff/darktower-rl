@@ -77,10 +77,16 @@ class Player(Critter):
         return self.action_cost.search
 
     def descend(self, map):
-        if map.descend():
+        if map.descend_or_ascend(True):
+            gl.scheduler.clear()
             return self.action_cost.stairsdown / 2
         return None
 
+    def ascend(self, map):
+        if map.descend_or_ascend(False):
+            gl.scheduler.clear() #that's it for now. We just clear all pending actions
+            return self.action_cost.stairsdown / 2
+        return None
 
     def die(self, killer):
         gl.message( 'You die...', 'CRITICAL')
@@ -119,6 +125,4 @@ class Player(Critter):
         gl.require_hud_update()
 
     hp = property(gethp, sethp)
-
-
 

@@ -28,7 +28,7 @@ def main_loop():
         key = game_input.readkey()
         cost = handle_key(key)
         if cost:
-            for critter in map.map_critters:
+            for critter in map.critters: #we only move critters from current level
                 if gl.__game_state__ == "died":
                     game_input.readkey()
                     break
@@ -115,6 +115,17 @@ def handle_descend():
         gl.scheduler.schedule_player_action(player.action_cost.stairsdown / 2, lambda: player.search(map))
     return cost
 
+def handle_ascend():
+    if not map:
+        return False
+    global map
+    cost = player.ascend(map)
+    if cost:
+        gl.__fov_recompute__ = True
+        gui.reset()
+        gl.scheduler.schedule_player_action(player.action_cost.stairsdown / 2, lambda: player.search(map))
+    return cost
+
 
 def exit():
     print 'Exiting...'
@@ -146,8 +157,9 @@ gl.scheduler = Scheduler()
 
 #map = Map(dg.finish())
 #map.place_monsters()
-requests=[MapRequest('crypt', None)]
-#requests.append(MapRequest('tower' , None))
+requests=[]
+#requests.append(MapRequest('crypt', None))
+requests.append(MapRequest('tower' , None))
 map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=requests )
 
 

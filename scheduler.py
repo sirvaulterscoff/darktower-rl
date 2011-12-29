@@ -11,6 +11,9 @@ class PartitionedQueue:
     def __len__(self):
         return len(self.__queue)
 
+    def clear(self):
+        self.__queue = []
+
     def enqueue(self, value, cost = 0.0):
         """
             Append a new element to the queue
@@ -98,6 +101,9 @@ class Scheduler(object):
     def set_waterline(self, cost):
         self._queue.waterline = cost
     waterline = property(fset = set_waterline)
+
+    def clear(self):
+        self._queue.clear()
 
     def get_scheduled(self):
         x = self._queue.dequeue()

@@ -22,6 +22,7 @@ KEYS = [
         (['i'], 'inventory'),
         (['d'], 'drop'),
         (['>'], 'descend'),
+        (['<'], 'ascend'),
         (['x'], 'look'),
         (['?'], 'help'),
         ([libtcod.KEY_F1], 'wizard'),

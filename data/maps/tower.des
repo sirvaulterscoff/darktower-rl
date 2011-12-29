@@ -1,8 +1,9 @@
 id=tower_1
 name=Wizard's tower
 ORIENT=RANDOM
-SUBST=.=>$none
+SUBST=.=>none
 SUBST=,=>$floor
+align=stairs
 MAP="""
 ...........
 ....####...

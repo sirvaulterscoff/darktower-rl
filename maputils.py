@@ -13,7 +13,8 @@ FORCE_ALL = 100
 rotate_setting = {
     'any' : ANY,
     'RANDOM': ANY,
-    'NONE' : NO_FLIP
+    'NONE' : NO_FLIP,
+    'FORCE_ALL' : FORCE_ALL
 }
 
 def random_rotate(map, settings = 'any', params = None):
@@ -25,7 +26,7 @@ def random_rotate(map, settings = 'any', params = None):
     settings = rotate_setting[settings]
     if settings == NO_FLIP:
         return map, (0, 0, 0)
-    if params and not settings & FORCE_ALL:
+    if params and settings & FORCE_ALL != FORCE_ALL:
         rev_x, rev_y, swap_x_y = params
     else:
         rev_x, rev_y = util.coinflip(), util.coinflip()
@@ -62,6 +63,19 @@ class Room(object):
     def __init__(self):
         self.x, self.y = None, None
         self.width, self.height = 0, 0
+        """ point to source description of this map => MapDef"""
+        self.src = None
+        """ points to map bytes => [][]"""
+        self._map = None
+
+    def get_map(self):
+        return self._map
+
+    def set_map(self, map):
+        self._map = map
+        self.width = len(map[0])
+        self.height = len(map)
+    map = property(fget=get_map, fset=set_map)
 
     @property
     def x2(self):
@@ -83,7 +97,10 @@ class MultilevelRoom(Room):
     """
     def __init__(self):
         super(MultilevelRoom, self).__init__()
+        """ point to levels in this room => [][]"""
         self.levels = {}
+        """ points to MapDef of each level """
+        self.levels_src = {}
 
 def xy_in_room(room , x, y):
     if x>=room.x and x<=room.x2:
@@ -112,6 +129,13 @@ def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):
                         return char, x, y
             elif oftype:
                 if isinstance(oftype, str):
+                    if isinstance(char, type):
+                        if char.__name__ == oftype:
+                            if filter and not filter(char): continue
+                            if multiple:
+                                res.append((char, x, y))
+                            else:
+                                return char, x, y
                     if char.__class__.__name__ == oftype:
                         if filter and not filter(char): continue
                         if multiple:
