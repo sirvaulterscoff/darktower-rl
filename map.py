@@ -49,6 +49,7 @@ class LayerView(MainView):
         self.rooms = []
         self._map = []
         self.inited = False
+        self.level = 0
 
     def set_base_view(self, main):
         self.main = main
@@ -83,6 +84,8 @@ class LayerView(MainView):
         tile = self._map[y][x]
         if tile:
             return tile
+        if self.level <= 0:
+            return None
         tile = self.main._map[y][x]
         return self.thumb_tile(tile)
 
@@ -246,6 +249,8 @@ class Map(object):
         xy = (x, y)
         fov_map_ = self.current.fov_map0
         tile = self.tile_at(*xy)
+        if not tile:
+            return
         if tile.flags & features.BLOCK_WALK:
             if tile.flags & features.BLOCK_LOS == features.BLOCK_LOS:
                 return
@@ -415,6 +420,7 @@ class Map(object):
             #okay, lets have just the first stairs. TODO - link stairs while parsing the map
             self.player.x, self.player.y = stairs[0][1], stairs[0][2]
             self.init_fov()
+            gl.__fov_recompute__ = True
             return True
 
     def _handle_static_descend(self, inroom, descend, current_stairs):
@@ -448,6 +454,7 @@ class Map(object):
             layer = LayerView()
             self.current = layer
             self.layers[next_level] = layer
+            layer.level = self.current_level
             #now we iterate over all rooms on this layer and add them to layer
             layer.set_base_view(self.main)
             for room in self.map_src.rooms.values():

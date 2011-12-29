@@ -179,7 +179,7 @@ def _static_request_preprocessor(generator_type, player_hd, requests, params, th
         try:
             large = _choose_map(generator_type, params, player_hd, theme, 'large')
             if large:
-                request = MapRequest(theme)
+                request = MapRequest(theme, {})
                 requests.append(request)
         except Exception, e:
             print 'Exception during static preprocessor ' + e

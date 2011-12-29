@@ -94,7 +94,7 @@ def handle_kill_all_humans():
     if not gl.__wizard_mode__:
         return
     map.map_critters = []
-    map.critter_xy_cache = {}
+    map.critter_xy_cache.clear()
 
 
 def handle_search():
@@ -159,7 +159,7 @@ gl.scheduler = Scheduler()
 #map.place_monsters()
 requests=[]
 #requests.append(MapRequest('crypt', None))
-requests.append(MapRequest('tower' , None))
+requests.append(MapRequest('tower' , {'map_id' : 'tower_2'}))
 map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=requests )
 
 

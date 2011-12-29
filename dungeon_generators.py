@@ -88,7 +88,10 @@ class FeatureRequest(object):
 
 
 class MapRequest(object):
-    """Holds info for dungeon generator about specific map to load from des """
+    """Holds info for dungeon generator about specific map to load from des
+     Available params:
+     * map_id - define exact map to load by id
+    """
     def __init__(self, type, params):
         self.type = type
         #available sizes are large, mini?, None

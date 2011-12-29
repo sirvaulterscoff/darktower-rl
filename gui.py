@@ -88,6 +88,9 @@ class LibtcodGui(AbstractGui):
             for x in xrange(self.viewport.x, self.viewport.x2):
 
                 tile = map.tile_at(x, y)
+                if not tile:
+                    consolex += 1
+                    continue
                 xy = (x, y)
                 seen = rlfl.has_flag(map.current.fov_map0, xy, rlfl.CELL_MEMO) | gl.__wizard_mode__
                 #                visible = libtcod.map_is_in_fov(map.current.fov_map, x, y)
