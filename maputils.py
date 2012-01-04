@@ -67,6 +67,9 @@ class Room(object):
         self.src = None
         """ points to map bytes => [][]"""
         self._map = None
+        """ points to MapRequest which generated this room """
+        self.request = None
+        self.id = None
 
     def get_map(self):
         return self._map

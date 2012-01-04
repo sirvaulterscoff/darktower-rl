@@ -106,7 +106,7 @@ class RegionRequest(object):
     """Holds info about specific region request (i.e. forest, city etc)"""
     pass
 
-#todo move entire class to des.py
+
 class MapDef(object):
     parent = None
     current_level = 0
@@ -162,7 +162,7 @@ class MapDef(object):
         self.no_mon_gen = False
         """ defines the alignment of layerd maps. Possible options:
             -base - upper maps will be aligned against main map
-            -stairs - upper maps will match downstairs with upstairs position
+           -stairs - upper maps will match downstairs with upstairs position
             -none - do not align"""
         self.align = 'base'
 
@@ -194,7 +194,7 @@ class MapDef(object):
 
     def prepare(self, params):
         if self.prepared:
-            return
+            return self
         if not self.parent:
             self.level = 0 #disable autoleveling for des parsing
             self.max_levels = len(self.levels)
@@ -211,6 +211,7 @@ class MapDef(object):
             for k,v in params.items():
                 self.on_param_set(k, v, self)
         self.prepared = True
+        return self
 
     def tune(self, params = {}):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """

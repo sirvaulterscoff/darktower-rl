@@ -3,7 +3,7 @@ name=Wizard's tower
 ORIENT=RANDOM
 SUBST=.=>none
 SUBST=,=>$floor
-align=stairs
+align=base
 MAP="""
 ...........
 ....####...

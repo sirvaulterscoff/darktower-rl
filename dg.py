@@ -105,8 +105,7 @@ def _choose_map(generator_type, params, player_hd, theme, size):
             break
     unique_maps_already_generated[tmap.id] = 1
     #prepare a map
-    tmap.prepare(params)
-    return tmap
+    return tmap.prepare(params)
 
 
 rooms_rows = 3 #todo this is param.
@@ -191,8 +190,7 @@ def null_generator(map_draft, player_hd, generator_type, requests, params, theme
     """
     mapsrc= [ ['.' for y in xrange(map_draft.width)] for x in xrange(map_draft.height)]
     map_draft.map = mapsrc
-    map_draft.prepare(None)
-    return map_draft
+    return map_draft.prepare(None)
 
 generators['null'] = null_generator
 class PipeItem(object):
@@ -217,7 +215,7 @@ class PipeItem(object):
 small_theme_maps_count=(1, 8) #number of themed minimaps per level
 def static_transformer(map_draft, player_hd, generator_type, requests, theme, params):
     """
-    static_transformer(..) - > [MapDef, ...]
+    static_transformer(..) - > [ (MapDef, MapRequest) ...]
     This transformer loads static resources from .des files for theme or requests.
     In contrast to _static_request_processor this one loads only small features.
     It then agregates all static content in one collection and return
@@ -233,8 +231,8 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
     #first let's see what requests we skipped in _static_request_processor
     for request in filter(lambda x: isinstance(x, MapRequest), requests):
         if request.map: #that was already generated - just add to collection
-            request.map.prepare(request.params)
-            result.append(request.map)
+            _map = request.map.prepare(request.params)
+            result.append( (_map, request) )
             continue
         tparams = {}
         if params:
@@ -242,8 +240,8 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
         if request.params:
             tparams.update(request.params)
         tmap =  _choose_map(generator_type, tparams, player_hd, request.type, request.size)
-        result.append(tmap)
-        tmap.prepare(tparams)
+        result.append( (tmap, request) )
+        tmap = tmap.prepare(tparams)
 
     mini_map_count = randrange(*small_theme_maps_count)
     logger.debug('Generating %d mini-maps for current map' % mini_map_count)
@@ -252,8 +250,8 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
         for x in xrange(mini_map_count):
             tmap = _choose_map(generator_type, params, player_hd, theme, 'mini')
             if tmap:
-                result.append(tmap)
-                tmap.prepare(params)
+                result.append((tmap, None))
+                tmap = tmap.prepare(params)
 
     logger.debug('Total of %d static maps selected for current map generation' % len(result))
     return result
@@ -280,21 +278,27 @@ def __find_random_mergepoint(map_draft, room, position):
         if x + room.width + 1 > map_draft.width or y + room.height + 1 > map_draft.height:
             #if we are beyond the map edge - try again
             continue
+        valid_position = True
+        #check rooms overlapping
         for room in map_draft.rooms.values():
             if xy_in_room(room, x, y):
-                continue
-        return x, y
+                valid_position = False
+                break
+        #if rooms do not overlap
+        if valid_position:
+            return x, y
 
 
-def __merge_leveled(map_draft, child_map_bytes, child, level):
+def __merge_leveled(map_draft, child_map_bytes, child, level, roomid):
     """Adds non-base level map to a room which will hold base level map
     @map_draft - map being generated
     @child_map_bytes - map bytes [][] after applying orientation
     @child - MapDef of child level
     @level - level number
+    @roomid - id of the room (we use it to stack levels)
     """
     #check if rooms already exists
-    map_id = child.parent.id
+    map_id = roomid
     if map_draft.rooms.has_key(map_id):
         room = map_draft.rooms[map_id]
     else:
@@ -304,13 +308,17 @@ def __merge_leveled(map_draft, child_map_bytes, child, level):
     room.levels_src[level] = child
     room.src = child.parent
 
-def __create_room(map_draft, newmap, map_src):
-        #check if rooms already exists
-    if map_draft.rooms.has_key(map_src.id):
-        room = map_draft.rooms[map_src.id]
+def __create_room(map_draft, newmap, map_src, id, request):
+    #check if rooms already exists
+    if map_draft.rooms.has_key(id):
+        room = map_draft.rooms[id]
+        room.request = request
+        room.id = id
     else:
         room = Room()
-        map_draft.rooms[map_src.id] = room
+        map_draft.rooms[id] = room
+        room.request = request
+        room.id = id
     room.src = map_src
     room.map = newmap
     room.width = len(newmap[0])
@@ -321,9 +329,19 @@ nomerge_chance = 50
 def __merge_room(map_draft, room, params):
     """ __merge_room(MapDef, MapDef, {}) -> None
     Merges room in map_draft, choosing random location
+    @map_draft -> MapDef
+    @room -> Room or MultilevelRoom to merge
+    @params - params of dungeon generator itself
     """
     mode = room.src.mode
-    x, y = __find_random_mergepoint(map_draft, room, room.src.position)
+    _rparams = None
+    if room.request:
+        _rparams = room.request.params
+
+    if _rparams and _rparams.has_key('xy'):
+        x, y = _rparams['xy']
+    else:
+        x, y = __find_random_mergepoint(map_draft, room, room.src.position)
     room.x, room.y = x, y
     try:
         for line in room.map:
@@ -371,7 +389,17 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
     """
     maps_to_merge = producer(map_draft, player_hd, generator_type, requests, theme, params)
     rooms = []
-    for map in maps_to_merge:
+    ids = {}
+    #iterate over list of MapDefs
+    for map, request in maps_to_merge:
+        #now assure map id uniqueness. Static map uniqueness handling is the task of static preprocessor
+        #here we just need to assure that we have unique id space for each room
+        id = map.id
+        cnt = 1
+        while ids.has_key(id):
+            id = map.id + '$' + str(cnt)
+            cnt += 1
+        ids[id] = True
         if map.orient:
             newmap, rotate_params = random_rotate(map.map, map.orient)
         else:
@@ -382,11 +410,12 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
                 child_map_bytes, ignored = random_rotate(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
                 child_map_bytes, ignored = random_rotate(child.map, map.orient, params=rotate_params)
-            __merge_leveled(map_draft, child_map_bytes, child, level)
+            __merge_leveled(map_draft, child_map_bytes, child, level, id)
 
-        rooms.append(__create_room(map_draft, newmap, map))
+        rooms.append(__create_room(map_draft, newmap, map, id, request))
     for room in rooms:
         __merge_room(map_draft, room, params)
+    del ids
 
 
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
