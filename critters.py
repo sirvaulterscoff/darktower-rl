@@ -121,7 +121,10 @@ class ActiveAI(BasicAI):
                 prev_point = path[0]
                 if len(points) > 0:
                     for point in points:
-                        path.extend(util.create_path(_map.current.fov_map0, prev_point[0], prev_point[1], *point))
+                        _path = util.create_path(_map.current.fov_map0, prev_point[0], prev_point[1], *point)
+                        if not isinstance(_path, Iterable):
+                            raise AssertionError('create_path returned %s type %s' %(_path, type(_path)))
+                        path.extend(_path)
                         prev_point = point
                     crit.path = path
 

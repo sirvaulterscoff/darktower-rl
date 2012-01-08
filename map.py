@@ -184,15 +184,10 @@ class Map(object):
             if not isinstance(room, MultilevelRoom):
                 continue # we only link multilevel rooms
             #if this room is actualy multilevel room
-            current_map = None
-            if self.current_level == 0:
-                current_map = room.map
-            else:
-                current_map = room.levels[current]
-            if room.levels and room.levels.has_key(up_level):
-                self._link_stairs_in_room(room.levels[up_level], 'StairsDown', current_map, room)
-            if room.levels and room.levels.has_key(down_level):
-                self._link_stairs_in_room(room.levels[down_level], 'StairsUp', current_map, room)
+            if room.levels and room.levels.has_key(up_level) and room.levels.has_key(current):
+                self._link_stairs_in_room(room.levels[up_level], 'StairsDown', room.levels[current], room)
+            if room.levels and room.levels.has_key(down_level) and room.levels.has_key(current):
+                self._link_stairs_in_room(room.levels[down_level], 'StairsUp', room.levels[current], room)
 
     def _link_stairs_in_room(self, next_level, stairs_type, current_level, room):
         """ _link_stairs_in_room([][], str, [][], Room) => None
@@ -558,23 +553,17 @@ class Map(object):
         @nextlevel - level number
         @current stairs = features.Stairs
         """
-        if inroom.src.align == 'base':
-            return inroom.x, inroom.y
-        elif inroom.src.align == 'stairs':
-            xy = self.find_stairs_pair(inroom, next_level, current_stairs)
-            if not xy:
-                logger.warn('Failed to map stairs for room %s' % inroom.id)
-                return inroom.x, inroom.y
-            x, y = max(self.player.x - xy[0], 0), max(self.player.y - xy[1], 0)
-            if x > self.main.width:
-                x = self.main.width - inroom.levels_src[next_level].width - 2
-            if y > self.main.height:
-                y = self.main.height - inroom.levels_src[next_level].height - 2
-            return x, y
-
-    def find_stairs_pair(self, inroom, next_level, current_stairs):
-        return current_stairs.pair[1], current_stairs.pair[2]
-
-
-
-
+#        if inroom.src.align == 'base':
+        return inroom.x, inroom.y
+#        elif inroom.src.align == 'stairs':
+#            if not current_stairs.pair:
+#                logger.warn('Failed to map stairs for room %s' % inroom.id)
+#                return inroom.x, inroom.y
+#            xy = current_stairs.pair[1], current_stairs.pair[2]
+#
+#            x, y = max(current_stairs.x - xy[0], 0), max(self.player.y - xy[1], 0)
+#            if x > self.main.width:
+#                x = self.main.width - inroom.levels_src[next_level].width - 2
+#            if y > self.main.height:
+#                y = self.main.height - inroom.levels_src[next_level].height - 2
+#            return x, y
