@@ -28,6 +28,7 @@ class PlayerActionCost(ActionCost):
     search = ActionCost.move
     def __init__(self, **args):
         super(PlayerActionCost, self).__init__(**args)
+        self.move = 5.0
 
 class Player(Critter):
     pronoun = 'you'
@@ -78,13 +79,11 @@ class Player(Critter):
 
     def descend(self, map):
         if map.descend_or_ascend(True):
-            gl.scheduler.clear()
             return self.action_cost.stairsdown / 2
         return None
 
     def ascend(self, map):
         if map.descend_or_ascend(False):
-            gl.scheduler.clear() #that's it for now. We just clear all pending actions
             return self.action_cost.stairsdown / 2
         return None
 
