@@ -117,8 +117,14 @@ class MapDef(object):
         """ Used in multi-layered maps. Holds references to another MapDef"""
         self.levels = {}
         self.floor = ft.floor
-        self.mons = {}
-        self.items = {}
+        if parent:
+            self.mons = dict(parent.mons)
+        else:
+            self.mons = {}
+        if parent:
+            self.items = dict(parent.items)
+        else:
+            self.items = {}
         self.map = None
         self.entry_pos = None
         """ There is several available modes
@@ -243,6 +249,17 @@ class MapDef(object):
         else:
             return self.subst
 
+    def get_mons(self):
+        if self.current_level > 0:
+            return self.levels[self.current_level].mons
+        else:
+            return self.mons
+
+    def get_items(self):
+        if self.current_level > 0:
+            return self.levels[self.current_level].items
+        else:
+            return self.items
 
 #    def __getattribute__(self, name):
 #        if name == 'levels' or name == 'current_level':

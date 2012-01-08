@@ -59,7 +59,7 @@ II. Dungeon generators.
     8[+]. Split maps into layers, to generate buildings 2 and more floors high
     9.0 [+] Store the rects of parsed maps (we will need them later). Also find rooms in shuch
     maps and store them as well. Transform rects as we rotate or flip the map.
-    9. Adjust rendering of other tiles to reflect you going up or down the floors
+    9[+]. Adjust rendering of other tiles to reflect you going up or down the floors
     basically, we can make only trees and other houses to render for the second floor
     and only wells and such to render for -1 floor
     10. Actions and special places for maps (places where the quest starts or ends). Possibly

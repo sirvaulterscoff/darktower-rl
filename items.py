@@ -31,6 +31,9 @@ class Item(object):
     def player_move_into(self, player, x, y, map_src):
         pass
 
+    def place(self, cell):
+        self.cell = cell
+
     def __rand__(self, other):
         self.doand(other)
 
@@ -54,8 +57,6 @@ class Gold(Item):
         else:
             self.value = value
 
-    def place(self, cell):
-        self.cell = cell
 
     def player_move_into(self, player, x, y, map_src):
         super(Gold, self).player_move_into(player, x, y, map_src)
@@ -230,14 +231,6 @@ def generate_artefacts(artefacts_count, check=None):
         else:
             result.append(acquire(unique=check, artefact=True))
     return result
-
-class Random(Item):
-    type_ = 'gold'
-    def __new__(Type, **args):
-        print 'Type is %s args is %s' %(Type, args)
-        print 'Self type is %s' % type_
-        target = items[self.type_]
-        return util.build_type(self.type_+'__', target, args)()
 
 
 items = {}
