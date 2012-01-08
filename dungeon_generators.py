@@ -162,7 +162,6 @@ class MapDef(object):
         self.no_mon_gen = False
         """ defines the alignment of layerd maps. Possible options:
             -base - upper maps will be aligned against main map
-           -stairs - upper maps will match downstairs with upstairs position
             -none - do not align"""
         self.align = 'base'
 

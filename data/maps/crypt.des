@@ -1,4 +1,5 @@
 mode=asis
+align=none
 terrain=graveyard city
 ORIENT=NONE
 position=NW

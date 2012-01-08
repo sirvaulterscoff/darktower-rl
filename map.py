@@ -30,6 +30,7 @@ class MainView(object):
         self.fov_map0 = None
         self.map_critters = []
         self.critter_xy_cache = {}
+        self.src_room = None
 
     def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
         return find_feature(self._map, id, oftype, multiple, filter)
@@ -472,6 +473,8 @@ class Map(object):
             inroom = self.current.find_room(x, y)
             if inroom:
                 return inroom
+        if isinstance(self.current, MainView) and self.main != self.current:
+            return self.current.src_room
         inroom = None
         for room in self.map_src.rooms.values():
             if xy_in_room(room, x, y):
@@ -518,6 +521,7 @@ class Map(object):
                 self.current = self.layers[id]
             else:
                 layer = MainView(inroom.levels[next_level], inroom.levels_src[next_level])
+                layer.src_room = inroom
                 self.layers[id] = layer
                 self.current = layer
                 self.prepare_level()
