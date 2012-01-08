@@ -32,7 +32,7 @@ on_param_set="""%
 def crypt1_set_param(name, value, map_def):
     if name == 'corpse':
         tomb = map_def.create_feature('tomb', name = 'Tomb of ' + value.name)
-        map_def.replace_feature('PH', 'CORPSE', tomb)
+        map_def.replace_feature('PH', 'TOMB', tomb)
         if hasattr(value, 'deity'):
             altars = map_def.find_feature(oftype='FT_ALTAR')
             if altars:
