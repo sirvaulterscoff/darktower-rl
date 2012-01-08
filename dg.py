@@ -405,15 +405,15 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
             cnt += 1
         ids[id] = True
         if map.orient:
-            newmap, rotate_params = random_rotate(map.map, map.orient)
+            newmap, rotate_params = random_rotate_and_clone_map(map.map, map.orient)
         else:
             newmap, rotate_params = map.map, None
         for level, child in map.levels.items(): # now we transform all submaps
             child_map_bytes = None
             if child.orient and child.orient != 'NONE': #if child redefines orient - let's use it
-                child_map_bytes, ignored = random_rotate(child.map, child.orient)
+                child_map_bytes, ignored = random_rotate_and_clone_map(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
-                child_map_bytes, ignored = random_rotate(child.map, map.orient, params=rotate_params)
+                child_map_bytes, ignored = random_rotate_and_clone_map(child.map, map.orient, params=rotate_params)
             __merge_leveled(map_draft, child_map_bytes, child, level, id)
 
         rooms.append(__create_room(map_draft, newmap, map, id, request))

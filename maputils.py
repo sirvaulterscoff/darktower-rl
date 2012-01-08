@@ -18,13 +18,14 @@ rotate_setting = {
     'FORCE_ALL' : FORCE_ALL
 }
 
-def random_rotate(map, settings = 'any', params = None):
+def random_rotate_and_clone_map(map, settings = 'any', params = None):
     """
     random_rotate(...) -> (map, (rev_x, rev_y, swap_x_y))
     Rotates a map.
     """
     if not rotate_setting.has_key(settings) : raise RuntimeError('Not valid orientation [%s] passed to random_rotate' % settings)
     settings = rotate_setting[settings]
+    map = __clone_map(map)
     if settings == NO_FLIP:
         return map, (0, 0, 0)
     if params and settings & FORCE_ALL != FORCE_ALL:
@@ -41,7 +42,6 @@ def random_rotate(map, settings = 'any', params = None):
         if settings & FORCE_ROTATE == FORCE_ROTATE:
             swap_x_y = 1
             settings |= ROTATE
-    map = __clone_map(map)
     if rev_x and (settings & VERTICAL_FLIP == VERTICAL_FLIP):
         for line in map:
             line.reverse()
@@ -102,13 +102,13 @@ class Room(object):
     @property
     def x2(self):
         if self.x is not None and self.width:
-            return self.x + self.width
+            return self.x + self.width - 1 #we start from 0
         else:
             return None
     @property
     def y2(self):
         if self.y is not None and self.height:
-            return self.y + self.height
+            return self.y + self.height - 1 #we start from 0
         else:
             return None
 

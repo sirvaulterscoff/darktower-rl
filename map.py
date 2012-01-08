@@ -40,13 +40,18 @@ class MainView(object):
     def tile_at(self, x, y):
         return self._map[y][x]
 
+    def set_tile_at(self, x, y, tile):
+        self._map[y][x] = tile
+
+class Region(Room):
+    pass
 class LayerView(MainView):
     """Represent's layered view. It can be displayed above main view or below.
     Main goal of LayerView is to correct coords - i.e. when you go upstairs in a building
     you should appear at the same position on screen you were before ascending"""
     def __init__(self):
         self.main = None
-        self.rooms = []
+        self.regions = []
         self._map = []
         self.inited = False
         self.level = 0
@@ -61,26 +66,33 @@ class LayerView(MainView):
         add_room (Room, MapDef, (xy) )
         """
         x,y = xy
-        nr = Room()
+        nr = Region()
         nr.x, nr.y= xy
         nr.map = level_map
         nr.room_src = room
-        self.rooms.append(nr)
-        for line in level_map:
-            for tile in line:
-                if not isinstance(tile, features.NoneFeature):
-                    self._map[y][x] = tile
-                x+=1
-            y += 1
-            x = xy[0]
+        self.regions.append(nr)
+
+    def _find_region(self, x, y):
+        """ Finds specific region(region) on this map (if any).
+
+        """
+        for region in self.regions:
+            if xy_in_room(region, x, y):
+                return region
+        return None
 
     def find_room(self, x, y):
-        for room in self.rooms:
-            if xy_in_room(room, x, y):
-                return room.room_src
+        region = self._find_region(x, y)
+        if region: return region.src
+        return None
 
 
     def tile_at(self, x, y):
+        region = self._find_region(x, y)
+        if region:
+            tile = region.map[y - region.y][x - region.x]
+            if not isinstance(tile, features.NoneFeature):
+                return tile
         tile = self._map[y][x]
         if tile:
             return tile
@@ -88,6 +100,14 @@ class LayerView(MainView):
             return None
         tile = self.main._map[y][x]
         return self.thumb_tile(tile)
+
+    def set_tile_at(self, x, y, tile):
+        region = self._find_region(x, y)
+        if region:
+            x, y = x - region.x, y - region.y
+            region.map[y][x] = tile
+        else:
+            self._map[y][x] = tile
 
     def thumb_tile(self, tile):
         return features.Thumb(tile.color, tile.dim_color)
@@ -180,7 +200,7 @@ class Map(object):
         type of stairs on current_level """
         current_type = 'StairsUp' if stairs_type == 'StairsDown' else 'StairsDown'
         #we try to find DonwStairs on the level above
-        next_level_stairs = find_feature(next_level, oftype=stairs_type, multiple = 'True', filter = lambda x: x.pair is None)
+        next_level_stairs = find_feature(next_level, oftype=stairs_type, multiple = True, filter = lambda x: x.pair is None)
         if next_level_stairs: #if there are any downstairs
             for next_stairs, x, y in next_level_stairs:
                 #first we check if this stairs are id-linked
@@ -197,14 +217,15 @@ class Map(object):
                 #UpStairs in current room, sort them by relative distance from current
                 #stairs and see which of them doesn't have pair
                 #todo - add id matching
+                #adjust xy to room geometry
                 candidates = square_search_nearest(x, y, current_level, oftype=current_type)
                 candidates = filter(lambda x: x[0].pair is None, candidates)
                 if not candidates:
                     raise RuntimeError('Failed to map stairs for room %s' % room.id)
                 next_stairs = _materialize_piece(next_stairs)
                 replace_feature_atxy(next_level, x, y, next_stairs)
-                next_stairs.pair = candidates[0]
-                candidates[0][0].pair = next_stairs, x, y
+                next_stairs.pair = candidates[0][0], room.x + candidates[0][1], room.y + candidates[0][2]
+                candidates[0][0].pair = next_stairs, room.x + x, room.y + y
         #time to check we matched everything
         errors =  find_feature(current_level, oftype=current_type, filter=lambda x: x.pair is None)
         if errors:
@@ -213,46 +234,49 @@ class Map(object):
 
     def __materialize(self):
         mobs = []
-        _map = self.current._map
+        current = self.current
+        _map = current._map
         logger.debug('Materializing map %dx%d' % (len(_map[0]), len(_map)))
 
         for y in xrange(0, len(_map)):
             for x in xrange(0, len(_map[0])):
                 try:
-                    tile = _materialize_piece(_map[y][x])
-                    _map[y][x] = tile
+                    tile = _materialize_piece(current.tile_at(x, y))
+                    current.set_tile_at(x, y, tile)
                     if not tile:
                         continue
-                    if isinstance(_map[y][x], Iterable): #we get this case when we have multiple items on one tile
+                    if isinstance(tile, Iterable): #we get this case when we have multiple items on one tile
                         #we need to find a tile first
-                        tile =  filter(lambda x: issubclass(x, DungeonFeature) , _map[y][x])
+                        tiles = tile
+                        tile =  filter(lambda x: issubclass(x, DungeonFeature) , tile)
                         if not len(tile):
-                            raise RuntimeError('No tile at %d:%d (got only %s)' % (x, y, _map[y][x]))
+                            raise RuntimeError('No tile at %d:%d (got only %s)' % (x, y, tile))
                         elif len(tile) > 1:
-                            raise RuntimeError('Got several tiles at %d:%d (%s)' % (x, y, _map[y][x]))
-                        _map[y][x].remove(tile[0])
+                            raise RuntimeError('Got several tiles at %d:%d (%s)' % (x, y, tile))
+                        tiles.remove(tile[0])
                         tile = _materialize_piece(tile[0])
                         if not isinstance(tile, DungeonFeature):
                             raise RuntimeError('Failed to initialze tile %s' %tile)
-                        items = filter(lambda t: issubclass(t, Item), _map[y][x])
+                        items = filter(lambda t: issubclass(t, Item), tiles)
                         tile.items = []
                         for item in items:
                             tile.items.append(item)
-                        _map[y][x] = tile
+                        current.set_tile_at(x, y, tile)
 
-                    if not isinstance(_map[y][x], DungeonFeature):
+                    tile = current.tile_at(x, y)
+                    if not isinstance(tile, DungeonFeature):
                         raise RuntimeError('Not a tile at %d:%d (got %s)' % (x, y, _map[y][x]))
-                    _map[y][x].init()
-                    mob = _map[y][x].mob
+                    tile.init()
+                    mob = tile.mob
                     if mob:
                         mob = mob()
                         mob.x, mob.y = x, y
                         mobs.append(mob)
-                        del _map[y][x].mob
+                        del tile.mob
                 except IndexError:
-                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(self.current.width)
+                    print 'The ' + str(y) + ' line of map is ' + str(x) + ' len. expected ' + str(current.width)
                     break
-        self.current._map = _map
+        current._map = _map
         return mobs
 
     def tile_at(self, x, y):

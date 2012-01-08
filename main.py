@@ -13,6 +13,7 @@ from rlfl import delete_all_maps
 try:
     import psyco ; psyco.full()
 except ImportError:
+    psyco = None
     print 'Sadly no psyco'
 
 def main_loop():
@@ -105,7 +106,6 @@ def handle_descend():
     if cost:
         gl.__fov_recompute__ = True
         gui.reset()
-        gl.scheduler.schedule_player_action(player.action_cost.stairsdown / 2, lambda: player.search(map))
     return cost
 
 def handle_ascend():
@@ -116,7 +116,6 @@ def handle_ascend():
     if cost:
         gl.__fov_recompute__ = True
         gui.reset()
-        gl.scheduler.schedule_player_action(player.action_cost.stairsdown / 2, lambda: player.search(map))
     return cost
 
 

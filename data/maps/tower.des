@@ -1,6 +1,6 @@
 id=tower_1
 name=Wizard's tower
-ORIENT=RANDOM
+ORIENT=NONE
 SUBST=.=>none
 SUBST=,=>$floor
 align=base
