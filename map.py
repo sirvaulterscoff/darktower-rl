@@ -433,7 +433,7 @@ class Map(object):
 
 
     def iterate_fov(self, x, y, range, action):
-        xy = util.iterate_fov(x, y, range, self.current.width, self.current.height)
+        xy = util.iterate_fov(x, y, range, self.current.width - 1, self.current.height - 1)
         for x,y in xy:
 #            if libtcod.map_is_in_fov(self.current.fov_map, x, y):
             if rlfl.has_flag(self.current.fov_map0, (x, y), rlfl.CELL_SEEN):

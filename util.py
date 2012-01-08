@@ -279,8 +279,8 @@ def iterate_fov(x, y, radius, maxx, maxy, func=None, **args):
     """
     x0, y0 = max(x - radius, 0), max(y - radius, 0)
     x2, y2 = min(x + radius, maxx), min(y + radius, maxy)
-    for x in xrange(x0, x2):
-        for y in xrange(y0, y2):
+    for x in xrange(x0, x2 + 1):
+        for y in xrange(y0, y2 + 1):
             if func:
                 func(x, y, args)
             else:
