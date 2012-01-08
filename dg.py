@@ -371,6 +371,10 @@ def __merge_room(map_draft, room, params):
         print 'Failed to merge static feature into map. Map params w:[%d] h:[%d] \n Room params: w:[%d] h:[%d] x:[%d] y:[%d]\n current %d,%d' % \
               (map_draft.width, map_draft.height, room.width, room.height, room.x, room.y, x, y)
         raise ie
+    map_view = []
+    for y in xrange(room.y, room.y2):
+        map_view.append(SubList(map_draft.map[y], room.x, room.x2))
+    room.map = map_view
 
 
 def merger(producer, map_draft, player_hd, generator_type, requests, theme, params):

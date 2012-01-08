@@ -1,4 +1,5 @@
 import util
+from collections import namedtuple
 
 NO_FLIP = 0
 HORIZONTAL_FLIP = 1
@@ -59,6 +60,24 @@ def random_rotate(map, settings = 'any', params = None):
 def __clone_map(original):
     return [[y for y in x] for x in original]
 
+class SubList(list):
+    def __init__(self, src, start, to):
+        super(SubList, self).__init__()
+        self.src = src
+        self.start = start
+        self.to = to
+
+    def __getitem__(self, index):
+        return self.src[self.start + index]
+    def __setitem__(self, index, value):
+        self.src[self.start + index] = value
+
+    def __len__(self):
+        return self.to - self.start
+
+    def __iter__(self):
+        return self.src[self.start: self.to + 1].__iter__()
+
 class Room(object):
     def __init__(self):
         self.x, self.y = None, None
@@ -105,6 +124,16 @@ class MultilevelRoom(Room):
         """ points to MapDef of each level """
         self.levels_src = {}
 
+    def get_map(self):
+        return self._map
+
+    def set_map(self, map):
+        self._map = map
+        self.width = len(map[0])
+        self.height = len(map)
+        self.levels['0'] = self._map
+    map = property(fget=get_map, fset=set_map)
+
 def xy_in_room(room , x, y):
     if x>=room.x and x<=room.x2:
         if y>=room.y and y<=room.y2:
@@ -113,7 +142,9 @@ def xy_in_room(room , x, y):
 
 
 def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):
-    """ Finds feature from map by id (if specified) or by certain type name (if specified
+    """ find_feature => (tile, x, y)
+    or find_feature(multiple=True) => [(tile,x,y)...]
+    Finds feature from map by id (if specified) or by certain type name (if specified
     if multiple => True - all matching items will be returned list of tuples. Otherwise
     only single tuple is returned
     filter is a lambda expression invoked on each found item
@@ -176,3 +207,22 @@ def replace_feature(map, type, id, with_what):
     if features:
         for nouse, x, y in features:
             replace_feature_atxy(map, x, y, with_what)
+
+
+def _manhattan_distance(x, y, x2, y2):
+    return abs(x - x2) + abs(y - y2)
+
+def _cmp_tiles_by_distance(x, y, t1, t2):
+    return 1 if _manhattan_distance(x, y, t1[1], t1[2]) > \
+            _manhattan_distance(x, y, t2[1], t2[2]) else -1
+
+def square_search_nearest(base_x, base_y, map, oftype):
+    """ square_search_nearest(int, int, [][], str or type) => [(tile,x,y)...]
+    Returns tiles sorted by their relative distance from point (base_x, base_y)
+    """
+    feats = find_feature(map, oftype=oftype, multiple=True)
+    if not feats:
+        return None
+    feats.sort(lambda a, b: _cmp_tiles_by_distance(base_x, base_y, a, b))
+    return feats
+

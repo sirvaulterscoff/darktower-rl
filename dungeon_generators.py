@@ -8,7 +8,7 @@ import des
 from items import Item, items
 from types import FunctionType
 from critters import mobs
-from maputils import replace_feature, replace_feature_atxy, find_feature
+from maputils import replace_feature, replace_feature_atxy, find_feature, square_search_nearest
 
 logger = util.create_logger('DG')
 ft = util.NamedMap(features)

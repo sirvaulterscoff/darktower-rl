@@ -269,6 +269,7 @@ class _Trap(DungeonFeature, HiddenFeature):
         return super(_Trap, self).player_move_into(player, x, y, map_def)
 
 class Stairs(DungeonFeature):
+    pair = None
     def __init__(self):
         char = '>'
         if not getattr(self, 'down', True):
@@ -276,6 +277,7 @@ class Stairs(DungeonFeature):
         super(Stairs, self).__init__()
         self.set_params({'char':char, 'color':(255,255,255), 'dim_color':(80,80,80), 'type':ftype.stairs, 'id':id, 'flags': FIXED})
         self.can_go_down = getattr(self, 'down', True)
+        self.pair = None
 
     def set_down(self, value):
         self.char = '<' if value else '>'
@@ -311,6 +313,12 @@ bed = build_type('Bed', Furniture, char='8',color=(120, 120, 0), dim_color=(40, 
 
 stairs_up = build_type('StairsUp', base=Stairs, down=False, flags=FIXED)
 stairs_down = build_type('StairsDown', base=Stairs, down=True, flags=FIXED)
+dungeon_stairs_up1 = build_type('DungeonStairsUp1', base=Stairs, down=False, flags=FIXED)
+dungeon_stairs_down1 = build_type('DungeonStairsDown1', base=Stairs, down=True, flags=FIXED)
+dungeon_stairs_up2 = build_type('DungeonStairsUp2', base=Stairs, down=False, flags=FIXED)
+dungeon_stairs_down2 = build_type('DungeonStairsDown2', base=Stairs, down=True, flags=FIXED)
+dungeon_stairs_up3 = build_type('DungeonStairsUp3', base=Stairs, down=False, flags=FIXED)
+dungeon_stairs_down3 = build_type('DungeonStairsDown3', base=Stairs, down=True, flags=FIXED)
 treasure_chest = build_type('TreasureChest', _TreasureChest, flags=FIXED)
 
 pressure_plate = build_type('PressurePlate', _PressurePlate, affected='x', type='remove', subst=floor, flags=FIXED)

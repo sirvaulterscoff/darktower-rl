@@ -9,7 +9,7 @@ from random import randrange
 import util
 from dungeon_generators import MapDef
 from features import DungeonFeature
-from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy, Room
+from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy, Room, square_search_nearest
 from collections import Iterable
 from items import Item
 import rlfl
@@ -107,9 +107,12 @@ class Map(object):
         self.init(map_src)
 
     def init(self, map_src):
-#        self.map_critters = []
+        """ init(MapDef) => None
+        Initializez current Map
+        @map_src - MapDef of current map"""
         self.map_src = map_src
         self.fov_map = None
+        """ Points to already prepared bytes of map [][]"""
         self.map = map_src.map
         """ Layers of the map """
         self.layers = {}
@@ -147,6 +150,65 @@ class Map(object):
         for mob in mobs:
             self.place_critter(mob, mob.x, mob.y)
         del mobs
+        self._link_stairs()
+
+    def _link_stairs(self):
+        """ _link_stairs() => None
+        Tries to link stairs for all rooms """
+        #first - find base stairs
+        up_level = str(self.current_level + 1)
+        current = str(self.current_level)
+        down_level = str(self.current_level - 1)
+        logger.debug('Linking stairs for current level')
+        for room in self.map_src.rooms.values():
+            if not isinstance(room, MultilevelRoom):
+                continue # we only link multilevel rooms
+            #if this room is actualy multilevel room
+            current_map = None
+            if self.current_level == 0:
+                current_map = room.map
+            else:
+                current_map = room.levels[current]
+            if room.levels and room.levels.has_key(up_level):
+                self._link_stairs_in_room(room.levels[up_level], 'StairsDown', current_map, room)
+            if room.levels and room.levels.has_key(down_level):
+                self._link_stairs_in_room(room.levels[down_level], 'StairsUp', current_map, room)
+
+    def _link_stairs_in_room(self, next_level, stairs_type, current_level, room):
+        """ _link_stairs_in_room([][], str, [][], Room) => None
+        Finds stairs on next level of type stairs_type and matches with oppositite
+        type of stairs on current_level """
+        current_type = 'StairsUp' if stairs_type == 'StairsDown' else 'StairsDown'
+        #we try to find DonwStairs on the level above
+        next_level_stairs = find_feature(next_level, oftype=stairs_type, multiple = 'True', filter = lambda x: x.pair is None)
+        if next_level_stairs: #if there are any downstairs
+            for next_stairs, x, y in next_level_stairs:
+                #first we check if this stairs are id-linked
+                if next_stairs.id and isinstance(next_stairs.id, str):
+                    pair = find_feature(current_level, id=next_stairs.id)
+                    if not pair:
+                        raise RuntimeError('Failed to find pair for staircases with id %s in room %s' % (next_stairs.id, room.id))
+                    next_stairs = _materialize_piece(next_stairs)
+                    replace_feature_atxy(next_level, x, y, next_stairs)
+                    next_stairs.pair = pair
+                    pair[0].pair = next_stairs, x, y
+                    continue
+                #now for each DownStair in the upper room we find
+                #UpStairs in current room, sort them by relative distance from current
+                #stairs and see which of them doesn't have pair
+                #todo - add id matching
+                candidates = square_search_nearest(x, y, current_level, oftype=current_type)
+                candidates = filter(lambda x: x[0].pair is None, candidates)
+                if not candidates:
+                    raise RuntimeError('Failed to map stairs for room %s' % room.id)
+                next_stairs = _materialize_piece(next_stairs)
+                replace_feature_atxy(next_level, x, y, next_stairs)
+                next_stairs.pair = candidates[0]
+                candidates[0][0].pair = next_stairs, x, y
+        #time to check we matched everything
+        errors =  find_feature(current_level, oftype=current_type, filter=lambda x: x.pair is None)
+        if errors:
+            raise RuntimeError('Failed to map %d %s for room %s' %(len(errors), current_type, room.id))
 
 
     def __materialize(self):
@@ -411,14 +473,8 @@ class Map(object):
             else:
                 #this is actualy a dungeon - fire event to generate next dungeon level
                 self._handle_dungeon_descend(descend)
-            if descend:
-                stairs = find_feature(self.current._map, oftype='StairsUp', multiple=True)
-            else:
-                stairs = find_feature(self.current._map, oftype='StairsDown', multiple=True)
-            if not stairs:
-                raise RuntimeError('No upstairs found on the level below')
             #okay, lets have just the first stairs. TODO - link stairs while parsing the map
-            self.player.x, self.player.y = stairs[0][1], stairs[0][2]
+            self.player.x, self.player.y = tile.pair[1], tile.pair[2]
             self.init_fov()
             gl.__fov_recompute__ = True
             return True
@@ -493,18 +549,7 @@ class Map(object):
             return x, y
 
     def find_stairs_pair(self, inroom, next_level, current_stairs):
-        if current_stairs.down:
-            stairs = find_feature(inroom.levels[next_level], oftype='StairsUp', multiple=True)
-        else:
-            stairs = find_feature(inroom.levels[next_level], oftype='StairsDown', multiple=True)
-        if not stairs:
-            return None
-        if current_stairs.id:
-            variant = filter(lambda x: x[0].id == current_stairs.id, stairs)
-            if variant:
-                return variant[0][1], variant[0][2]
-        return stairs[0][1], stairs[0][2]
-
+        return current_stairs.pair[1], current_stairs.pair[2]
 
 
 
