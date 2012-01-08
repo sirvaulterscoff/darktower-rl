@@ -22,7 +22,7 @@ LARGE_SIZE = 1
 class ActionCost(object):
     attack = 10.0
     range = 10.0
-    move = 10.0
+    move = 20.0
     flee = 9.0
     pickup = 20.0
     stairsdown = 15.0
@@ -260,29 +260,25 @@ class Critter(object):
     def take_turn(self, player, energy):
         if not self.is_awake:
             return
-        if self.energy < self.action_cost.min_cost:
-            self.energy += energy
-            return
+        #give critter energy spend by player
+        self.energy += energy
+        self.avail_energy = self.energy
+        took_action = False
         res = None
-        self.avail_energy = energy
-        if self.ai is None:
-            if self.see_player(player):
-                res = self.do_action(self.action_cost.move, lambda: self.move_towards(player.x, player.y))
-        else:
-            res = self.ai.decide(self, player, self.map)
-        if res:
-            self.energy = 0
-        else:
-            self.avail_energy = self.energy + energy
+        #do actions while we have energy
+        while True:
             if self.ai is None:
                 if self.see_player(player):
                     res = self.do_action(self.action_cost.move, lambda: self.move_towards(player.x, player.y))
             else:
                 res = self.ai.decide(self, player, self.map)
-        if not res:
-            self.energy += energy
-        else:
-            self.energy = 0
+            #if we failed to do action - break the loop - we don't have energy
+            if not res:
+                break
+            else:
+                took_action = True
+        if took_action: #if we actualy spent some energy - lets accumulate what's left (if anything)
+            self.energy = self.avail_energy
 
     def do_action(self, cost, action):
         if self.avail_energy < cost:
@@ -426,7 +422,6 @@ class Skeleton(Critter):
 
     def __init__(self, name = None, base_hd_adjust=0):
         super(Skeleton, self).__init__()
-        self.action_cost.move = 20
         #if name is None:
             #self.name = creature.name + ' skeleton'
         #else:
