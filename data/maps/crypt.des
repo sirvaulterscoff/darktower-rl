@@ -24,7 +24,8 @@ ITEMS=b=>$irandom(value: 500, type : 'book'})
 ITEMS=c=>$HealingPotion
 SUBST=A=>$altar()
 SUBST=K=>$ph(id: TOMB)
-MONS=3=>$skeleton(hd: 1, name: 'Skeleton-guard')
+MONS=3=>$skeleton(hd: 1, name: Skeleton-guard)
+MONS=4=>$skeleton(name: King)
 SUBST={=>$pool
 SUBST=}=>$pool
 mode=asis
@@ -42,6 +43,7 @@ def crypt1_set_param(name, value, map_def):
         if statues:
             for statue in statues:
                 statue.name = 'Statue of ' + value.name
+        map_def.find_creature(name='King').name='Skeleton of ' + value.name
 out = crypt1_set_param
 """
 SUBST=%=>$pressure_plate(affected:x, action:remove)
@@ -57,7 +59,7 @@ MAP="""
 ##...131.#.....##+###+##......#.131...##
 ##....1..Y.....#1311131#......Y..1....##
 ##Y#####YY.....#.......#......YY#####Y##
-##.............##ba.ab##..............##
+##.............##ba4ab##..............##
 ##.#########....###K###....##########.##
 ##.#.......#......###......#.....#.A#.##
 ##.#A#{{{#.#.##.........##.#.{{{{{#.#.##

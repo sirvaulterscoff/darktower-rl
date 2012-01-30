@@ -244,13 +244,13 @@ class MapDef(object):
             object.__setattr__(self, name, value)
 
     def get_subst(self):
-        if self.current_level > 0:
+        if self.current_level > 0 and not self.parent:
             return self.levels[self.current_level].subst
         else:
             return self.subst
 
     def get_mons(self):
-        if self.current_level > 0:
+        if self.current_level > 0 and not self.parent:
             return self.levels[self.current_level].mons
         else:
             return self.mons
@@ -289,6 +289,17 @@ class MapDef(object):
 
     def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
         return find_feature(self.map, id, oftype, multiple, filter)
+
+    def find_creature(self, name=None, multiple=False):
+        mons = self.get_mons()
+        if name:
+            filtered = filter(lambda x: x.name==name, mons.values())
+            if filtered :
+                if not multiple:
+                    return filtered[0]
+                else:
+                    return filtered
+
 
 class Rect:
     def __init__(self, x, y, width, heigh):
