@@ -151,14 +151,28 @@ class LibtcodGui(AbstractGui):
             for y in xrange(0, VIEWPORT_HEIGHT):
                 if x >= xx:
                     buffer.set_fore(x, y, 0, 0, 0, ' ')
+
+        if gl.__lookmode__:
+            buffer.set_back(self.viewport.look_x - self.viewport.x, self.viewport.look_y - self.viewport.y, 255, 255, 255)
         buffer.blit(self.con)
         libtcod.console_blit(self.con, 0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0, 0, 0)
         libtcod.console_flush()
 
+
+    def toggle_lookmode(self):
+        if not self.viewport:
+            raise RuntimeError('No viewport')
+        self.viewport.look_x, self.viewport.look_y = self.viewport.playerxy
+        libtcod.console_clear(self.panel_msg)
+
     def clear_critter(self, x, y):
         libtcod.console_set_char(self.con, x, y, ' ')
 
-    def render_messages(self):
+    def render_messages(self, map, player):
+        if gl.__lookmode__:
+            self.render_description(map, player)
+            libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
+            return
         #print the game messages, one line at a time
         y = 0
         for (line, level) in gl.__msgs__:
@@ -168,6 +182,34 @@ class LibtcodGui(AbstractGui):
             libtcod.console_print(self.panel_msg, 0, y, line.ljust(SCREEN_WIDTH, ' '))
             y += 1
         libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
+
+    def render_description(self, map, player):
+        libtcod.console_clear(self.panel_msg)
+        _x, _y = self.viewport.look_x, self.viewport.look_y
+        if (_x, _y) == self.viewport.playerxy:
+            #starting point of view
+            libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+            libtcod.console_print(self.panel_msg, 0, 0, 'Look-around mode. Use keys to move cursor'.ljust(SCREEN_WIDTH, ' '))
+        else:
+            visible = rlfl.has_flag(map.current.fov_map0, (_x, _y), rlfl.CELL_MEMO)
+            if not visible:
+                libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+                libtcod.console_print(self.panel_msg, 0, 0, 'You can\'t see this far'.ljust(SCREEN_WIDTH, ' '))
+                return
+
+            result = ''
+            crit = map.critter_at(_x, _y)
+            if crit:
+                result += 'You see ' + crit.name + '.\n'
+            tile_at = map.tile_at(_x, _y)
+            result += tile_at.get_view_description()
+            result += 'Press m to examine'
+            libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+            libtcod.console_print(self.panel_msg, 0, 0, result.ljust(SCREEN_WIDTH, ' '))
+
+    def handle_lookaround(self, dx, dy, map):
+        self.viewport.look_x+= dx
+        self.viewport.look_y += dy
 
     def render_ui(self, player):
         cc = self.create_color
@@ -188,6 +230,7 @@ class LibtcodGui(AbstractGui):
         self.render_stats_two_column(1, 7, "Turns", gl.__turn_count__, 13, "", "", COLOR_STATUS_TEXT, COLOR_STATUS_VALUES)
         #blit the contents of "panel" to the root console
         libtcod.console_blit(self.panel, 0, 0, RIGHT_PANEL_WIDTH, RIGHT_PANEL_HEIGHT, 0, RIGHT_PANEL_X, 0)
+
 
     def render_bar(self, x, y, x2, total_width, value, maximum, bar_color, dim_color, text_color, color_lvls):
         TEXT_PAD = 8
@@ -309,18 +352,22 @@ class LibtcodGui(AbstractGui):
     def clear_screen(self):
         libtcod.console_clear(self.con)
 
+
 class Viewport(object):
     def __init__(self, w, h, map):
         self.w, self.h, self.map = w, h, map
         self.center = (w /2, h /2)
         self.x, self.y = 0, 0
         self.x2, self.y2 = w-1, h-1
+        self.look_x, self.look_y = 0, 0
+        self.playerxy = (0, 0)
 
     def update_coords(self, playerx, playery):
         self.x = util.cap_lower(playerx - self.center[0], 0, 0)
         self.y = util.cap_lower(playery - self.center[1], 0, 0)
         self.x2 = util.cap(self.x + self.w - 1, self.map.width)
         self.y2 = util.cap(self.y + self.h - 1, self.map.height)
+        self.playerxy = (playerx, playery)
 
     def adjust_coords(self, x, y):
         return x - self.x, y - self.y

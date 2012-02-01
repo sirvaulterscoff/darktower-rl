@@ -278,6 +278,9 @@ class Map(object):
     def tile_at(self, x, y):
         return self.current.tile_at(x, y)
 
+    def critter_at(self, x, y):
+        return self.critter_xy_cache.get((x, y), None)
+
     def place_player(self, player):
         pos_set = False
         if self.main.map_src.entry_pos:

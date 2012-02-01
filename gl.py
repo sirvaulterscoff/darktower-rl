@@ -9,6 +9,7 @@ __turn_count__ = 1
 __game_state__ = "playing"
 
 __fov_recompute__ = True
+__lookmode__ = False
 
 __msgs__ = []
 __msg_history__ = []

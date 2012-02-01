@@ -3,7 +3,6 @@ import gl
 import util
 from thirdparty.libtcod import libtcodpy as libtcod
 from collections import Iterable
-from util import build_type
 from maputils import find_feature
 from collections import deque
 from math import ceil, floor

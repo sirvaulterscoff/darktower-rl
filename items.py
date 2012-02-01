@@ -45,6 +45,7 @@ class Item(object):
 
 
 class Gold(Item):
+    name = 'gold'
     char = '$'
     color = (255,255,102)
     dim_color = (128,128,10)

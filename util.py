@@ -254,8 +254,8 @@ class NamedMap(object):
     def __getattr__(self, name):
         return self.map[name]
 
-def build_type(name, base, **argv):
-    new_type = type(name, (base,), argv)
+def build_type(cls_name, base, **argv):
+    new_type = type(cls_name, (base,), argv)
     return new_type
 
 def chance_in(chance, in_what):

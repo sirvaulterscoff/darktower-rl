@@ -33,7 +33,7 @@ def main_loop():
                     game_input.readkey()
                     break
                 critter.take_turn(player, cost)
-        gui.render_messages()
+        gui.render_messages(map, player)
 
 def handle_key(key):
     command = parse_key(key)
@@ -48,6 +48,9 @@ def handle_key(key):
 def handle_move(dx, dy):
     global map
     if gl.__game_state__ == "playing":
+        if gl.__lookmode__:
+            gui.handle_lookaround(dx, dy, map)
+            return
         take_turn, fov_recompute, cost = player.move(dx, dy)
         map.player_moved()
         if fov_recompute:
@@ -56,9 +59,18 @@ def handle_move(dx, dy):
             gl.__turn_count__ += 1
         return cost
 
+def handle_examine():
+    gl.__lookmode__ = not gl.__lookmode__
+    gui.toggle_lookmode()
 
 def handle_quit():
     gl.__game_state__ = "quit"
+
+def handle_cancel():
+    if gl.__lookmode__:
+        gl.__lookmode__ = False
+        gui.toggle_lookmode()
+    return False
 
 
 def handle_wizard():
