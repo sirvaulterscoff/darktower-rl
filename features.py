@@ -110,6 +110,22 @@ class DungeonFeature(object):
     def get_tile_name(self):
         return self.name
 
+    def get_full_description(self, time):
+        result = ''
+        if hasattr(self, 'description_' + time):
+            result += getattr(self, 'description_' + time)
+        elif hasattr(self, 'description'):
+            result += self.description
+        else:
+            result += 'You see ' + self.get_tile_name().capitalize() + ' here. '
+        result += '\nItems:\n'
+        if self.has_items():
+            for item in self.items:
+                result += item.get_full_description(time) + '\n'
+
+        return result
+
+
 
 def build_type(cls_name, base=DungeonFeature, **args):
     return build_type_(cls_name, base, **args)

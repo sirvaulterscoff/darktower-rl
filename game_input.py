@@ -17,6 +17,7 @@ KEYS = [
         (['b', '1', libtcod.KEY_KP1], ('move', (-1, 1))),
         (['j', '2', libtcod.KEY_DOWN, libtcod.KEY_KP2], ('move', (0, 1))),
         (['n', '3', libtcod.KEY_KP3], ('move', (1, 1))),
+        (['e'], ('e_action')),
         (['Q'], 'quit'),
         ([libtcod.KEY_ESCAPE], 'cancel'),
         (['g', ','], 'pick_up'),

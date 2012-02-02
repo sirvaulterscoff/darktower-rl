@@ -72,6 +72,13 @@ def handle_cancel():
         gui.toggle_lookmode()
     return False
 
+def handle_e_action():
+    global map
+    #handles actions bound to e key - eat, examine
+    if gl.__lookmode__:
+        gui.show_examine(player, map)
+        key = game_input.readkey()
+
 
 def handle_wizard():
     gl.__wizard_mode__ = True
@@ -161,10 +168,13 @@ gl.player = player
 #map = Map(dg.finish())
 #map.place_monsters()
 requests=[]
-from storytelling.npc import KingNPC
+from storytelling.npc import KingNPC, DeityNPC
 
 king_npc = KingNPC()
 king_npc.name = 'The Great King'
+king_npc.deity = DeityNPC()
+king_npc.deity.name = 'OMG'
+king_npc.deity.altar_name = 'Bone altar of Kikubaaquadgha'
 requests.append(MapRequest('crypt', {'corpse': king_npc}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (2, 2)}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (11, 2)}))

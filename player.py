@@ -47,6 +47,7 @@ class Player(Critter):
     energy = 10.0
     current_energy = energy
     action_cost = PlayerActionCost()
+    time = 'past' #present or future
 
     def __init__(self):
         self.map = None

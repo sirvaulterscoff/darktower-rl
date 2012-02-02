@@ -56,6 +56,7 @@ class LibtcodGui(AbstractGui):
         self.con2 = libtcod.console_new(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
         self.panel = libtcod.console_new(RIGHT_PANEL_WIDTH, SCREEN_HEIGHT)
         self.panel_msg = libtcod.console_new(SCREEN_WIDTH, MSG_PANEL_HEIGHT)
+        self.con_full = libtcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.message_colours[0] = libtcod.Color(128,128,128)
         self.message_colours[1] = libtcod.Color(200,200,200)
         self.message_colours[2] = libtcod.Color(128,10,10)
@@ -203,7 +204,7 @@ class LibtcodGui(AbstractGui):
                 result += 'You see ' + crit.name + '.\n'
             tile_at = map.tile_at(_x, _y)
             result += tile_at.get_view_description()
-            result += 'Press m to examine'
+            result += 'Press e to examine'
             libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
             libtcod.console_print(self.panel_msg, 0, 0, result.ljust(SCREEN_WIDTH, ' '))
 
@@ -351,6 +352,34 @@ class LibtcodGui(AbstractGui):
 
     def clear_screen(self):
         libtcod.console_clear(self.con)
+
+    def show_examine(self, player, map):
+        libtcod.console_clear(self.con_full)
+        _x, _y = self.viewport.look_x, self.viewport.look_y
+        if (_x, _y) == self.viewport.playerxy:
+            #starting point of view
+            libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+            libtcod.console_print(self.con_full, 1, 0, 'This is you'.ljust(SCREEN_WIDTH, ' '))
+            libtcod.console_print(self.con_full, 1, 1, 'Press e to go back to look-around mode'.ljust(SCREEN_WIDTH, ' '))
+        else:
+            visible = rlfl.has_flag(map.current.fov_map0, (_x, _y), rlfl.CELL_MEMO)
+            if not visible:
+                libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+                libtcod.console_print(self.con_full, 1, 0, 'You can\'t see this far'.ljust(SCREEN_WIDTH, ' '))
+                libtcod.console_print(self.con_full, 1, 1, 'Press e to go back to look-around mode'.ljust(SCREEN_WIDTH, ' '))
+                return
+
+            result = ''
+            crit = map.critter_at(_x, _y)
+            if crit:
+                result +=  getattr(crit, 'description_' + player.time)
+            tile_at = map.tile_at(_x, _y)
+            result += tile_at.get_full_description(player.time)
+            result += '\n\nPress e to go back to look-around mode.'
+            libtcod.console_set_default_foreground(self.panel_msg, libtcod.white)
+            libtcod.console_print(self.con_full, 0, 0, result.ljust(SCREEN_WIDTH, ' '))
+            libtcod.console_blit(self.con_full, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
+            libtcod.console_flush()
 
 
 class Viewport(object):

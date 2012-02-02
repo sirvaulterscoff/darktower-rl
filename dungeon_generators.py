@@ -290,6 +290,9 @@ class MapDef(object):
     def find_feature(self, id=None, oftype=None, multiple=False, filter=None):
         return find_feature(self.map, id, oftype, multiple, filter)
 
+    def find_features(self, id=None, oftype=None, filter=None):
+        return find_feature(self.map, id, oftype, multiple=True, filter=filter)
+
     def find_creature(self, name=None, multiple=False):
         mons = self.get_mons()
         if name:

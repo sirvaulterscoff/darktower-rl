@@ -43,6 +43,16 @@ class Item(object):
     def __repr__(self):
         return self.unided_name
 
+    def get_full_description(self, time):
+        result = ''
+        item_desc = getattr(self, 'description_' + time)
+        if item_desc:
+            result += item_desc
+        elif hasattr(self, 'description'):
+            result += self.description
+        else:
+            result += 'You see ' + self.name.capitalize() + ' here. '
+        return result
 
 class Gold(Item):
     name = 'gold'

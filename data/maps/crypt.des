@@ -32,18 +32,20 @@ mode=asis
 on_param_set="""%
 def crypt1_set_param(name, value, map_def):
     if name == 'corpse':
-        tomb = map_def.create_feature('tomb', name = 'Tomb of ' + value.name)
+        desc = 'Tomb of ' + value.name
+        full_desc = 'You see a tombstone here. Inscription says:\\n Here lies the Great King ' + value.name
+        tomb = map_def.create_feature('tomb', name = desc, description = full_desc)
         map_def.replace_feature('PH', 'TOMB', tomb)
         if hasattr(value, 'deity'):
-            altars = map_def.find_feature(oftype='FT_ALTAR')
+            altars = map_def.find_features(oftype='Altar')
             if altars:
-                for altar in altars:
+                for altar, x, y in altars:
                     altar.name = value.deity.altar_name
-        statues = map_def.find_feature(oftype='FT_STATUE')
+        statues = map_def.find_features(oftype='Statue')
         if statues:
-            for statue in statues:
-                statue.name = 'Statue of ' + value.name
-        map_def.find_creature(name='King').name='Skeleton of ' + value.name
+            for statue, x, y in statues:
+                statue.name = 'Statue of ' + value.name.capitalize()
+        map_def.find_creature(name='King').name='Skeleton of ' + value.name.capitalize()
 out = crypt1_set_param
 """
 SUBST=%=>$pressure_plate(affected:x, action:remove)
