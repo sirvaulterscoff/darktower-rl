@@ -84,7 +84,7 @@ class LayerView(MainView):
 
     def find_room(self, x, y):
         region = self._find_region(x, y)
-        if region: return region.src
+        if region: return region.room_src
         return None
 
 
