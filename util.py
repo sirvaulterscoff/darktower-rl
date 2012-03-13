@@ -38,6 +38,9 @@ def random_from_list(items):
             n -= item.common
     return choice(items)
 
+def random_from_list_nocommon(items):
+    return items[randrange(0, len(items))]
+
 def random_from_list_weighted(items, inverse = False):
     """ Gets random item from list. Probability of certain item is based on 'common' attribute
     of item, i.e. the highest common gives highest probability of item outcome.

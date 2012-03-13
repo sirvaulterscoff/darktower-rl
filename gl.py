@@ -79,3 +79,19 @@ def render_warn_yn_dialog(title):
 def require_hud_update():
     if gui_listener:
         gui_listener.render_ui(player)
+
+def set_playing():
+    global __game_state__
+    __game_state__ = 'playing'
+
+def set_inventory():
+    global __game_state__
+    __game_state__ = 'inventory'
+
+def is_playing():
+    global __game_state__
+    return __game_state__ == 'playing'
+
+def is_inventory():
+    global __game_state__
+    return __game_state__ == 'inventory'

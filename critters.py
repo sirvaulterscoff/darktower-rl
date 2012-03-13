@@ -157,7 +157,6 @@ class Critter(object):
     base_ac = 0
     base_dmg = [(1, 1)]
     dlvl = 1
-    inven = []
     common = 10
     fov_range = 5
     ai = ActiveAI()

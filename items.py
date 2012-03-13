@@ -4,6 +4,7 @@ from random import randrange, choice, shuffle
 from acquire import acquire
 from features import DungeonFeature
 
+
 class Item(object):
     char = ' '
     color = (255,255,255)
@@ -18,6 +19,7 @@ class Item(object):
     common = 10
     #sets quest level for that item. If quest level is none, then item can't be used for quest-targets. otherwise it can be selected fro a quest-target
     quest_level = None
+    category = None
     def __init__(self):
         self.randart = False
         self.unique_name = None
@@ -61,6 +63,7 @@ class Gold(Item):
     dim_color = (128,128,10)
     min=0
     max=100
+    category = None
     def __init__(self, value=None):
         super(Gold, self).__init__()
         if not value:
@@ -86,8 +89,10 @@ class ArtefactDes(Item):
         self.type = None
         self.randart = False
 class QuestItemDes(Item):
+    category = "Quest Item"
     pass
 class KeyItemDes(Item):
+    category = "Quest Item"
     pass
 
 
@@ -97,6 +102,7 @@ class Potion(Item):
     quaff = True
     char = '!'
     unided_color = util.random_color(check_unique=potion_colors)
+    category = "Potions"
 
     def __init__(self):
         super(Potion, self).__init__()
@@ -151,6 +157,8 @@ multilevel_features = ["rF", "rC"]
 innate_features = ["rPois", "rElec"]
 
 class Weapon(Item):
+    category = "Weapons"
+
     def __init__(self):
         self.brand = None
         self.resists = []
@@ -198,6 +206,8 @@ class Katana(Weapon):
 weapons = [Blade, ShortBlade, Katana]
 
 class Armor(Item):
+    category = "Armour"
+
     def __init__(self):
         super(Armor, self).__init__()
         self.resist = None

@@ -1,8 +1,10 @@
+from __builtin__ import max
 import game_input
 import gl
 import thirdparty.libtcod.libtcodpy as libtcod
 from features import  *
 import util
+from string import  ascii_letters, digits
 import rlfl
 
 SCREEN_WIDTH = 80
@@ -36,6 +38,7 @@ MSG_SEVERITY = { 1 : MSG_NEW_COLOR,
 
 parsed_colors = {}
 BLACK = (0,0,0)
+valid_inventory_chars = ascii_letters + digits
 class AbstractGui(object):
     def __init__(self):
         pass
@@ -49,8 +52,8 @@ class LibtcodGui(AbstractGui):
     def __init__(self):
         self.key = libtcod.Key()
         self.mouse = libtcod.Mouse()
-        libtcod.console_set_custom_font('data/fonts/terminal10x10_gs_tc.png',
-                                        libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+        libtcod.console_set_custom_font('data/fonts/BrogueFont3.png',
+                                        libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_ASCII_INROW)
         libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'darktower-rl', False, renderer=libtcod.RENDERER_OPENGL)
         self.con = libtcod.console_new(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
         self.con2 = libtcod.console_new(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
@@ -144,6 +147,9 @@ class LibtcodGui(AbstractGui):
         gl.logger.debug('Printing player')
         x, y = self.viewport.adjust_coords(player.x, player.y)
         buffer.set_fore(x, y, player.color[0], player.color[1], player.color[2], player.char)
+        tile = map.tile_at(player.x, player.y)
+        if tile.color_back > (200, 200, 200):
+            buffer.set_back(x, y, 200, 200, 200)
 
         if gl.__wizard_mode__:
             libtcod.console_print(self.con, 0, VIEWPORT_HEIGHT - 1, 'WIZ MODE')
@@ -171,7 +177,7 @@ class LibtcodGui(AbstractGui):
 
     def render_messages(self, map, player):
         if gl.__lookmode__:
-            self.render_description(map, player)
+            self.render_tile_description(map, player)
             libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
             return
         #print the game messages, one line at a time
@@ -184,7 +190,7 @@ class LibtcodGui(AbstractGui):
             y += 1
         libtcod.console_blit(self.panel_msg, 0, 0, SCREEN_WIDTH, MSG_PANEL_HEIGHT, 0, 0, MSG_PANEL_Y)
 
-    def render_description(self, map, player):
+    def render_tile_description(self, map, player):
         libtcod.console_clear(self.panel_msg)
         _x, _y = self.viewport.look_x, self.viewport.look_y
         if (_x, _y) == self.viewport.playerxy:
@@ -353,7 +359,7 @@ class LibtcodGui(AbstractGui):
     def clear_screen(self):
         libtcod.console_clear(self.con)
 
-    def show_examine(self, player, map):
+    def render_examine(self, player, map):
         libtcod.console_clear(self.con_full)
         _x, _y = self.viewport.look_x, self.viewport.look_y
         if (_x, _y) == self.viewport.playerxy:
@@ -380,6 +386,142 @@ class LibtcodGui(AbstractGui):
             libtcod.console_print(self.con_full, 0, 0, result.ljust(SCREEN_WIDTH, ' '))
             libtcod.console_blit(self.con_full, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
             libtcod.console_flush()
+
+    def render_inventory(self, player, action, handler):
+        mapped_items = {}
+        key = self._render_inventory(player, action, mapped_items)
+        if key:
+            return handler(player, mapped_items[key])
+        else:
+            return None
+
+    def _render_inventory(self, player, action, mapped_items):
+        libtcod.console_clear(self.con_full)
+
+        inven = player.get_inventory_categorized()
+        y = 1
+        letter = ord('a')
+
+        msgs = ScrollList()
+        msgs.append(('Select letter to ' + action).center(SCREEN_WIDTH), libtcod.white)
+        for category, items in inven.items():
+            msgs.append(category + ":", libtcod.dark_han)
+            y += 1
+            for item in items:
+                msgs.append(chr(letter), libtcod.dark_orange, False)
+                line =  " - " + item.name
+                mapped_items[chr(letter)] = item
+                if letter > 122:
+                    letter = ord('A')
+                msgs.append(line, libtcod.white)
+                y += 1
+        for x in xrange(120):
+            msgs.append('Line ' + str(x), libtcod.white)
+        sp = ScrollPane(self.con_full, SCREEN_WIDTH, SCREEN_HEIGHT, msgs)
+        sp.render()
+        while True:
+            key = sp.handle_input()
+            if not isinstance(key, str) or key not in valid_inventory_chars:
+                return None
+            if not key in mapped_items:
+                continue #todo maybe we should exit here or give a warning?
+            return key
+
+
+class ScrollList(object):
+    def __init__(self):
+        self.lines = []
+        self.current_line = None
+
+    def append(self, text, color, new_line=True):
+        self.text(text)
+        self.color(color)
+        self.current_line[2] = new_line
+        self.next_line()
+
+    def next_line(self):
+        self.current_line = None
+
+    def color(self, color):
+        self._add_new_line()
+        self.current_line[1] = color
+
+
+    def text(self, text):
+        self._add_new_line()
+        self.current_line[0] = text
+
+    def no_new_line(self):
+        self._add_new_line()
+        self.current_line[2] = False
+
+    def _add_new_line(self):
+        if self.current_line is None:
+            self.current_line = [None] * 3
+            self.current_line[2] = True
+            self.lines.append(self.current_line)
+
+    def __iter__(self):
+        for line in self.lines:
+            yield line
+
+    def __len__(self):
+        return len(self.lines)
+
+    def __getitem__(self, item):
+        return self.lines.__getitem__(item)
+
+
+class ScrollPane(object):
+    def __init__(self, console, width, height, content):
+        self.console = console
+        self.width = width
+        self.height = height
+        self.content = content
+        self.offset = 0
+
+    def render(self):
+        libtcod.console_clear(self.console)
+        pages = len(self.content) / (self.height - 2)
+        pages += 1 if len(self.content) % (self.height - 2) != 0 else 0
+        x = 0
+        y = 1
+        if self.offset:
+            libtcod.console_set_default_foreground(self.console, libtcod.dark_crimson)
+            libtcod.console_print(self.console, 0, 0, "---  [-][PgDwn] Scroll up ---" .center(self.width))
+        for line, rgb, newline in self.content[self.offset:]:
+            libtcod.console_set_default_foreground(self.console, rgb)
+            libtcod.console_print(self.console, x, y, line)
+            if newline:
+                x = 0
+                y+= 1
+            else:
+                x += len(line)
+        y = self.height - 1
+        if pages > 1:
+            libtcod.console_set_default_foreground(self.console, libtcod.dark_crimson)
+            footer = "---  [+][PgDwn] Scroll down \t Line [%d]/[%d] ---" % (self.offset, len(self.content))
+            libtcod.console_print(self.console, 0, y, footer.center(self.width))
+
+        libtcod.console_blit(self.console, 0, 0, self.width, self.height, 0, 0, 0)
+        libtcod.console_flush()
+
+    def handle_input(self):
+        while True:
+            key = game_input.readkey()
+            if key == '+' or key == libtcod.KEY_DOWN:
+                self.offset = min(self.offset + 1, len(self.content) - 1)
+            elif key == '-' or key == libtcod.KEY_UP:
+                self.offset = max(self.offset - 1, 0)
+            elif key == libtcod.KEY_PAGEUP:
+                self.offset = max(self.offset - self.height, 0)
+            elif key == libtcod.KEY_PAGEDOWN or key == ' ':
+                self.offset = min(self.offset + self.height, len(self.content) - 1)
+            elif key == libtcod.KEY_ESCAPE or key == libtcod.KEY_ENTER:
+                break
+            else:
+                return key
+            self.render()
 
 
 class Viewport(object):

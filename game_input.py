@@ -22,7 +22,7 @@ KEYS = [
         ([libtcod.KEY_ESCAPE], 'cancel'),
         (['g', ','], 'pick_up'),
         (['i'], 'inventory'),
-        (['x'], 'examine'),
+        (['x'], 'lookaround'),
         (['d'], 'drop'),
         (['>'], 'descend'),
         (['<'], 'ascend'),

@@ -1,6 +1,8 @@
 from critters import Critter, ActionCost
 import gl
 import util
+from inventory import Inventory
+
 search_skill_scale = [x for x in xrange(5, 1000, 17)]
 search_skill_scale.insert(0, 0)
 search_skill_base_chance = 10
@@ -53,6 +55,7 @@ class Player(Critter):
         self.map = None
         self.gold = 0
         self.search_skill = SearchSkill(self)
+        self.inventory = Inventory(self)
 
     def move(self, dx, dy):
         newx, newy = self.x + dx, self.y + dy
@@ -126,3 +129,8 @@ class Player(Critter):
 
     hp = property(gethp, sethp)
 
+    def get_inventory_categorized(self):
+        """ get_inventory_categorized() => {category :[items]}
+        Returns list of items divided by category
+        """
+        return self.inventory.categorized_view()

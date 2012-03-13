@@ -9,6 +9,7 @@ from map import Map
 from dg import DungeonGenerator
 from player import Player
 from rlfl import delete_all_maps
+import inventory
 
 try:
     import psyco ; psyco.full()
@@ -18,7 +19,7 @@ except ImportError:
 
 def main_loop():
     global map
-    while gl.__game_state__ == "playing" and not gui.window_closed():
+    while gl.is_playing() and not gui.window_closed():
         gui.render_map(map, player)
         if gl.__show_chapter__:
             gui.render_intro(gl.__chapter_text__)
@@ -47,7 +48,7 @@ def handle_key(key):
 
 def handle_move(dx, dy):
     global map
-    if gl.__game_state__ == "playing":
+    if gl.is_playing():
         if gl.__lookmode__:
             gui.handle_lookaround(dx, dy, map)
             return
@@ -59,7 +60,23 @@ def handle_move(dx, dy):
             gl.__turn_count__ += 1
         return cost
 
-def handle_examine():
+def handle_inventory():
+    #displayes inventory
+    if not gl.is_playing():
+        return
+    gl.set_inventory()
+    if not gui.render_inventory(player, "examine", handle_examine_invitem):
+        #user pressed exit key
+        gl.set_playing()
+        return None
+
+def handle_examine_invitem(player, item):
+    gui.render_tile_description(item)
+
+def handle_lookaround():
+    #handles look-around
+    if not gl.is_playing():
+        return
     gl.__lookmode__ = not gl.__lookmode__
     gui.toggle_lookmode()
 
@@ -67,6 +84,9 @@ def handle_quit():
     gl.__game_state__ = "quit"
 
 def handle_cancel():
+    if gl.is_inventory():
+        gl.set_playing()
+        return
     if gl.__lookmode__:
         gl.__lookmode__ = False
         gui.toggle_lookmode()
@@ -76,7 +96,7 @@ def handle_e_action():
     global map
     #handles actions bound to e key - eat, examine
     if gl.__lookmode__:
-        gui.show_examine(player, map)
+        gui.render_examine(player, map)
         key = game_input.readkey()
 
 
@@ -111,7 +131,7 @@ def handle_kill_all_humans():
 
 
 def handle_search():
-    if gl.__game_state__ == "playing":
+    if gl.is_playing():
         global map
         gl.message('You check your surroundings')
         cost = player.search(map)
@@ -150,6 +170,8 @@ gl.gui_listener = gui
 player = Player()
 player.camx2 = VIEWPORT_WIDTH -1
 player.camy2 = VIEWPORT_HEIGHT - 1
+from items import HealingPotion
+player.inventory.items.append(HealingPotion)
 gl.player = player
 
 #dg = CaveGenerator(60, 60)
@@ -175,8 +197,8 @@ king_npc.name = 'The Great King'
 king_npc.deity = DeityNPC()
 king_npc.deity.name = 'OMG'
 king_npc.deity.altar_name = 'Bone altar of Kikubaaquadgha'
-requests.append(MapRequest('crypt', {'corpse': king_npc}))
-requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (2, 2)}))
+#requests.append(MapRequest('crypt', {'corpse': king_npc}))
+requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (0, 0)}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (11, 2)}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_2', 'xy': (2, 15)}))
 map = DungeonGenerator.generate_map('null', theme='crypt', width=10, height=10, requests=requests )

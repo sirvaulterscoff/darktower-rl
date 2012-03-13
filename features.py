@@ -145,6 +145,16 @@ class NoneFeature(DungeonFeature):
     def __init__(self):
         super(NoneFeature, self).__init__()
 
+class RockWall(DungeonFeature):
+    fg = ((130, 110, 50), (110, 100, 60), (100, 90, 40))
+    bg = ((255, 255, 255), (200, 200, 200), (180, 180, 180))
+    def __init__(self):
+        super(RockWall, self).__init__()
+        self.char = '#'
+        self.color = util.random_from_list_nocommon(self.fg)
+        self.color_back = util.random_from_list_nocommon(self.bg)
+        self.dim_color=(0, 0, 100)
+
 
 class Door (DungeonFeature):
     def __init__(self, opened=False):
@@ -182,7 +192,14 @@ class HiddenFeature(object):
 
 class HiddenDoor (Door, HiddenFeature):
     def __init__(self):
-        self.set_params({'color' : (255,255,255), 'dim_color':(128,128,128), 'type':ftype.door, 'flags': BLOCK_LOS | BLOCK_WALK | FIXED})
+        if hasattr(self, 'stub_call'):
+            self.stub = self.stub_call()
+        if self.stub:
+            self.set_target(self.stub)
+        else:
+            self.set_params({'color' : (255,255,255), 'dim_color':(128,128,128)})
+        self.flags |= (BLOCK_LOS | BLOCK_WALK | FIXED)
+        self.type = ftype.door
         self.opened = False
 
     def found(self, player):
@@ -349,10 +366,10 @@ class Stairs(DungeonFeature):
 
 
 none = NoneFeature
-fixed_wall = build_type('FixedWall', char='#', name='impassable wall', color=(130, 110, 50), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
-rock_wall  = build_type('RockWall', char='#', name='wall', color=(130, 110, 50), dim_color=(0, 0, 100), flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
+fixed_wall = build_type('FixedWall', char='#', name='impassable wall', color=(191,151,96), color_back=(200, 200, 200), dim_color=(0, 0, 100), flags=FIXED | BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
+rock_wall  = build_type('RockWall', base=RockWall, char='#', name='wall', flags=BLOCK_LOS | BLOCK_WALK, type=ftype.wall)
 glass_wall = build_type('GlassWall', char='#', name='glass wall', color=(30, 30, 160), dim_color=(0, 0, 100), flags=BLOCK_WALK, type=ftype.wall)
-window = build_type('Window', char='0',  name='window', color=(128, 128, 160), dim_color=(0, 0, 60), flags=BLOCK_WALK, type=ftype.wall)
+window = build_type('Window', char=chr(20),  name='window', color=(128, 128, 160), color_back=(191,223,255), dim_color=(0, 0, 60), flags=BLOCK_WALK, type=ftype.wall)
 well = build_type('Well', char='o',  name='well', color=(255, 255, 255), dim_color=(0, 0, 60), type=ftype.furniture, flags=BLOCK_WALK)
 tree = build_type('Tree', char='T',  name='tree', color=(0, 90, 0), dim_color=(0, 40, 0), type=ftype.furniture, flags=BLOCK_WALK | BLOCK_LOS)
 statue = build_type('Statue', char='T',  name='statue', color=(100, 100, 100), dim_color=(80, 80, 80), type=ftype.furniture, flags=BLOCK_WALK | BLOCK_LOS)
@@ -381,7 +398,7 @@ treasure_chest = build_type('TreasureChest',  _TreasureChest, name='chest', flag
 
 pressure_plate = build_type('PressurePlate', _PressurePlate, name='pressure plate', affected='x', type='remove', subst=floor, flags=FIXED)
 trap = build_type('Trap', _Trap, name='trap', char='.', dim_color=(0, 0, 100))
-hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall, char=fixed_wall.char, stub=rock_wall)
+hidden_door = build_type('HiddenDoor', base=HiddenDoor, feature=rock_wall, char=fixed_wall.char, stub_call=rock_wall)
 
 altar = build_type('Altar', base=_Altar,  name='altar', flags=FIXED)
 ph = build_type('PH', char=' ', invisible=True, flags=FIXED)
