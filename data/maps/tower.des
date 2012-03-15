@@ -3,13 +3,14 @@ name=Wizard's tower
 ORIENT=NONE
 SUBST=.=>none
 SUBST=,=>$floor
+ITEMS=!=>$HealingPotion && $HealingPotion && $HealingPotion
 align=base
 MAP="""
 ...........
 ....####...
 ..###,,###.
 .0#,,,,,,##
-@+,,,,,,<,#
+@+!,,,,,<,#
 .0#,,,,,,##
 ..###,,###.
 ....####...

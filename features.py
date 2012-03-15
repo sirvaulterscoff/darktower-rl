@@ -73,6 +73,11 @@ class DungeonFeature(object):
         if self.items:
             for item in self.items[:]:
                 item.player_move_into(player, x, y, map_def)
+        if self.items:
+            if 1<=len(self.items)<3:
+                gl.message('There are ' + ', '.join(map(lambda x: x.__repr__(), self.items)) + ' lying here')
+            elif len(self.items) > 2:
+                gl.message('There are several items lying here')
         return self.passable(), self.passable(), self.passable()
 
     def player_over(self, player):
@@ -91,7 +96,8 @@ class DungeonFeature(object):
     def init(self):
         if self.items:
             for x in xrange(len(self.items)):
-                self.items[x] = self.items[x]()
+                if isinstance(self.items[x], type):
+                    self.items[x] = self.items[x]()
                 self.items[x].place(self)
 
     def has_items(self):

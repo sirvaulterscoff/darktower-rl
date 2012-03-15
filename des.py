@@ -88,7 +88,10 @@ def parse_val(_val, where, lookup_dicts):
             item = parse_val('$' + args[0].strip(), where, lookup_dicts)
             if not item:
                 raise RuntimeError('No callable under the name [%s]' % args[0])
-            return extend_list([item], parse_val('$'+args[2], where, lookup_dicts))
+            val2 = args[2].lstrip()
+            if not val2.startswith('$'):
+                val2 = '$' + val2
+            return extend_list([item], parse_val(val2, where, lookup_dicts))
         #here we address simple value evaluation via eval
         try:
             if val.find('(') > -1:#we have a record in form $func_name(param:value)
