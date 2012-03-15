@@ -4,12 +4,13 @@ ORIENT=NONE
 SUBST=.=>none
 SUBST=,=>$floor
 ITEMS=!=>$HealingPotion && $HealingPotion && $HealingPotion
+ITEMS=K=>$Katana
 align=base
 MAP="""
 ...........
 ....####...
 ..###,,###.
-.0#,,,,,,##
+K0#,,,,,,##
 @+!,,,,,<,#
 .0#,,,,,,##
 ..###,,###.

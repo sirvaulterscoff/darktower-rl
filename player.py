@@ -1,7 +1,7 @@
 from critters import Critter, ActionCost
 import gl
 import util
-from inventory import Inventory
+from inventory import Inventory, categorize_items
 
 search_skill_scale = [x for x in xrange(5, 1000, 17)]
 search_skill_scale.insert(0, 0)
@@ -134,3 +134,23 @@ class Player(Critter):
         Returns list of items divided by category
         """
         return self.inventory.categorized_view()
+
+    def _item_pickup(self, item):
+        self.inventory.add_item(item)
+        gl.message('You pick up ' + str(item))
+        item.on_pickup(self)
+
+    def pickup(self, map, multi_select_handler=None):
+        tile = self.map.tile_at(self.x, self.y)
+        items = tile.items
+        if not items:
+            gl.message('There is nothing to pick up here')
+        if len(items) == 1:
+            item = items.pop()
+            self._item_pickup(item)
+        elif multi_select_handler:
+            selected_items = multi_select_handler(categorize_items(items))
+            if selected_items:
+                for item in selected_items:
+                    items.remove(item)
+                    self._item_pickup(item)

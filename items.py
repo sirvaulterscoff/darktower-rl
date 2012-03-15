@@ -33,6 +33,9 @@ class Item(object):
     def player_move_into(self, player, x, y, map_src):
         pass
 
+    def on_pickup(self, critter):
+        pass
+
     def place(self, cell):
         self.cell = cell
 
@@ -202,6 +205,7 @@ class Katana(Weapon):
     max_enchantment = (11, 11)
     skill = "blade"
     base_cost = 500
+    char='('
 
 weapons = [Blade, ShortBlade, Katana]
 

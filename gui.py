@@ -388,45 +388,66 @@ class LibtcodGui(AbstractGui):
             libtcod.console_flush()
 
     def render_inventory(self, player, action, handler):
-        mapped_items = {}
-        key = self._render_inventory(player, action, mapped_items)
-        if key:
-            return handler(player, mapped_items[key])
+        item = self._render_inventory(player.get_inventory_categorized(), action)
+        if item:
+            return handler(player, item)
         else:
             return None
 
-    def _render_inventory(self, player, action, mapped_items):
+    def _render_inventory(self, items, action, multiple=False):
+        """
+        Renders inventory screen, executing action if player presses one of mapped keys
+        """
+        mapped_items = {}
         libtcod.console_clear(self.con_full)
 
-        inven = player.get_inventory_categorized()
-        y = 1
-        letter = ord('a')
+        inven = items
+        selected_items  = None
 
-        msgs = ScrollList()
-        msgs.append(('Select letter to ' + action).center(SCREEN_WIDTH), libtcod.white)
-        for category, items in inven.items():
-            msgs.append(category + ":", libtcod.dark_han)
-            y += 1
-            for item in items:
-                msgs.append(chr(letter), libtcod.dark_orange, False)
-                line =  " - " + item.name
-                mapped_items[chr(letter)] = item
-                if letter > 122:
-                    letter = ord('A')
-                msgs.append(line, libtcod.white)
-                y += 1
-        for x in xrange(120):
-            msgs.append('Line ' + str(x), libtcod.white)
-        sp = ScrollPane(self.con_full, SCREEN_WIDTH, SCREEN_HEIGHT, msgs)
-        sp.render()
+        if multiple:
+            selected_items = {}
         while True:
+            msgs = ScrollList()
+            if not multiple:
+                msgs.append(('Select letter to ' + action).center(SCREEN_WIDTH), libtcod.white)
+            else:
+                msgs.append(('Select letters to ' + action).center(SCREEN_WIDTH), libtcod.white)
+
+            y = 1
+            letter = ord('a')
+            for category, items in inven.items():
+                msgs.append(category + ":", libtcod.dark_han)
+                y += 1
+                for item in items:
+                    cletter = chr(letter)
+                    msgs.append(cletter, libtcod.dark_orange, False)
+                    if multiple and selected_items.has_key(cletter):
+                        line = " + " + item.name
+                    else:
+                        line = " - " + item.name
+                    mapped_items[cletter] = item
+                    letter += 1
+                    if letter > 122:
+                        letter = ord('A')
+                    msgs.append(line, libtcod.white)
+                    y += 1
+            sp = ScrollPane(self.con_full, SCREEN_WIDTH, SCREEN_HEIGHT, msgs)
+            sp.render()
+
             key = sp.handle_input()
+            if multiple and key == libtcod.KEY_ENTER:
+                return selected_items.values()
             if not isinstance(key, str) or key not in valid_inventory_chars:
                 return None
             if not key in mapped_items:
                 continue #todo maybe we should exit here or give a warning?
-            return key
-
+            if not multiple:
+                return mapped_items[key]
+            else:
+                if selected_items.has_key(key):
+                    selected_items[key] = None
+                else:
+                    selected_items[key] = mapped_items[key]
 
 class ScrollList(object):
     def __init__(self):
@@ -517,8 +538,10 @@ class ScrollPane(object):
                 self.offset = max(self.offset - self.height, 0)
             elif key == libtcod.KEY_PAGEDOWN or key == ' ':
                 self.offset = min(self.offset + self.height, len(self.content) - 1)
-            elif key == libtcod.KEY_ESCAPE or key == libtcod.KEY_ENTER:
+            elif key == libtcod.KEY_ESCAPE:
                 break
+            elif key == libtcod.KEY_ENTER:
+                return libtcod.KEY_ENTER
             else:
                 return key
             self.render()

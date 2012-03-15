@@ -157,6 +157,12 @@ def handle_ascend():
         gui.reset()
     return cost
 
+def handle_pickup():
+    if gl.is_playing():
+        global map
+        cost = player.pickup(map, lambda x: gui._render_inventory(x, 'pick up', multiple=True))
+        return cost
+
 
 def exit():
     print 'Exiting...'

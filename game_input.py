@@ -20,7 +20,7 @@ KEYS = [
         (['e'], ('e_action')),
         (['Q'], 'quit'),
         ([libtcod.KEY_ESCAPE], 'cancel'),
-        (['g', ','], 'pick_up'),
+        (['g', ','], 'pickup'),
         (['i'], 'inventory'),
         (['x'], 'lookaround'),
         (['d'], 'drop'),
@@ -51,7 +51,7 @@ def readkey():
     while True:
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS, key, mouse)
         #No need to react on service keys
-        if key.vk == libtcod.KEY_ENTER and libtcod.KEY_ALT:
+        if key.vk == libtcod.KEY_ENTER and key.vk == libtcod.KEY_ALT:
             #Alt+Enter: toggle fullscreen
             libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
             continue
