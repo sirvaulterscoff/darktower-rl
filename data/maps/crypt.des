@@ -1,4 +1,4 @@
-mode=asis
+placement=asis
 align=none
 terrain=graveyard city
 ORIENT=NONE
@@ -28,7 +28,7 @@ MONS=3=>$skeleton(hd: 1, name: Skeleton-guard)
 MONS=4=>$skeleton(name: King)
 SUBST={=>$pool
 SUBST=}=>$pool
-mode=asis
+placement=asis
 on_param_set="""%
 def crypt1_set_param(name, value, map_def):
     if name == 'corpse':

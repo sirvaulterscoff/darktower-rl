@@ -112,6 +112,31 @@ class Room(object):
         else:
             return None
 
+    @property
+    def center(self):
+        center_x = (self.x + self.x2) / 2
+        center_y = (self.y + self.y2) / 2
+        return center_x, center_y
+
+
+    @property
+    def is_fixed(self):
+        if not self.src:
+            return False
+        else:
+            return self.src.fixed
+
+    def xy_in_room(self, x, y):
+        return self.x <= x <= self.x2 and self.y <= y <= self.y2
+
+    def xy_is_border(self, x, y):
+        return ((self.x == x or self.x2 == x) and self.y <= y <= self.y2) or ((self.y == y or self.y2 == y) and self.x <= x <= self.x2)
+
+    def overlap(self, x, y, x2, y2):
+        x_overlap = self.x <= x <= self.x2 or self.x <= x2 <= self.x2
+        y_overlap = self.y <= y <= self.y2 or self.y <= y2 <= self.y2
+        return x_overlap and y_overlap
+
 
 class MultilevelRoom(Room):
     """
@@ -133,12 +158,6 @@ class MultilevelRoom(Room):
         self.height = len(map)
         self.levels['0'] = self._map
     map = property(fget=get_map, fset=set_map)
-
-def xy_in_room(room , x, y):
-    if x>=room.x and x<=room.x2:
-        if y>=room.y and y<=room.y2:
-            return True
-    return False
 
 
 def find_feature(_map, id=None, oftype=None, multiple=False, filter=None):

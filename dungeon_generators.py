@@ -14,6 +14,7 @@ logger = util.create_logger('DG')
 ft = util.NamedMap(features)
 
 default_map_chars = {
+    'X': ft.fixed_wall,
     '#': ft.rock_wall,
 	' ': ft.none,
 	'.': ft.floor,
@@ -125,6 +126,7 @@ class MapDef(object):
             self.items = dict(parent.items)
         else:
             self.items = {}
+        """ Map bytes => [][] """
         self.map = None
         self.entry_pos = None
         """ There is several available modes
@@ -134,15 +136,16 @@ class MapDef(object):
         asis = this map is already a fully functional map - similar to include but will not generate
         neither monsters nor traps/items on that map
         """
-        self.mode = 'overflow'
+        self.placement = 'overflow'
         """Terrain defines what type of dungeon generator is suitabe for this map.
         Map placement/generator selection can use two separate algorithms:
             1. we have specific generator defined and when we place our submaps we
             check terrain type for each, making sure it's the same as current generator
             2. we have a request for specific map type (i.e. crypt) - we choose a map
             and see what generator would be apropriate for that map (checking attr terrain)
+            if terrain = 'any' it can be used anywhere
         """
-        self.terrain = None
+        self.terrain = 'any'
         """Require only one map with such id"""
         self.unique = False
         """ Sets the minimum hd which is allowed for this map """
@@ -170,6 +173,8 @@ class MapDef(object):
             -base - upper maps will be aligned against main map
             -none - do not align"""
         self.align = 'base'
+        """ Do not allow to modify this map  i.e. place other maps/features inside this """
+        self.fixed = True
 
 
     def _prepare_subst(self):
@@ -218,7 +223,7 @@ class MapDef(object):
         self.prepared = True
         return self
 
-    def tune(self, params = {}):
+    def tune(self, params):
         """ Tunes the map - i.e. adjust some of it parameters, or place items, or monsters """
         #todo map script callback
 
@@ -302,6 +307,19 @@ class MapDef(object):
                     return filtered[0]
                 else:
                     return filtered
+
+    def has_terrain(self, terrain):
+        if self.terrain == 'any':
+            return True
+        return len(filter(lambda x: x.trim() == terrain.trim(), self.terrain.split(',')))
+
+    def debug_print(self):
+        for y in xrange(self.height):
+            line = ''
+            for x in xrange(self.width):
+                tile = self.map[y][x]
+                line += tile.char
+            print line
 
 
 class Rect:
@@ -391,71 +409,6 @@ class CaveGenerator(AbstractGenerator):
         return count
 
 
-class RoomsCoridorsGenerator(AbstractGenerator):
-    def __init__(self, length, width, room_max_size=15, room_min_size=3, max_rooms=30):
-        self._map = [[ft.fixed_wall()
-                      for i in range(0, length)]
-                     for j in range(0, width)]
-        self.length = length
-        self.width = width
-        self.max_rooms = max_rooms
-        self.room_min_size = room_min_size
-        self.room_max_size = room_max_size
-
-    def generate(self):
-        rooms = []
-        num_rooms = 0
-        ticks = self.max_rooms * 5
-
-        for r in range(self.max_rooms):
-            if ticks <= 0: break
-            ticks -= 1
-            if num_rooms > self.max_rooms: break
-
-            width = libtcod.random_get_int(0, self.room_min_size, self.room_max_size)
-            height = libtcod.random_get_int(0, self.room_min_size, self.room_max_size)
-            #random position without going out of the boundaries of the map
-            x = libtcod.random_get_int(0, 0, self.length - width - 1)
-            y = libtcod.random_get_int(0, 0, self.width - height - 1)
-            new_room = Rect(x, y, width, height)
-            if not self.check_room_overlap(rooms, new_room):
-                rooms.append(new_room)
-                new_x, new_y = new_room.center()
-                if num_rooms > 0:
-                    prev_x, prev_y = rooms[num_rooms - 1].center()
-                    if libtcod.random_get_int(0, 0, 1) == 1:
-                        self.create_h_tunnel(prev_x, new_x, prev_y)
-                        self.create_v_tunnel(prev_y, new_y, new_x)
-                    else:
-                        self.create_v_tunnel(prev_y, new_y, prev_x)
-                        self.create_h_tunnel(prev_x, new_x, new_y)
-                num_rooms += 1
-
-        for room in rooms:
-            self.create_room(room)
-
-    def create_h_tunnel(self, x1, x2, y):
-        for x in range(min(x1, x2), max(x1, x2)):
-            self._map[y][x] = ft.floor()
-
-    def create_v_tunnel(self, y1, y2, x):
-        for y in range(min(y1, y2), max(y1, y2)):
-            self._map[y][x] = ft.floor()
-
-
-    def check_room_overlap(self, rooms, new_room):
-        for room in rooms:
-            if room.intersect(new_room): return True
-        return False
-
-    def create_room(self, room):
-        for x in range(room.x1 + 1, room.x2):
-            for y in range(room.y1 + 1, room.y2):
-                self._map[y][x] = ft.floor()
-
-    def finish(self):
-        self.generate_border()
-        return self._map
 
 file_parsed = False
 _parsed_files = {}

@@ -1,4 +1,4 @@
-from dungeon_generators import MapDef, MapRequest, get_map_file, parse_file
+from dungeon_generators import MapDef, MapRequest, get_map_file, parse_file, ft
 from random import choice, randrange, randint
 from features import FIXED, none
 from util import random_from_list_weighted, roll
@@ -42,6 +42,9 @@ class DungeonGenerator(object):
     """
     def generate_map(generator_type, width=1, height=1, player_hd=1, requests=None, params=None, name='', theme=''):
         """generate_map(generator_type, ...) => MapDef
+        params : no_large => bool (disable generation of large maps [map file with prefix large_])
+                map_id => str (place map with certain id ontop of current map)
+                room_maxwidth, room_minwidth, room_maxheight, room_minheight => int (parameters of rooms if applicable)
         """
         if not generators.has_key(generator_type):
             raise RuntimeError('Unknow style [%s] for dungeon generator' % generator_type)
@@ -59,19 +62,19 @@ class DungeonGenerator(object):
 
 #Cache of unique maps names
 unique_maps_already_generated = {}
-def _check_static_params(generator_type, hd, x, params):
+def _check_static_params(generator_type, hd, MapDef, params):
     """ Check params for MapDef loaded from des file. Check that map theme matches that of generator.
         Player HD is higher or equals that defined in des file etc... """
     if generator_type != 'null':
-        if generator_type != x.terrain:
+        if not MapDef.has_terrain(generator_type):
             return False
-    if x.HD >  hd:
+    if MapDef.HD >  hd:
         return False
-    if x.unique and unique_maps_already_generated.has_key(x.id):
+    if MapDef.unique and unique_maps_already_generated.has_key(MapDef.id):
         return False
     #we can have exact id specified
     if params and params.has_key('map_id'):
-        return params['map_id'] == x.id
+        return params['map_id'] == MapDef.id
     return True
 
 
@@ -90,6 +93,8 @@ def _choose_map(generator_type, params, player_hd, theme, size):
     #now let's filter them leaving maps suitable for current generator/player HD and other params
     av_maps = filter(lambda x: _check_static_params(generator_type, player_hd, x, params), av_maps)
     tmap = None
+    if not av_maps:
+        return None
     while True:
         if total_maps_of_theme < 1:
             #if we iterated over enough maps and can't decide on them - break unless none is selected
@@ -185,14 +190,6 @@ def _static_request_preprocessor(generator_type, player_hd, requests, params, th
 
 
 
-def null_generator(map_draft, player_hd, generator_type, requests, params, theme):
-    """Special cased generator - used when we need full sized, untransformed map from des file
-    """
-    mapsrc= [ ['.' for y in xrange(map_draft.width)] for x in xrange(map_draft.height)]
-    map_draft.map = mapsrc
-    return map_draft.prepare(None)
-
-generators['null'] = null_generator
 class PipeItem(object):
     def __init__(self, transformer, name=None):
         self.transformer = transformer
@@ -240,8 +237,9 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
         if request.params:
             tparams.update(request.params)
         tmap =  _choose_map(generator_type, tparams, player_hd, request.type, request.size)
-        result.append( (tmap, request) )
-        tmap = tmap.prepare(tparams)
+        if tmap:
+            result.append( (tmap, request) )
+            tmap.prepare(tparams)
 
     mini_map_count = randrange(*small_theme_maps_count)
     logger.debug('Generating %d mini-maps for current map' % mini_map_count)
@@ -251,7 +249,7 @@ def static_transformer(map_draft, player_hd, generator_type, requests, theme, pa
             tmap = _choose_map(generator_type, params, player_hd, theme, 'mini')
             if tmap:
                 result.append((tmap, None))
-                tmap = tmap.prepare(params)
+                tmap.prepare(params)
 
     logger.debug('Total of %d static maps selected for current map generation' % len(result))
     return result
@@ -281,7 +279,7 @@ def __find_random_mergepoint(map_draft, room, position):
         valid_position = True
         #check rooms overlapping
         for room in map_draft.rooms.values():
-            if xy_in_room(room, x, y):
+            if room.xy_in_room(x, y):
                 valid_position = False
                 break
         #if rooms do not overlap
@@ -325,7 +323,7 @@ def __create_room(map_draft, newmap, map_src, id, request):
     room.height = len(newmap)
     return room
 
-nomerge_chance = 50
+nomerge_chance = 50 #todo move to params
 def __merge_room(map_draft, room, params):
     """ __merge_room(MapDef, MapDef, {}) -> None
     Merges room in map_draft, choosing random location
@@ -333,7 +331,7 @@ def __merge_room(map_draft, room, params):
     @room -> Room or MultilevelRoom to merge
     @params - params of dungeon generator itself
     """
-    mode = room.src.mode
+    placement = room.src.placement
     _rparams = None
     if room.request:
         _rparams = room.request.params
@@ -350,8 +348,8 @@ def __merge_room(map_draft, room, params):
                     x+=1
                     continue
                 dest_tile = map_draft.map[y][x]
-                if mode == 'overflow':
-                    if dest_tile.flags & FIXED: continue #in overflow mode we don't rewrite underlying pixels
+                if placement == 'overflow':
+                    if dest_tile.flags & FIXED: continue #in overflow placement we don't rewrite underlying pixels
                     if tile.flags & FIXED: #we should rewrite if room's fixel is fixed
                         map_draft.map[y][x] = tile
                     elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
@@ -360,10 +358,10 @@ def __merge_room(map_draft, room, params):
                         continue
                     else:
                         map_draft.map[y][x] = tile
-                elif mode == 'include' or mode == 'asis': #in both modes we just
+                elif placement == 'include' or placement == 'asis': #in both modes we just
                     map_draft.map[y][x] = tile
                 else:
-                    raise RuntimeError('Invalid merge mode [%s] specified for map [%s]' % (mode, room.src.id))
+                    raise RuntimeError('Invalid merge placement [%s] specified for map [%s]' % (placement, room.src.id))
                 x+=1
             x = room.x
             y += 1
@@ -422,7 +420,126 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
     del ids
 
 
+def __gen_floor_square(MapDef, x, y, w, h):
+    mapsrc = [['.' for y in xrange(x+w)] for x in xrange(y+h)]
+    MapDef.map = mapsrc
+    return MapDef.prepare(None)
+
+def __gen_wall_square(MapDef, x, y, w, h):
+    mapsrc = [['#' for y in xrange(x+w)] for x in xrange(y+h)]
+    MapDef.map = mapsrc
+    return MapDef.prepare(None)
+
+
+def null_generator(map_draft, player_hd, generator_type, requests, params, theme):
+    """Special cased generator - used when we need full sized, untransformed map from des file
+    """
+    return __gen_floor_square(map_draft, 0, 0, map_draft.width, map_draft.height)
+
+
+MIN_ROOM_WIDTH = 5
+MIN_ROOM_HEIGHT = 2
+MIN_ROOM_SIZE = MIN_ROOM_WIDTH * MIN_ROOM_HEIGHT
+CORRIDOR_FACTOR = 0.5
+
+def __get_room_size_params(params, map_w, map_h):
+    minw, maxw, minh, maxh = 5, 20, 2, 20
+    if not params:
+        return minw, maxw, minh, maxh
+    if params.has_key('room_maxwidth'):
+        maxw = min(map_w - 2, params['room_maxwidth']) #waxwidth < mapwidth
+    if params.has_key('room_minwidth'):
+        minw = min(max(2, params['room_minwidth']), maxw) # 2<minwidht<maxwidth
+    if params.has_key('room_maxheight'):
+        maxh = min(map_h - 2, params['room_maxheight']) #maxheight < mapheight
+    if params.has_key('room_minheight'):
+        minh = min(max(2, params['room_minheight']), maxh)# 2<minheight<maxheight
+    return minw, maxw, minh, maxh
+
+ROOM_DOOR_CHANCE = 7
+ROOM_HIDDEN_DOOR_CHANCE = 60
+def __create_h_tunnel(MapDef, x1, x2, y, room):
+    for x in range(min(x1, x2), max(x1, x2)):
+        tile = MapDef.map[y][x]
+        if not tile.passable():
+            if room.xy_is_border(y, x):
+                if util.one_chance_in(ROOM_DOOR_CHANCE):
+                    MapDef.map[y][x] = ft.door
+                    continue
+                elif util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                    MapDef.map[y][x] = ft.hidden_door
+                    continue
+            MapDef.map[y][x] = ft.floor
+
+def __create_v_tunnel(MapDef, y1, y2, x, room):
+    for y in range(min(y1, y2), max(y1, y2)):
+        tile = MapDef.map[y][x]
+        if not tile.passable():
+            if room.xy_is_border(y, x):
+                if util.one_chance_in(ROOM_DOOR_CHANCE):
+                    MapDef.map[y][x] = ft.door
+                    continue
+                elif util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                    MapDef.map[y][x] = ft.hidden_door
+                    continue
+            MapDef.map[y][x] = ft.floor
+
+def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, params, theme):
+    map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
+    rooms = []
+    num_rooms = 0
+    square = map_draft.width * map_draft.height
+    max_rooms = int((square / MIN_ROOM_SIZE) * CORRIDOR_FACTOR) #determine maximum number of rooms
+
+    for roomid in xrange(max_rooms):
+        if num_rooms > max_rooms: break
+
+        minw, maxw, minh, maxh = __get_room_size_params(params, map_draft.width, map_draft.height)
+
+        ticks = max_rooms * 5 #retries to generate all rooms
+        new_rooms = []
+        while True:
+            if ticks <= 0: break
+            ticks -= 1
+
+            width = randrange(minw, maxw)
+            height = randrange(minh, maxh)
+            #random position without going out of the boundaries of the map
+            x = randrange(1, map_draft.width - 1 - width)
+            y = randrange(1, map_draft.height - 1 - height)
+
+            if filter(lambda room: room.overlap(x-1, y-1, x+width+1, y+height+1), map_draft.rooms.values()):
+                continue #room overlap
+            room = Room()
+            room.x, room.y = x, y
+            room.width, room.height = width, height
+#            room.src = __gen_floor_square(MapDef(), 0, 0, width, height)
+#            __gen_floor_square(map_draft, x, y, width, height)
+            for _x in xrange(width):
+                for _y in xrange(height):
+                    map_draft.replace_feature_atxy(x+_x, y+_y, ft.floor())
+            new_rooms.append(room)
+            map_draft.rooms['roomc' + str(roomid)] = room
+
+            new_x, new_y = room.center
+            if num_rooms > 0:
+                prev_x, prev_y = new_rooms[-1].center
+#                if util.coinflip():
+#                    __create_h_tunnel(map_draft, prev_x, new_x, prev_y, room)
+#                    __create_v_tunnel(map_draft, prev_y, new_y, new_x, room)
+#                else:
+#                    __create_v_tunnel(map_draft, prev_y, new_y, prev_x, room)
+#                    __create_h_tunnel(map_draft, prev_x, new_x, new_y, room)
+            num_rooms += 1
+            break
+    map_draft.debug_print()
+    return map_draft
+
+generators['null'] = null_generator
+generators['rooms_corridor'] = rooms_corridors_generator
+
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     merger(static_transformer, map_draft, player_hd, generator_type, requests, theme, params), 'static_transformer'))
 
-#DungeonGenerator.generate_map('null', requests=[MapRequest('crypt')])
+
+#todo - overlapping generator: place a room - make walls around room FIXED. place another room withour checking for overalap - remove walls except FIXED. rinse and repeat

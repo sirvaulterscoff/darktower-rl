@@ -9,7 +9,7 @@ from random import randrange
 import util
 from dungeon_generators import MapDef
 from features import DungeonFeature
-from maputils import  xy_in_room, MultilevelRoom, find_feature, replace_feature_atxy, Room, square_search_nearest
+from maputils import  MultilevelRoom, find_feature, replace_feature_atxy, Room, square_search_nearest
 from collections import Iterable
 from items import Item
 import rlfl
@@ -78,7 +78,7 @@ class LayerView(MainView):
 
         """
         for region in self.regions:
-            if xy_in_room(region, x, y):
+            if region.xy_in_room(x, y):
                 return region
         return None
 
@@ -215,6 +215,8 @@ class Map(object):
                 #todo - add id matching
                 #adjust xy to room geometry
                 candidates = square_search_nearest(x, y, current_level, oftype=current_type)
+                if not candidates:
+                    raise RuntimeError('Failed to map stairs for room %s' % room.id)
                 candidates = filter(lambda x: x[0].pair is None, candidates)
                 if not candidates:
                     raise RuntimeError('Failed to map stairs for room %s' % room.id)
@@ -238,6 +240,8 @@ class Map(object):
             for x in xrange(0, len(_map[0])):
                 try:
                     tile = _materialize_piece(current.tile_at(x, y))
+                    if isinstance(tile, type):
+                        raise  RuntimeError('Tile at %d:%d is not materialized ' % (x, y))
                     current.set_tile_at(x, y, tile)
                     if not tile:
                         continue
@@ -376,8 +380,9 @@ class Map(object):
         num_monsters = util.roll(1, gl.__dlvl__, util.roll(3, 2, 7))
         num_monsters -= len(self.critters)
         free_squares = -2
-        for line in self.map:
-            for tile in line:
+        for x in xrange(self.width):
+            for y in xrange(self.height):
+                tile = self.tile_at(x, y)
                 if tile.passable(): free_squares += 1
 
         num_monsters = util.cap(num_monsters, free_squares)
@@ -392,7 +397,7 @@ class Map(object):
             #choose random spot for this monster
             x, y = self.find_random_square(self.has_critter_at)
             room = self._find_room(x, y)
-            if room:
+            if room and room.src:
                 if room.src.no_mon_gen:
                     continue
 
@@ -446,12 +451,10 @@ class Map(object):
 
     def find_passable_square(self):
         x, y = 0, 0
-        for row in self.current._map:
-            for item in row:
-                if not item.passable(): y += 1
-                else: return y, x
-            y = 0
-            x += 1
+        for x in xrange(self.current.width):
+            for y in xrange(self.current.height):
+                if self.tile_at(x, y).passable():
+                    return y, x
         return 1, 1
 
 
@@ -480,7 +483,7 @@ class Map(object):
             return self.current.src_room
         inroom = None
         for room in self.map_src.rooms.values():
-            if xy_in_room(room, x, y):
+            if room.xy_in_room(x, y):
                 inroom = room
                 break
         return inroom
