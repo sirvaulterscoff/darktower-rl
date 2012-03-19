@@ -413,7 +413,7 @@ class Map(object):
             x, y = self.find_random_square(self.has_critter_at)
 
             room = self._find_room(x, y)
-            if room:
+            if room and room.src:
                 if room.src.no_mon_gen:
                     return
 

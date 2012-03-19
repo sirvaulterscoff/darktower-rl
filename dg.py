@@ -1,6 +1,6 @@
 from dungeon_generators import MapDef, MapRequest, get_map_file, parse_file, ft
 from random import choice, randrange, randint
-from features import FIXED, none
+from features import FIXED, none, ftype
 from util import random_from_list_weighted, roll
 from maputils import *
 from map import *
@@ -439,8 +439,8 @@ def null_generator(map_draft, player_hd, generator_type, requests, params, theme
 
 MIN_ROOM_WIDTH = 5
 MIN_ROOM_HEIGHT = 2
-MIN_ROOM_SIZE = MIN_ROOM_WIDTH * MIN_ROOM_HEIGHT
-CORRIDOR_FACTOR = 0.5
+MIN_ROOM_SIZE = (MIN_ROOM_WIDTH + 1) * (MIN_ROOM_HEIGHT + 1)
+CORRIDOR_FACTOR = 0.1
 
 def __get_room_size_params(params, map_w, map_h):
     minw, maxw, minh, maxh = 5, 20, 2, 20
@@ -456,50 +456,64 @@ def __get_room_size_params(params, map_w, map_h):
         minh = min(max(2, params['room_minheight']), maxh)# 2<minheight<maxheight
     return minw, maxw, minh, maxh
 
-ROOM_DOOR_CHANCE = 7
-ROOM_HIDDEN_DOOR_CHANCE = 60
-def __create_h_tunnel(MapDef, x1, x2, y, room):
+
+ROOM_DOOR_CHANCE = 4
+ROOM_HIDDEN_DOOR_CHANCE = 10
+OVERLAP_ROOM_CHANCE = 170
+
+def __tile_passable(tile):
+    if isinstance(tile, type):
+        return  (tile.flags & features.BLOCK_WALK) != features.BLOCK_WALK
+    else:
+        return tile.passable()
+
+
+def __create_h_tunnel(MapDef, x1, x2, y, room1, room2):
     for x in range(min(x1, x2), max(x1, x2)):
         tile = MapDef.map[y][x]
-        if not tile.passable():
-            if room.xy_is_border(y, x):
+        if tile.type == ftype.door:
+            continue
+        if not __tile_passable(tile):
+            if room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
                 if util.one_chance_in(ROOM_DOOR_CHANCE):
-                    MapDef.map[y][x] = ft.door
+                    if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                        MapDef.replace_feature_atxy(x, y, ft.hidden_door)
+                    else:
+                        MapDef.replace_feature_atxy(x, y, ft.door)
                     continue
-                elif util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
-                    MapDef.map[y][x] = ft.hidden_door
-                    continue
-            MapDef.map[y][x] = ft.floor
+            MapDef.replace_feature_atxy(x, y, ft.floor)
 
-def __create_v_tunnel(MapDef, y1, y2, x, room):
+def __create_v_tunnel(MapDef, y1, y2, x, room1, room2):
     for y in range(min(y1, y2), max(y1, y2)):
         tile = MapDef.map[y][x]
-        if not tile.passable():
-            if room.xy_is_border(y, x):
-                if util.one_chance_in(ROOM_DOOR_CHANCE):
-                    MapDef.map[y][x] = ft.door
-                    continue
-                elif util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
-                    MapDef.map[y][x] = ft.hidden_door
-                    continue
-            MapDef.map[y][x] = ft.floor
+        if tile.type == ftype.door:
+            continue
+        if not __tile_passable(tile):
+            if room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
+                if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                    MapDef.replace_feature_atxy(x, y, ft.hidden_door)
+                else:
+                    MapDef.replace_feature_atxy(x, y, ft.door)
+            MapDef.replace_feature_atxy(x, y, ft.floor)
 
 def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, params, theme):
     map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
-    rooms = []
     num_rooms = 0
     square = map_draft.width * map_draft.height
     max_rooms = int((square / MIN_ROOM_SIZE) * CORRIDOR_FACTOR) #determine maximum number of rooms
+    logger.debug('Generating maximum number of %d rooms' % max_rooms)
 
+    prevroom = None
     for roomid in xrange(max_rooms):
         if num_rooms > max_rooms: break
 
         minw, maxw, minh, maxh = __get_room_size_params(params, map_draft.width, map_draft.height)
 
         ticks = max_rooms * 5 #retries to generate all rooms
-        new_rooms = []
         while True:
-            if ticks <= 0: break
+            if ticks <= 0:
+                logger.debug('Giving up on generating current room - no space')
+                break
             ticks -= 1
 
             width = randrange(minw, maxw)
@@ -508,31 +522,35 @@ def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, pa
             x = randrange(1, map_draft.width - 1 - width)
             y = randrange(1, map_draft.height - 1 - height)
 
-            if filter(lambda room: room.overlap(x-1, y-1, x+width+1, y+height+1), map_draft.rooms.values()):
-                continue #room overlap
+            if not util.one_chance_in(OVERLAP_ROOM_CHANCE):
+                if filter(lambda room: room.overlap(x - 2, y - 2, x+width + 2, y+height+2), map_draft.rooms.values()):
+                    continue #room overlap
             room = Room()
             room.x, room.y = x, y
             room.width, room.height = width, height
-#            room.src = __gen_floor_square(MapDef(), 0, 0, width, height)
-#            __gen_floor_square(map_draft, x, y, width, height)
             for _x in xrange(width):
                 for _y in xrange(height):
+                    if map_draft.map[y+_y][x+_x].type == ftype.door:
+                        continue #don't mess with doors
                     map_draft.replace_feature_atxy(x+_x, y+_y, ft.floor())
-            new_rooms.append(room)
-            map_draft.rooms['roomc' + str(roomid)] = room
 
             new_x, new_y = room.center
-            if num_rooms > 0:
-                prev_x, prev_y = new_rooms[-1].center
-#                if util.coinflip():
-#                    __create_h_tunnel(map_draft, prev_x, new_x, prev_y, room)
-#                    __create_v_tunnel(map_draft, prev_y, new_y, new_x, room)
-#                else:
-#                    __create_v_tunnel(map_draft, prev_y, new_y, prev_x, room)
-#                    __create_h_tunnel(map_draft, prev_x, new_x, new_y, room)
+            if prevroom:
+                prev_x, prev_y = prevroom.center
+                if util.coinflip():
+                    __create_h_tunnel(map_draft, prev_x, new_x, prev_y, room, prevroom)
+                    __create_v_tunnel(map_draft, prev_y, new_y, new_x, room, prevroom)
+                else:
+                    __create_v_tunnel(map_draft, prev_y, new_y, prev_x, room, prevroom)
+                    __create_h_tunnel(map_draft, prev_x, new_x, new_y, room, prevroom)
+
+            prevroom = room
+            map_draft.rooms['roomc' + str(roomid)] = room
             num_rooms += 1
             break
+    import sys
     map_draft.debug_print()
+    sys.exit()
     return map_draft
 
 generators['null'] = null_generator

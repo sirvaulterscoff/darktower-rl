@@ -130,13 +130,14 @@ class Room(object):
         return self.x <= x <= self.x2 and self.y <= y <= self.y2
 
     def xy_is_border(self, x, y):
-        return ((self.x == x or self.x2 == x) and self.y <= y <= self.y2) or ((self.y == y or self.y2 == y) and self.x <= x <= self.x2)
+        _x, _y = self.x - 1, self.y - 1
+        _x2, _y2 = self.x2 + 1, self.y2 + 1
+        border = _x == x or _x2 == x and (self.y <= y <= self.y2)
+        border |= _y == y or _y2 == y and (self.x <= x <= self.x2)
+        return border
 
     def overlap(self, x, y, x2, y2):
-        x_overlap = self.x <= x <= self.x2 or self.x <= x2 <= self.x2
-        y_overlap = self.y <= y <= self.y2 or self.y <= y2 <= self.y2
-        return x_overlap and y_overlap
-
+        return self.x < x2 and self.x2 > x and self.y < y2 and self.y2 > y
 
 class MultilevelRoom(Room):
     """
