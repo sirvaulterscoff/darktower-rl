@@ -450,11 +450,10 @@ class Map(object):
         return not (x < 0 or y< 0 or x >= self.current.width or y >= self.current.height)
 
     def find_passable_square(self):
-        x, y = 0, 0
         for x in xrange(self.current.width):
             for y in xrange(self.current.height):
                 if self.tile_at(x, y).passable():
-                    return y, x
+                    return x, y
         return 1, 1
 
 

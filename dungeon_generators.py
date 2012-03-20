@@ -351,67 +351,6 @@ class AbstractGenerator(object):
 
     def generate(self):
         pass
-    def generate_border(self):
-        for j in range(0, self.length):
-            self._map[0][j] = ft.fixed_wall()
-            self._map[self.width - 1][j] = ft.fixed_wall()
-
-        for j in range(0, self.width):
-            self._map[j][0] = ft.fixed_wall()
-            self._map[j][self.length - 1] = ft.fixed_wall()
-
-
-class CaveGenerator(AbstractGenerator):
-    def __init__(self, length, width, open_area=0.60):
-        self.length = length
-        self.width = width
-        self.open_area = open_area
-        self._map = [[ft.rock_wall()
-                      for i in range(0, length)]
-                     for j in range(0, width)]
-
-
-    def generate(self):
-        self.generate_border()
-        walls_left = int(self.length * self.width * self.open_area)
-        #we don't want this process to hang
-        ticks = self.length * self.width
-        while walls_left > 0:
-            if not ticks:
-                print("Map generation tackes too long - returning as is")
-                break
-            rand_x = randrange(1, self.length - 1)
-            rand_y = randrange(1, self.width - 1)
-
-            if self._map[rand_y][rand_x].is_wall:
-                self._map[rand_y][rand_x] = ft.floor()
-                walls_left -= 1
-                ticks -= 1
-
-    def finish(self):
-        count_walls = self.count_neigh_walls
-        wall, floor = ft.rock_wall, ft.floor
-        for x in range(1, self.length - 1):
-            for y in range(1, self.width - 1):
-                wall_count = count_walls(y, x)
-
-                if self._map[y][x].is_floor():
-                    if wall_count > 5:
-                        self._map[y][x] = wall()
-                elif wall_count < 4:
-                    self._map[y][x] = floor()
-
-        return self._map
-
-
-    def count_neigh_walls(self, x, y):
-        count = 0
-        for row in (-1, 0, 1):
-            for col in (-1, 0, 1):
-                if not self._map[(x + row)][y + col].is_floor() and not(row == 0 and col == 0):
-                    count += 1
-        return count
-
 
 
 file_parsed = False

@@ -256,6 +256,16 @@ def tile_passable(tile):
     else:
         return tile.passable()
 
+def generate_border(MapDef, tile):
+    x2, y2 = MapDef.width - 1, MapDef.height - 1
+    for x in range(0, MapDef.width):
+        MapDef.replace_feature_atxy(x, 0, tile)
+        MapDef.replace_feature_atxy(x, y2, tile)
+
+    for y in range(0, MapDef.height):
+        MapDef.replace_feature_atxy(0, y, tile)
+        MapDef.replace_feature_atxy(x2, y, tile)
+
 ROOM_DOOR_CHANCE = 4
 ROOM_HIDDEN_DOOR_CHANCE = 10
 def create_h_tunnel(MapDef, x1, x2, y, room1, room2):

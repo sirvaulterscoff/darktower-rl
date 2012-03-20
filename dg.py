@@ -352,9 +352,9 @@ def __merge_room(map_draft, room, params):
                     continue
                 dest_tile = map_draft.map[y][x]
                 if placement == 'overflow':
-                    if dest_tile.flags & FIXED: continue #in overflow placement we don't rewrite underlying pixels
                     if tile.flags & FIXED: #we should rewrite if room's fixel is fixed
                         map_draft.map[y][x] = tile
+                    if dest_tile.flags & FIXED: continue #in overflow placement we don't rewrite underlying pixels
                     elif util.roll(1, nomerge_chance) == 1: #or we may not rewrite 1/nomerge_chance
                         #todo let's actualy make clustered ruins - i.e. skip merge for a 3x3 or large square
                         x+=1
@@ -590,14 +590,56 @@ def compound_generator(gen1, gen2, map_draft, player_hd, generator_type, request
         _y = 0
         _x +=1
 
-    map_draft.debug_print()
     return map_draft
 
+def __count_neigh_walls(MapDef, x, y):
+    count = 0
+    for row in (-1, 0, 1):
+        for col in (-1, 0, 1):
+            if not tile_passable(MapDef.tile_at(x + row, y + col)) and not(row == 0 and col == 0):
+                count += 1
+    return count
+
+CAVE_OPEN_AREA=4,6
+def cave_generator(map_draft, player_hd, generator_type, requests, params, theme):
+    __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
+    maputils.generate_border(map_draft, ft.fixed_wall)
+    open_area_factor = float(randint(4, 6)) / 10
+    walls_left = int(map_draft.width * map_draft.height * open_area_factor)
+    #we don't want this process to hang
+    ticks = map_draft.width * map_draft.height
+    x2, y2 = map_draft.width - 1, map_draft.height - 1
+    while walls_left > 0:
+        if not ticks:
+            print("Map generation takes too long - returning as is")
+            break
+        rand_x = randrange(1, x2)
+        rand_y = randrange(1, y2)
+
+        if map_draft.tile_at(rand_x, rand_y).type == ftype.wall:
+            map_draft.replace_feature_atxy(rand_x, rand_y, ft.floor())
+            walls_left -= 1
+            ticks -= 1
+
+    count_walls = __count_neigh_walls
+    for x in xrange(1, x2):
+        for y in xrange(1, y2):
+            wall_count = count_walls(map_draft, x, y)
+
+            if tile_passable(map_draft.tile_at(x, y)):
+                if wall_count > 5:
+                    map_draft.replace_feature_atxy(x, y, ft.rock_wall())
+            elif wall_count < 4:
+                map_draft.replace_feature_atxy(x, y, ft.floor())
+
+    map_draft.debug_print()
+    return map_draft
 
 generators['null'] = null_generator
 generators['rooms_corridor'] = rooms_corridors_generator
 generators['tesselate'] = tesselate_generator
 generators['compound_tesselate_corridor'] = lambda *args: compound_generator(rooms_corridors_generator, tesselate_generator, *args)
+generators['cave'] = cave_generator
 
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     maputils.join_blobs(map_draft), 'region_merger'))
