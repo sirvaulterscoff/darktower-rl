@@ -438,7 +438,7 @@ def null_generator(map_draft, player_hd, generator_type, requests, params, theme
 
 
 MIN_ROOM_WIDTH = 5
-MIN_ROOM_HEIGHT = 2
+MIN_ROOM_HEIGHT = 3
 MIN_ROOM_SIZE = (MIN_ROOM_WIDTH + 1) * (MIN_ROOM_HEIGHT + 1)
 CORRIDOR_FACTOR = 0.1
 
@@ -467,14 +467,25 @@ def __tile_passable(tile):
     else:
         return tile.passable()
 
+def __tile_fixed(tile):
+    if isinstance(tile, type):
+        return  (tile.flags & features.FIXED) != features.FIXED
+    else:
+        return tile.is_fixed()
+
 
 def __create_h_tunnel(MapDef, x1, x2, y, room1, room2):
+    door_x = -1
     for x in range(min(x1, x2), max(x1, x2)):
         tile = MapDef.map[y][x]
         if tile.type == ftype.door:
             continue
         if not __tile_passable(tile):
-            if room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
+            if room1 and room2 and room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
+                if door_x + 1 == x:
+                    MapDef.replace_feature_atxy(x, y, ft.floor)
+                    continue
+                door_x = x
                 if util.one_chance_in(ROOM_DOOR_CHANCE):
                     if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
                         MapDef.replace_feature_atxy(x, y, ft.hidden_door)
@@ -484,12 +495,17 @@ def __create_h_tunnel(MapDef, x1, x2, y, room1, room2):
             MapDef.replace_feature_atxy(x, y, ft.floor)
 
 def __create_v_tunnel(MapDef, y1, y2, x, room1, room2):
+    door_y = -1
     for y in range(min(y1, y2), max(y1, y2)):
         tile = MapDef.map[y][x]
         if tile.type == ftype.door:
             continue
         if not __tile_passable(tile):
-            if room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
+            if room1 and room2 and room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
+                if door_y + 1 == y: #we already placed a door in previos tile
+                    MapDef.replace_feature_atxy(x, y, ft.floor)
+                    continue
+                door_y = y
                 if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
                     MapDef.replace_feature_atxy(x, y, ft.hidden_door)
                 else:
@@ -548,13 +564,52 @@ def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, pa
             map_draft.rooms['roomc' + str(roomid)] = room
             num_rooms += 1
             break
-    import sys
+    return map_draft
+
+# the class building the dungeon from the bsp nodes
+def _create_bsp_room(node, userdata, MapDef, bsp):
+    if libtcod.bsp_is_leaf(node):
+        # dig the room
+        for x in xrange(node.x + 1, node.x + node.w - 1):
+            for y in xrange(node.y + 1, node.y + node.h - 1):
+                MapDef.replace_feature_atxy(x, y, ft.floor())
+    else:
+#        # resize the node to fit its sons
+        left = libtcod.bsp_left(node)
+        right = libtcod.bsp_right(node)
+        rleft = Room(left.x, left.y, left.w, left.h)
+        rright = Room(right.x, right.y, right.w, right.h)
+        lx, ly = rleft.center
+        rx, ry = rright.center
+        if node.horizontal:
+#            # vertical corridor
+            __create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
+            __create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
+        else:
+            __create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
+            __create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
+    return True
+
+def tesselate_generator(map_draft, player_hd, generator_type, requests, params, theme):
+    map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
+    square = map_draft.width * map_draft.height
+    t_factor = int((square / util.roll(3, 3, MIN_ROOM_SIZE)) / randrange(5, 20)) #determine maximum number of rooms
+    logger.debug('Generating maximum number of %d rooms' % t_factor)
+
+    bsp = libtcod.bsp_new_with_size(0, 0, map_draft.width, map_draft.height)
+    for num in xrange(t_factor):
+        libtcod.bsp_split_recursive(bsp, 0, 5, MIN_ROOM_WIDTH, MIN_ROOM_HEIGHT, 1.5, 1.5)
+    libtcod.bsp_traverse_inverted_level_order(bsp, lambda node, userdata: _create_bsp_room(node, userdata, map_draft, bsp))
+
     map_draft.debug_print()
+    import sys
     sys.exit()
     return map_draft
 
+
 generators['null'] = null_generator
 generators['rooms_corridor'] = rooms_corridors_generator
+generators['tesselate'] = tesselate_generator
 
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     merger(static_transformer, map_draft, player_hd, generator_type, requests, theme, params), 'static_transformer'))

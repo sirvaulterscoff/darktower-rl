@@ -79,9 +79,9 @@ class SubList(list):
         return self.src[self.start: self.to + 1].__iter__()
 
 class Room(object):
-    def __init__(self):
-        self.x, self.y = None, None
-        self.width, self.height = 0, 0
+    def __init__(self, x=None, y=None,width=0,height=0):
+        self.x, self.y = x, y
+        self.width, self.height = width, height
         """ point to source description of this map => MapDef"""
         self.src = None
         """ points to map bytes => [][]"""

@@ -321,6 +321,9 @@ class MapDef(object):
                 line += tile.char
             print line
 
+    def tile_at(self, x, y):
+        return self.map[y][x]
+
 
 class Rect:
     def __init__(self, x, y, width, heigh):

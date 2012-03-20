@@ -6,6 +6,7 @@ BLOCK_WALK = 1
 BLOCK_LOS = 2
 NONE = 4
 FIXED=8
+MARKED=16
 import util
 class TypeEnum(object):
     ft_types = {
@@ -55,6 +56,7 @@ class DungeonFeature(object):
 
     def is_road(self):
         return self.type == 5
+
     def is_fixed(self):
         return self.flags & FIXED
 
@@ -131,6 +133,10 @@ class DungeonFeature(object):
 
         return result
 
+    def mark(self):
+        self.flags |= MARKED
+        return self
+
 
 
 def build_type(cls_name, base=DungeonFeature, **args):
@@ -146,6 +152,7 @@ class Thumb(DungeonFeature):
 
 
 floor = build_type('Floor', char='.', name='floor', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor)
+fixed_floor = build_type('Floor', char='.', name='floor', color=(255, 255, 255), dim_color=(0, 0, 100), type=ftype.floor, flags=FIXED)
 class NoneFeature(DungeonFeature):
     invisible = True
     def __init__(self):
