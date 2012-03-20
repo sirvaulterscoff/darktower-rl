@@ -1,5 +1,9 @@
+from random import randrange, randint
+from features import tree, ftype
 import util
 from collections import namedtuple
+from features import features, BLOCK_WALK
+ft = util.NamedMap(features)
 
 NO_FLIP = 0
 HORIZONTAL_FLIP = 1
@@ -246,3 +250,133 @@ def square_search_nearest(base_x, base_y, map, oftype):
     feats.sort(lambda a, b: _cmp_tiles_by_distance(base_x, base_y, a, b))
     return feats
 
+def tile_passable(tile):
+    if isinstance(tile, type):
+        return  (tile.flags & BLOCK_WALK) != BLOCK_WALK
+    else:
+        return tile.passable()
+
+ROOM_DOOR_CHANCE = 4
+ROOM_HIDDEN_DOOR_CHANCE = 10
+def create_h_tunnel(MapDef, x1, x2, y, room1, room2):
+    door_x = -1
+    for x in range(min(x1, x2), max(x1, x2)):
+        tile = MapDef.map[y][x]
+        if tile.type == ft.door:
+            continue
+        if not tile_passable(tile):
+            if room1 and room2 and (room1.xy_is_border(x, y) or room2.xy_is_border(x, y)):
+                if door_x + 1 == x:
+                    MapDef.replace_feature_atxy(x, y, ft.floor)
+                    continue
+                door_x = x
+                if util.one_chance_in(ROOM_DOOR_CHANCE):
+                    if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                        MapDef.replace_feature_atxy(x, y, ft.hidden_door)
+                    else:
+                        MapDef.replace_feature_atxy(x, y, ft.door)
+                    continue
+            MapDef.replace_feature_atxy(x, y, ft.floor)
+
+def create_v_tunnel(MapDef, y1, y2, x, room1, room2):
+    door_y = -1
+    for y in range(min(y1, y2), max(y1, y2)):
+        tile = MapDef.map[y][x]
+        if tile.type == ft.door:
+            continue
+        if not tile_passable(tile):
+            if room1 and room2 and (room1.xy_is_border(x, y) or room2.xy_is_border(x, y)):
+                if door_y + 1 == y: #we already placed a door in previos tile
+                    MapDef.replace_feature_atxy(x, y, ft.floor)
+                    continue
+                door_y = y
+                if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
+                    MapDef.replace_feature_atxy(x, y, ft.hidden_door)
+                else:
+                    MapDef.replace_feature_atxy(x, y, ft.door)
+            MapDef.replace_feature_atxy(x, y, ft.floor)
+
+def join_blobs(MapDef, join_chance=1):
+    tree = BSPTree()
+    for x in xrange(1, MapDef.width):
+        for y in xrange(1, MapDef.height):
+            #check all tiles surrounding current
+            tile = MapDef.tile_at(x, y)
+            if not (tile_passable(tile) or tile.type == ftype.door):
+                continue
+            for dx in (-1, 0):
+                for dy in (-1, 0):
+                    _x, _y = x + dx, y + dy
+                    tile = MapDef.tile_at(_x, _y)
+                    #if this is floor tile
+                    if tile_passable(tile) or tile.type == ftype.door:
+                        root1 = tree.find((x, y))
+                        root2 = tree.find((_x, _y))
+                        if root1 != root2:
+                            tree.union(root1, root2)
+
+
+    roots = tree.split_sets().keys()
+    prev_x, prev_y = None, None
+    for root in roots:
+        x,y = -1,-1
+        ticks = 50
+        while True:
+            if ticks <= 0:
+                x, y = root
+                break
+            ticks -= 1
+            x,y = randint(root[0], max(MapDef.width - 5, root[0])), randint(root[1], max(MapDef.height - 5, root[1]))
+            if tree.find((x, y)) == root:
+                break
+        if prev_x and util.one_chance_in(join_chance):
+            if util.coinflip():
+                create_v_tunnel(MapDef, prev_y, y, x, None, None)
+                create_h_tunnel(MapDef, prev_x, x, y, None, None)
+            else:
+                create_h_tunnel(MapDef, prev_x, x, y, None, None)
+                create_v_tunnel(MapDef, prev_y, y, x, None, None)
+        prev_x, prev_y = x, y
+
+    print 'XXXXXXXXXXX'
+    MapDef.debug_print()
+    return tree
+
+class BSPTree(object):
+    __items = {}
+
+    def union(self, root1, root2):
+        if self.__items[root2] < self.__items[root1]:
+            self.__items[root1] = root2
+        else:
+            if self.__items[root1] == self.__items[root2]:
+                self.__items[root1] -= 1
+
+            self.__items[root2] = root1
+
+    def find(self, point):
+        try:
+            while self.__items[point] > 0:
+                point = self.__items[point]
+
+        except KeyError:
+            self.__items[point] = -1
+
+        return point
+
+    def split_sets(self):
+        sets = {}
+
+        for j in self.__items.keys():
+            root = self.find(j)
+
+            if root > 0:
+                if sets.has_key(root):
+                    list = sets[root]
+                    list.append(j)
+
+                    sets[root] = list
+                else:
+                    sets[root] = [j]
+
+        return sets

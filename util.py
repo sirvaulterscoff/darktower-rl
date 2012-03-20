@@ -268,6 +268,8 @@ def chance_in(chance, in_what):
     return randrange(0, in_what) <= chance
 
 def one_chance_in(in_what):
+    if in_what == 1:
+        return True
     return chance_in(1, in_what)
 
 def do_if_one_chance_in(in_what, action):

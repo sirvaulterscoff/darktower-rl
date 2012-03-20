@@ -314,8 +314,9 @@ class MapDef(object):
         return len(filter(lambda x: x.trim() == terrain.trim(), self.terrain.split(',')))
 
     def debug_print(self):
+        print '     1234567890'
         for y in xrange(self.height):
-            line = ''
+            line = str(y).rjust(3, ' ') +': '
             for x in xrange(self.width):
                 tile = self.map[y][x]
                 line += tile.char

@@ -1,8 +1,9 @@
 from dungeon_generators import MapDef, MapRequest, get_map_file, parse_file, ft
 from random import choice, randrange, randint
 from features import FIXED, none, ftype
+import maputils
 from util import random_from_list_weighted, roll
-from maputils import *
+from maputils import tile_passable
 from map import *
 
 generators = {}
@@ -207,6 +208,8 @@ class PipeItem(object):
             return len(map_requests) > 0
         if self.ttype == 'pool_transformer':
             return False #stub for now
+        if self.ttype == 'region_merger':
+            return True
 
 
 small_theme_maps_count=(1, 8) #number of themed minimaps per level
@@ -371,7 +374,7 @@ def __merge_room(map_draft, room, params):
         raise ie
     map_view = []
     for y in xrange(room.y, room.y2):
-        map_view.append(SubList(map_draft.map[y], room.x, room.x2))
+        map_view.append(maputils.SubList(map_draft.map[y], room.x, room.x2))
     room.map = map_view
 
 
@@ -403,15 +406,15 @@ def merger(producer, map_draft, player_hd, generator_type, requests, theme, para
             cnt += 1
         ids[id] = True
         if map.orient:
-            newmap, rotate_params = random_rotate_and_clone_map(map.map, map.orient)
+            newmap, rotate_params = maputils.random_rotate_and_clone_map(map.map, map.orient)
         else:
             newmap, rotate_params = map.map, None
         for level, child in map.levels.items(): # now we transform all submaps
             child_map_bytes = None
             if child.orient and child.orient != 'NONE': #if child redefines orient - let's use it
-                child_map_bytes, ignored = random_rotate_and_clone_map(child.map, child.orient)
+                child_map_bytes, ignored = maputils.random_rotate_and_clone_map(child.map, child.orient)
             elif rotate_params: #keep the same orient as parent
-                child_map_bytes, ignored = random_rotate_and_clone_map(child.map, map.orient, params=rotate_params)
+                child_map_bytes, ignored = maputils.random_rotate_and_clone_map(child.map, map.orient, params=rotate_params)
             __merge_leveled(map_draft, child_map_bytes, child, level, id)
 
         rooms.append(__create_room(map_draft, newmap, map, id, request))
@@ -457,15 +460,7 @@ def __get_room_size_params(params, map_w, map_h):
     return minw, maxw, minh, maxh
 
 
-ROOM_DOOR_CHANCE = 4
-ROOM_HIDDEN_DOOR_CHANCE = 10
 OVERLAP_ROOM_CHANCE = 170
-
-def __tile_passable(tile):
-    if isinstance(tile, type):
-        return  (tile.flags & features.BLOCK_WALK) != features.BLOCK_WALK
-    else:
-        return tile.passable()
 
 def __tile_fixed(tile):
     if isinstance(tile, type):
@@ -473,44 +468,6 @@ def __tile_fixed(tile):
     else:
         return tile.is_fixed()
 
-
-def __create_h_tunnel(MapDef, x1, x2, y, room1, room2):
-    door_x = -1
-    for x in range(min(x1, x2), max(x1, x2)):
-        tile = MapDef.map[y][x]
-        if tile.type == ftype.door:
-            continue
-        if not __tile_passable(tile):
-            if room1 and room2 and room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
-                if door_x + 1 == x:
-                    MapDef.replace_feature_atxy(x, y, ft.floor)
-                    continue
-                door_x = x
-                if util.one_chance_in(ROOM_DOOR_CHANCE):
-                    if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
-                        MapDef.replace_feature_atxy(x, y, ft.hidden_door)
-                    else:
-                        MapDef.replace_feature_atxy(x, y, ft.door)
-                    continue
-            MapDef.replace_feature_atxy(x, y, ft.floor)
-
-def __create_v_tunnel(MapDef, y1, y2, x, room1, room2):
-    door_y = -1
-    for y in range(min(y1, y2), max(y1, y2)):
-        tile = MapDef.map[y][x]
-        if tile.type == ftype.door:
-            continue
-        if not __tile_passable(tile):
-            if room1 and room2 and room1.xy_is_border(x, y) or room2.xy_is_border(x, y):
-                if door_y + 1 == y: #we already placed a door in previos tile
-                    MapDef.replace_feature_atxy(x, y, ft.floor)
-                    continue
-                door_y = y
-                if util.one_chance_in(ROOM_HIDDEN_DOOR_CHANCE):
-                    MapDef.replace_feature_atxy(x, y, ft.hidden_door)
-                else:
-                    MapDef.replace_feature_atxy(x, y, ft.door)
-            MapDef.replace_feature_atxy(x, y, ft.floor)
 
 def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, params, theme):
     map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
@@ -535,8 +492,8 @@ def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, pa
             width = randrange(minw, maxw)
             height = randrange(minh, maxh)
             #random position without going out of the boundaries of the map
-            x = randrange(1, map_draft.width - 1 - width)
-            y = randrange(1, map_draft.height - 1 - height)
+            x = randrange(1, max(map_draft.width - 1 - width, 2))
+            y = randrange(1, max(map_draft.height - 1 - height, 2))
 
             if not util.one_chance_in(OVERLAP_ROOM_CHANCE):
                 if filter(lambda room: room.overlap(x - 2, y - 2, x+width + 2, y+height+2), map_draft.rooms.values()):
@@ -554,11 +511,11 @@ def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, pa
             if prevroom:
                 prev_x, prev_y = prevroom.center
                 if util.coinflip():
-                    __create_h_tunnel(map_draft, prev_x, new_x, prev_y, room, prevroom)
-                    __create_v_tunnel(map_draft, prev_y, new_y, new_x, room, prevroom)
+                    maputils.create_h_tunnel(map_draft, prev_x, new_x, prev_y, room, prevroom)
+                    maputils.create_v_tunnel(map_draft, prev_y, new_y, new_x, room, prevroom)
                 else:
-                    __create_v_tunnel(map_draft, prev_y, new_y, prev_x, room, prevroom)
-                    __create_h_tunnel(map_draft, prev_x, new_x, new_y, room, prevroom)
+                    maputils.create_v_tunnel(map_draft, prev_y, new_y, prev_x, room, prevroom)
+                    maputils.create_h_tunnel(map_draft, prev_x, new_x, new_y, room, prevroom)
 
             prevroom = room
             map_draft.rooms['roomc' + str(roomid)] = room
@@ -583,11 +540,11 @@ def _create_bsp_room(node, userdata, MapDef, bsp):
         rx, ry = rright.center
         if node.horizontal:
 #            # vertical corridor
-            __create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
-            __create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
+            maputils.create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
+            maputils.create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
         else:
-            __create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
-            __create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
+            maputils.create_h_tunnel(MapDef, lx, rx, ly, rleft, rright)
+            maputils.create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
     return True
 
 def tesselate_generator(map_draft, player_hd, generator_type, requests, params, theme):
@@ -601,18 +558,49 @@ def tesselate_generator(map_draft, player_hd, generator_type, requests, params, 
         libtcod.bsp_split_recursive(bsp, 0, 5, MIN_ROOM_WIDTH, MIN_ROOM_HEIGHT, 1.5, 1.5)
     libtcod.bsp_traverse_inverted_level_order(bsp, lambda node, userdata: _create_bsp_room(node, userdata, map_draft, bsp))
 
+    return map_draft
+
+COMPOUND_MERGE_FACTOR=40,70
+def compound_generator(gen1, gen2, map_draft, player_hd, generator_type, requests, params, theme):
+    merge_factor = float(randrange(*COMPOUND_MERGE_FACTOR)) / 100
+    horizontal = util.coinflip()
+    bsp = libtcod.bsp_new_with_size(0, 0, map_draft.width, map_draft.height)
+    position = int(map_draft.height * merge_factor) if horizontal else int(map_draft.width * merge_factor)
+    libtcod.bsp_split_once(bsp, horizontal, position)
+    left = libtcod.bsp_left(bsp)
+    right = libtcod.bsp_right(bsp)
+
+    lmap = MapDef()
+    lmap.width, lmap.height = left.w, left.h
+    rmap = MapDef()
+    rmap.width, rmap.height = right.w, right.h
+    gen1(lmap, player_hd, generator_type, requests, params, theme)
+    gen2(rmap, player_hd, generator_type, requests, params, theme)
+
+    map_draft.map = [[None for x in xrange(map_draft.width)] for y in xrange(map_draft.height)]
+    for x in xrange(left.x, left.x + left.w):
+        for y in xrange(left.y, left.y + left.h):
+            map_draft.replace_feature_atxy(x, y, lmap.map[y][x])
+
+    _x, _y = 0, 0
+    for x in xrange(right.x, right.x + right.w):
+        for y in xrange(right.y, right.y + right.h):
+            map_draft.replace_feature_atxy(x, y, rmap.map[_y][_x])
+            _y += 1
+        _y = 0
+        _x +=1
+
     map_draft.debug_print()
-    import sys
-    sys.exit()
     return map_draft
 
 
 generators['null'] = null_generator
 generators['rooms_corridor'] = rooms_corridors_generator
 generators['tesselate'] = tesselate_generator
+generators['compound_tesselate_corridor'] = lambda *args: compound_generator(rooms_corridors_generator, tesselate_generator, *args)
 
+transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
+    maputils.join_blobs(map_draft), 'region_merger'))
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     merger(static_transformer, map_draft, player_hd, generator_type, requests, theme, params), 'static_transformer'))
 
-
-#todo - overlapping generator: place a room - make walls around room FIXED. place another room withour checking for overalap - remove walls except FIXED. rinse and repeat

@@ -208,7 +208,8 @@ requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (0, 0)}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_1', 'xy': (11, 2)}))
 requests.append(MapRequest('tower' , {'map_id' : 'tower_2', 'xy': (2, 15)}))
 #map = DungeonGenerator.generate_map('rooms_corridor', theme='crypt', width=10, height=10, requests=requests )
-map = DungeonGenerator.generate_map('tesselate', theme='crypt', width=10, height=10, requests=requests )
+#map = DungeonGenerator.generate_map('tesselate', theme='crypt', width=10, height=10, requests=requests )
+map = DungeonGenerator.generate_map('compound_tesselate_corridor', theme='crypt', width=10, height=10, requests=requests )
 
 
 map = Map(map)
