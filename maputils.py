@@ -233,12 +233,12 @@ def replace_feature(map, type, id, with_what):
             replace_feature_atxy(map, x, y, with_what)
 
 
-def _manhattan_distance(x, y, x2, y2):
+def manhattan_distance(x, y, x2, y2):
     return abs(x - x2) + abs(y - y2)
 
 def _cmp_tiles_by_distance(x, y, t1, t2):
-    return 1 if _manhattan_distance(x, y, t1[1], t1[2]) > \
-            _manhattan_distance(x, y, t2[1], t2[2]) else -1
+    return 1 if manhattan_distance(x, y, t1[1], t1[2]) > \
+            manhattan_distance(x, y, t2[1], t2[2]) else -1
 
 def square_search_nearest(base_x, base_y, map, oftype):
     """ square_search_nearest(int, int, [][], str or type) => [(tile,x,y)...]

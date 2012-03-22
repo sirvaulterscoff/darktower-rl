@@ -313,11 +313,14 @@ class MapDef(object):
             return True
         return len(filter(lambda x: x.trim() == terrain.trim(), self.terrain.split(',')))
 
-    def debug_print(self):
+    def debug_print(self, mark_pt = None):
         print '     1234567890'
         for y in xrange(self.height):
             line = str(y).rjust(3, ' ') +': '
             for x in xrange(self.width):
+                if mark_pt and (x, y) in mark_pt:
+                    line += 'X'
+                    continue
                 tile = self.map[y][x]
                 line += tile.char
             print line

@@ -1,4 +1,5 @@
 """ Module dealing with all kind of des files - like maps, rooms, bacgrounds etc"""
+import os
 from pyparsing import *
 import string
 import random
@@ -181,4 +182,4 @@ def parseDes(file_name, type, sub_type='des'):
     returns collection of type() items from parsed file
     """
     file_name = os.path.join(os.path.dirname(__file__), 'data', sub_type, file_name + '.des')
-    return parseFile(file_name, type)
+    return parseFile(file_name, type, [globals(), locals()])

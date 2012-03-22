@@ -46,6 +46,10 @@ class DungeonGenerator(object):
         params : no_large => bool (disable generation of large maps [map file with prefix large_])
                 map_id => str (place map with certain id ontop of current map)
                 room_maxwidth, room_minwidth, room_maxheight, room_minheight => int (parameters of rooms if applicable)
+                road_start, road_end => (int, int) specifies where road should start (if applicabel)
+                road_break => (int, int) specifies the min/maximum amount of stright road
+                road_fill => features.Tile specifies which tile should make the road
+                road_straight => generate straight road
         """
         if not generators.has_key(generator_type):
             raise RuntimeError('Unknow style [%s] for dungeon generator' % generator_type)
@@ -133,6 +137,8 @@ def _assure_mapsize(map_draft, generator_type, requests):
             _rooms.append(request.map)
 
 
+    if not _rooms:
+        return
     if len(_rooms) < rooms_rows: #if we can lay all the rooms in one row
         maxed = reduce(lambda x,y : x + max(y.height, y.width), _rooms, max(_rooms[0].width,_rooms[0].height))
         width, height = int(round(maxed * map_free_coeff)), int(round(maxed* map_free_coeff))
@@ -204,12 +210,15 @@ class PipeItem(object):
             if generator_type == 'null': #if it's null generator - then definetly static_transformer is what we need
                 return True
             #now check if we have MapRequests
-            map_requests = filter(lambda x: isinstance(x, MapRequest), requests)
+            map_requests = filter(lambda x: isinstance(x, MapRequest), requests) if requests else []
             return len(map_requests) > 0
         if self.ttype == 'pool_transformer':
             return False #stub for now
-        if self.ttype == 'region_merger':
+        if self.ttype == 'region_merger' and generator_type != 'fill':
             return True
+        if self.ttype =='road_transformer' and generator_type == 'fill':
+            return True
+        return False
 
 
 small_theme_maps_count=(1, 8) #number of themed minimaps per level
@@ -434,7 +443,7 @@ def __gen_wall_square(MapDef, x, y, w, h):
     return MapDef.prepare(None)
 
 
-def null_generator(map_draft, player_hd, generator_type, requests, params, theme):
+def null_generator(map_draft, player_hd, generator_type, requests, theme, params):
     """Special cased generator - used when we need full sized, untransformed map from des file
     """
     return __gen_floor_square(map_draft, 0, 0, map_draft.width, map_draft.height)
@@ -469,7 +478,7 @@ def __tile_fixed(tile):
         return tile.is_fixed()
 
 
-def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, params, theme):
+def rooms_corridors_generator(map_draft, player_hd, generator_type, requests, theme, params):
     map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
     num_rooms = 0
     square = map_draft.width * map_draft.height
@@ -547,7 +556,7 @@ def _create_bsp_room(node, userdata, MapDef, bsp):
             maputils.create_v_tunnel(MapDef, ly, ry, lx, rleft, rright)
     return True
 
-def tesselate_generator(map_draft, player_hd, generator_type, requests, params, theme):
+def tesselate_generator(map_draft, player_hd, generator_type, requests, theme, params):
     map_draft = __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
     square = map_draft.width * map_draft.height
     t_factor = int((square / util.roll(3, 3, MIN_ROOM_SIZE)) / randrange(5, 20)) #determine maximum number of rooms
@@ -561,7 +570,7 @@ def tesselate_generator(map_draft, player_hd, generator_type, requests, params, 
     return map_draft
 
 COMPOUND_MERGE_FACTOR=40,70
-def compound_generator(gen1, gen2, map_draft, player_hd, generator_type, requests, params, theme):
+def compound_generator(gen1, gen2, map_draft, player_hd, generator_type, requests, theme, params):
     merge_factor = float(randrange(*COMPOUND_MERGE_FACTOR)) / 100
     horizontal = util.coinflip()
     bsp = libtcod.bsp_new_with_size(0, 0, map_draft.width, map_draft.height)
@@ -601,7 +610,7 @@ def __count_neigh_walls(MapDef, x, y):
     return count
 
 CAVE_OPEN_AREA=4,6
-def cave_generator(map_draft, player_hd, generator_type, requests, params, theme):
+def cave_generator(map_draft, player_hd, generator_type, requests, theme, params):
     __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
     maputils.generate_border(map_draft, ft.fixed_wall)
     open_area_factor = float(randint(4, 6)) / 10
@@ -632,15 +641,119 @@ def cave_generator(map_draft, player_hd, generator_type, requests, params, theme
             elif wall_count < 4:
                 map_draft.replace_feature_atxy(x, y, ft.floor())
 
+    return map_draft
+
+def __get_road_params(params, MapDef):
+    start, stop = False, False
+    startx, starty, stopx, stopy = 0, 0, 0, 0
+    if params and params.has_key('road_start'):
+        startx, starty = params['road_start']
+        start = True
+    if params and params.has_key('road_end'):
+        stopx, stopy = params['road_end']
+        stop = True
+    ticks =  500
+    if start and stop:
+        return max(startx, 0), max(starty, 0), min(stopx, MapDef.width - 1), min(stopy, MapDef.height - 1)
+    while True:
+        if ticks <= 0 : break
+        if not start:
+            startx, starty = randint(0, MapDef.width / 2), randint(0, MapDef.height - 1)
+        if not stop:
+            stopx, stopy = randint(MapDef.width / 2, MapDef.width - 1), randint(0, MapDef.height - 1)
+        ticks -= 1
+        if startx == stopx or starty == stopy: continue
+
+        distance = maputils.manhattan_distance(startx, starty, stopx, stopy)
+        desired_dist = (max(MapDef.width, MapDef.height) / 2)
+        if distance < desired_dist:
+            logger.debug('Road is too short %d expected %d' % (distance, desired_dist))
+            continue
+        break
+    return startx, starty, stopx, stopy
+
+def fill_generator(map_draft, player_hd, generator_type, requests, theme, params):
+    return __gen_wall_square(map_draft, 0, 0, map_draft.width, map_draft.height)
+
+ROAD_BREAK_RANGE=(1,5)
+def road_transformer(map_draft, player_hd, generator_type, requests, theme, params):
+    startx, starty, stopx, stopy = __get_road_params(params, map_draft)
+    road_break = params.get('road_break', ROAD_BREAK_RANGE) if params else ROAD_BREAK_RANGE
+    road_fill = params.get('road_fill', ft.road) if params else ft.road
+    straight = params.get('road_straight', False) if params else False
+
+    dx, dy = abs(stopx - startx), abs(stopy - starty)
+    x, y = startx, starty
+    xmess = False
+    while True:
+        current_len = randint(*road_break)
+        if x == stopx and dy < 10: #if we ran outa x range - finish road
+            for _y in xrange(min(y, stopy), max(stopy, y)):
+                if _y >= map_draft.height:
+                    break
+                if not straight:
+                    if util.coinflip():
+                        map_draft.replace_feature_atxy(x - 1, _y, road_fill())
+                    elif util.coinflip():
+                        map_draft.replace_feature_atxy(x+1, _y, road_fill())
+                map_draft.replace_feature_atxy(x, _y, road_fill())
+            break
+        if y == stopy and dx < 10: #if we ran outa y range - finish it
+            for _x in xrange(x, stopx):
+                if not straight:
+                    if util.coinflip():
+                        map_draft.replace_feature_atxy(_x, y - 1, road_fill())
+                    elif util.coinflip():
+                        map_draft.replace_feature_atxy(_x, y + 1, road_fill())
+                map_draft.replace_feature_atxy(_x, y, road_fill())
+            break
+
+        if dx > dy: #horizontal road
+            xmess = False
+            current_len = min(dx, current_len)
+            y_shift = max(0, min(map_draft.height - 1, y + randint(-1, 1)))
+            if y_shift != 0:
+                map_draft.replace_feature_atxy(x, y, road_fill())
+            for _x in xrange(current_len):
+                map_draft.replace_feature_atxy(x + _x, y_shift, road_fill())
+            x += current_len
+            dx -= current_len - 1
+            y += (y_shift - y)
+            dy = abs(y - stopy)
+        else:
+            current_len = min(dy, current_len)
+            if not xmess:
+                x_shift = max(0, min(map_draft.width - 1, x + randint(-1, 1)))
+            else:
+                x_shift = max(0, min(map_draft.width - 1, x + 1))
+            if x_shift != 0:
+                map_draft.replace_feature_atxy(x, y, road_fill())
+            coeff = 1
+            if y > stopy and util.coinflip():
+                coeff = -1
+            xmess = True
+            for _y in xrange(current_len):
+                if y+_y>= map_draft.height:
+                    break
+                map_draft.replace_feature_atxy(x_shift, y + (_y * coeff), road_fill())
+            y += current_len * coeff
+            dy -= current_len * coeff
+            x += (x_shift - x)
+            dx = abs(x - stopx)
+
     map_draft.debug_print()
     return map_draft
+
 
 generators['null'] = null_generator
 generators['rooms_corridor'] = rooms_corridors_generator
 generators['tesselate'] = tesselate_generator
 generators['compound_tesselate_corridor'] = lambda *args: compound_generator(rooms_corridors_generator, tesselate_generator, *args)
 generators['cave'] = cave_generator
+generators['fill'] = fill_generator
 
+transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
+    road_transformer(map_draft, player_hd, generator_type, requests, theme, params), "road_transformer"))
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \
     maputils.join_blobs(map_draft), 'region_merger'))
 transformation_pipe.append(PipeItem(lambda map_draft, player_hd, generator_type, requests, theme, params: \

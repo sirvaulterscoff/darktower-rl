@@ -210,7 +210,8 @@ requests.append(MapRequest('tower' , {'map_id' : 'tower_2', 'xy': (2, 15)}))
 #map = DungeonGenerator.generate_map('rooms_corridor', theme='crypt', width=10, height=10, requests=requests )
 #map = DungeonGenerator.generate_map('tesselate', theme='crypt', width=10, height=10, requests=requests )
 #map = DungeonGenerator.generate_map('compound_tesselate_corridor', theme='crypt', width=10, height=10, requests=requests )
-map = DungeonGenerator.generate_map('cave', theme='crypt', width=10, height=10, requests=requests )
+#map = DungeonGenerator.generate_map('cave', theme='crypt', width=10, height=10, requests=requests )
+map = DungeonGenerator.generate_map('fill', theme='crypt', width=40, height=30, requests=None, params={'road_straight': True, 'road_break' : (1, 5), 'road_start' : (0, 5), 'road_end': (40, 30)})
 
 
 map = Map(map)
