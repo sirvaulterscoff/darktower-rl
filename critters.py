@@ -53,6 +53,7 @@ class ActionCost(object):
         return min(self.attack, self.move, self.flee, self.pickup, self.stairsdown, self.wield, self.inven_action)
 
 
+NO_ACTION = -128
 class BasicAI(object):
     pass
 class ActiveAI(BasicAI):
@@ -69,11 +70,12 @@ class ActiveAI(BasicAI):
         return False
 
     def decide(self, crit, player, _map):
-        result = None
+        result = NO_ACTION
         if not crit.is_awake:
             return result
         if self._nexttoplayer(crit, player, _map):
             crit.path = None #we reset path here
+            crit.path_initialized = False
             crit.seen_player = (player.x, player.y)
             if crit.can_melee(player):
                 result = crit.do_action(crit.action_cost.attack, lambda: crit.attack(player))
@@ -84,6 +86,7 @@ class ActiveAI(BasicAI):
         if util.has_los(crit.x, crit.y, player.x, player.y, _map.current.fov_map0):
             #this will actualy check if this creature is in player's los, not vice-versa
             crit.path = None #we reset path here
+            crit.path_initialized = False
             crit.seen_player = (player.x, player.y)
             if crit.can_range(player):
                 result = crit.do_action(crit.action_cost.range, lambda: crit.attack_range(player))
@@ -93,6 +96,7 @@ class ActiveAI(BasicAI):
         elif crit.seen_player:
             if not crit.path: # we should make a path towards player
                 crit.path = deque()
+                crit.path_initialized = False
                 crit.path.extend(util.create_path(_map.current.fov_map0, crit.x, crit.y, player.x, player.y))
             newxy = crit.path.popleft()
             #lets make a last check before we giveup on chasing player.
@@ -106,8 +110,9 @@ class ActiveAI(BasicAI):
                     crit.seen_player = False
             result = crit.do_action(crit.action_cost.move, lambda : crit.move_towards(*newxy))
         elif self.patroling:
-            if not crit.path:
+            if not crit.path and not crit.path_initialized:
                 points = []
+                crit.path_initialized = True
                 #finding something of interest
                 altars = _map.current.find_feature(oftype='Altar', multiple=True)
                 if altars:
@@ -131,7 +136,7 @@ class ActiveAI(BasicAI):
 #                    crit.move_towards(*newxy)
                     result = crit.do_action(crit.action_cost.move, lambda : crit.move_towards(*newxy))
                     crit.path.rotate(-1)
-            else:
+            elif crit.path:
                 newxy = crit.path[0]
                 result = crit.do_action(crit.action_cost.move, lambda : crit.move_towards(*newxy))
 #                crit.move_towards(*newxy)
@@ -167,6 +172,7 @@ class Critter(object):
     hd = 0 #relative HD (to that of player)
     action_cost = ActionCost()
     path = None
+    path_initialized = False
     is_awake = True
     seen_player = None
     energy = 0
@@ -275,6 +281,9 @@ class Critter(object):
                 res = self.ai.decide(self, player, self.map)
             #if we failed to do action - break the loop - we don't have energy
             if not res:
+                break
+            elif res == NO_ACTION:
+                self.energy = 0
                 break
             else:
                 took_action = True
